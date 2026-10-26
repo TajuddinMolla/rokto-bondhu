@@ -170,5 +170,73 @@
       "findDonorsCta": "Find Donors",
       "registerCta": "Become a Donor"
     }
+  },
+  "donorsPage": {
+    "title": "Find Blood Donors",
+    "description": "Search for eligible voluntary blood donors across Bangladesh by blood group and locality.",
+    "badge": "Voluntary Network",
+    "filters": {
+      "title": "Filter Donors",
+      "subtitle": "Narrow down donors by your required criteria",
+      "bloodGroupLabel": "Blood Group",
+      "allBloodGroups": "All Blood Groups",
+      "divisionLabel": "Division",
+      "allDivisions": "All Divisions",
+      "districtLabel": "District",
+      "allDistricts": "All Districts",
+      "selectDivisionFirst": "Select division first",
+      "upazilaLabel": "Upazila / Thana",
+      "allUpazilas": "All Upazilas",
+      "selectDistrictFirst": "Select district first",
+      "availabilityLabel": "Availability Status",
+      "allAvailability": "All Availabilities",
+      "applyButton": "Apply Filters",
+      "resetButton": "Reset Filters"
+    },
+    "results": {
+      "title": "Search Results",
+      "activeFiltersLabel": "Active Filters:",
+      "noFiltersActive": "No filters applied",
+      "demoNoticeTitle": "Live Donor Database Pending (Demo Mode)",
+      "demoNoticeDesc": "The platform is currently operating in frontend preview mode. To preserve data integrity and privacy, no fabricated or simulated donor records are displayed. Live donor discovery will be connected to secure databases in an upcoming phase.",
+      "emptyStateSuggestion": "Try selecting different blood group or location parameters.",
+      "becomeDonorTitle": "Want to donate blood and save lives?",
+      "becomeDonorDesc": "Join the RoktoBondhu community as a voluntary donor. A single donation can make a life-saving difference.",
+      "becomeDonorCta": "Register as a Donor"
+    }
+  },
+  "bloodRequestsPage": {
+    "title": "Emergency Blood Requests",
+    "description": "Discover current blood requisitions and coordinate support for patients across Bangladesh.",
+    "badge": "Emergency Feed",
+    "createRequestCta": "Create a Blood Request",
+    "createRequestNotice": "The live blood request submission form will be connected to our secure database in an upcoming phase.",
+    "filters": {
+      "title": "Filter Requests",
+      "subtitle": "Filter by required blood group, location, or urgency",
+      "bloodGroupLabel": "Blood Group",
+      "allBloodGroups": "All Blood Groups",
+      "divisionLabel": "Division",
+      "allDivisions": "All Divisions",
+      "districtLabel": "District",
+      "allDistricts": "All Districts",
+      "selectDivisionFirst": "Select division first",
+      "upazilaLabel": "Upazila / Thana",
+      "allUpazilas": "All Upazilas",
+      "selectDistrictFirst": "Select district first",
+      "urgencyLabel": "Urgency Level",
+      "allUrgencies": "All Urgency Levels",
+      "applyButton": "Apply Filters",
+      "resetButton": "Reset Filters"
+    },
+    "results": {
+      "title": "Active Blood Requests",
+      "activeFiltersLabel": "Active Filters:",
+      "noFiltersActive": "No filters applied",
+      "demoNoticeTitle": "Live Requests Feed Pending (Demo Mode)",
+      "demoNoticeDesc": "The platform is not yet connected to a live database. To prevent misinformation during medical emergencies, no fictitious or mock blood requisitions are displayed.",
+      "emergencyNoticeTitle": "Emergency Medical Notice",
+      "emergencyNoticeDesc": "In critical life-threatening situations, promptly contact certified local blood banks and emergency hospital care units directly."
+    }
   }
 }
