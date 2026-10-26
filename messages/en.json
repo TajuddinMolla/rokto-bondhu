@@ -34,5 +34,48 @@
     "defaultTitle": "RoktoBondhu — Find Blood, Save Lives",
     "titleTemplate": "%s | RoktoBondhu",
     "description": "A trusted digital platform connecting blood donors and recipients across Bangladesh."
+  },
+  "domain": {
+    "donorStatus": {
+      "available": "Available to Donate",
+      "unavailable": "Currently Unavailable",
+      "pending": "Pending Verification"
+    },
+    "requestUrgency": {
+      "normal": "Normal",
+      "urgent": "Urgent",
+      "critical": "Critical"
+    },
+    "requestStatus": {
+      "open": "Open",
+      "fulfilled": "Fulfilled",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    }
+  },
+  "validation": {
+    "nameRequired": "Name is required",
+    "nameMin": "Name must be at least 2 characters",
+    "nameMax": "Name must be at most 100 characters",
+    "phoneRequired": "Phone number is required",
+    "phoneInvalid": "Please provide a valid Bangladesh mobile number (e.g. 01712345678 or +8801712345678)",
+    "bloodGroupRequired": "Blood group is required",
+    "bloodGroupInvalid": "Invalid blood group",
+    "divisionRequired": "Division is required",
+    "districtRequired": "District is required",
+    "upazilaRequired": "Upazila is required",
+    "areaMax": "Area must be at most 150 characters",
+    "hospitalMax": "Hospital name must be at most 200 characters",
+    "unitsRequired": "Number of blood units is required",
+    "unitsMin": "At least 1 unit of blood is required",
+    "unitsMax": "At most 20 units of blood can be requested at a time",
+    "unitsInteger": "Units must be an integer",
+    "urgencyRequired": "Urgency level is required",
+    "urgencyInvalid": "Invalid urgency level",
+    "dateRequired": "Date is required",
+    "dateInvalid": "Please provide a valid date (YYYY-MM-DD)",
+    "futureDateNotAllowed": "Last donation date cannot be in the future",
+    "neededAtRequired": "Required date and time must be specified",
+    "notesMax": "Additional notes must be at most 500 characters"
   }
 }
