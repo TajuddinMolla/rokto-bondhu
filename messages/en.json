@@ -77,5 +77,98 @@
     "futureDateNotAllowed": "Last donation date cannot be in the future",
     "neededAtRequired": "Required date and time must be specified",
     "notesMax": "Additional notes must be at most 500 characters"
+  },
+  "home": {
+    "hero": {
+      "badge": "Emergency Blood Donation Platform",
+      "headline": "Find Blood Donors When Every Moment Matters",
+      "supporting": "Search for blood donors by blood group and location. Your small act of kindness can make a meaningful difference.",
+      "primaryCta": "Find Donors",
+      "secondaryCta": "Become a Donor",
+      "quickStat1": "8 Divisions",
+      "quickStat1Desc": "Nationwide Coverage",
+      "quickStat2": "8 Blood Groups",
+      "quickStat2Desc": "All standard blood groups",
+      "quickStat3": "100% Free",
+      "quickStat3Desc": "Humanitarian initiative"
+    },
+    "search": {
+      "title": "Search Blood Donors",
+      "subtitle": "Select the required blood group and district to find matching donors",
+      "bloodGroupLabel": "Blood Group",
+      "bloodGroupPlaceholder": "Select Blood Group",
+      "divisionLabel": "Division",
+      "divisionPlaceholder": "All Divisions",
+      "districtLabel": "District",
+      "districtPlaceholder": "All Districts",
+      "selectDivisionFirst": "Select division first",
+      "upazilaLabel": "Upazila / Thana",
+      "upazilaPlaceholder": "All Upazilas",
+      "selectDistrictFirst": "Select district first",
+      "searchButton": "Search Donors",
+      "searching": "Searching...",
+      "demoTitle": "Demo Mode — Search Parameters",
+      "demoNotice": "The platform is currently running in interactive demo mode. Real-time database connectivity will be connected in subsequent phases. No fabricated results are shown.",
+      "selectedCriteria": "Selected Criteria",
+      "allBangladesh": "All Bangladesh",
+      "allDistricts": "All Districts",
+      "allUpazilas": "All Upazilas",
+      "pleaseSelectBloodGroup": "Please select a blood group.",
+      "validationError": "Please select the required criteria",
+      "resetCriteria": "Reset"
+    },
+    "howItWorks": {
+      "badge": "Simple 3 Steps",
+      "sectionTitle": "How RoktoBondhu Works",
+      "sectionSubtitle": "Making blood donor discovery and coordination fast and orderly during emergencies",
+      "step1Title": "1. Search Donors",
+      "step1Desc": "Search matching blood donors by selecting the required blood group and location (division, district).",
+      "step2Title": "2. Contact a Donor",
+      "step2Desc": "Connect responsibly with eligible, available donors through the platform's supported communication flow.",
+      "step3Title": "3. Coordinate Donation",
+      "step3Desc": "Coordinate the donation at the hospital or blood bank safely with all concerned parties."
+    },
+    "bloodGroups": {
+      "badge": "Blood Group Guide",
+      "sectionTitle": "Blood Groups & Compatibility",
+      "sectionSubtitle": "Click any blood group to learn which recipient groups can safely receive it",
+      "canDonateToLabel": "Can donate to:",
+      "canReceiveFromLabel": "Can receive from:",
+      "universalDonor": "Universal Donor",
+      "universalRecipient": "Universal Recipient",
+      "searchGroupButton": "Find Donors for This Group",
+      "donorCountNotice": "Blood group compatibility is displayed according to established international transfusion guidelines."
+    },
+    "becomeDonor": {
+      "badge": "Join the Cause",
+      "heading": "A Single Donation Can Save a Life",
+      "subheading": "Regular voluntary blood donation saves precious lives. Join as a registered donor and become part of this humanitarian initiative.",
+      "point1Title": "Safe & Informed Donation",
+      "point1Desc": "A healthy adult can safely donate blood every 3 to 4 months.",
+      "point2Title": "Be There in Emergencies",
+      "point2Desc": "Help provide timely support when someone in your locality faces a critical blood shortage.",
+      "point3Title": "Privacy & Control",
+      "point3Desc": "You have full control to update your donation availability and contact visibility at any time.",
+      "cta": "Become a Donor"
+    },
+    "trust": {
+      "badge": "Trust & Safety",
+      "sectionTitle": "Trust & Safety Guidelines",
+      "sectionSubtitle": "RoktoBondhu is a community platform. Mutual respect, privacy, and safety are our highest priorities.",
+      "principle1Title": "Respect Donor Privacy",
+      "principle1Desc": "Never share a donor's contact information publicly or use it for any purpose other than coordinating blood donation.",
+      "principle2Title": "Verify Information Responsibly",
+      "principle2Desc": "Always verify hospital requirements, patient status, and necessary units before finalizing blood donation.",
+      "principle3Title": "Contact Emergency Medical Services",
+      "principle3Desc": "In critical life-threatening situations, promptly contact local certified blood banks and emergency hospital care.",
+      "principle4Title": "Voluntary & Non-Commercial",
+      "principle4Desc": "Blood donation is purely voluntary. No monetary transaction is endorsed or permitted for blood donations."
+    },
+    "finalCta": {
+      "title": "Join the RoktoBondhu Community Today",
+      "subtitle": "Find the right donor when needed, or register as a voluntary donor to help save lives.",
+      "findDonorsCta": "Find Donors",
+      "registerCta": "Become a Donor"
+    }
   }
 }
