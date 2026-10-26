@@ -193,7 +193,11 @@ export function DonorSearchPanel({
                   aria-required="true"
                   aria-invalid={Boolean(errorMessage)}
                   aria-describedby={errorMessage ? `${formId}-error` : undefined}
-                  className={errorMessage ? "border-destructive focus-visible:ring-destructive" : ""}
+                  className={
+                    errorMessage
+                      ? "border-destructive focus-visible:ring-destructive enabled:hover:border-destructive"
+                      : ""
+                  }
                 >
                   <option value="">{t.home.search.bloodGroupPlaceholder}</option>
                   {BLOOD_GROUPS.map((group) => (

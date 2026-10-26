@@ -46,7 +46,7 @@ export function FinalCtaSection({ locale }: FinalCtaSectionProps) {
             asChild
             variant="outline"
             size="lg"
-            className="w-full sm:w-auto border-slate-700 bg-slate-800 text-white hover:bg-slate-700 font-semibold text-base"
+            className="w-full sm:w-auto border-slate-700 bg-slate-800 text-white hover:border-slate-500 hover:bg-slate-700 hover:text-white font-semibold text-base"
           >
             <Link href={registerHref}>
               <UserPlus className="size-4 mr-2" aria-hidden="true" />

@@ -99,8 +99,8 @@ export function BloodGroupsSection({
                 onClick={() => handleGroupClick(group)}
                 className={`relative flex flex-col items-center justify-center p-4 sm:p-5 rounded-xl border transition-all duration-200 text-center cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
                   isSelected
-                    ? "border-primary bg-primary text-primary-foreground shadow-md scale-102"
-                    : "border-border bg-background text-foreground hover:border-primary/40 hover:bg-primary/5"
+                    ? "border-primary bg-primary text-primary-foreground shadow-md ring-2 ring-primary/20"
+                    : "border-border bg-background text-foreground hover:border-primary/60 hover:bg-primary/5 hover:shadow-xs"
                 }`}
               >
                 {/* Micro badge for universal traits */}

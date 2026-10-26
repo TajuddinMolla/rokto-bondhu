@@ -67,7 +67,7 @@ export function HeroSection({ locale }: HeroSectionProps) {
                 asChild
                 variant="outline"
                 size="lg"
-                className="w-full sm:w-auto text-base border-primary/20 hover:bg-primary/5 hover:text-primary font-semibold"
+                className="w-full sm:w-auto text-base border-primary/20 hover:border-primary/50 hover:bg-primary/5 hover:text-primary font-semibold"
               >
                 <Link href={registerHref}>
                   <UserPlus className="size-4 mr-2" aria-hidden="true" />
