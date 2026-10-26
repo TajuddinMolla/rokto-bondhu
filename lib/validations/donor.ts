@@ -101,6 +101,12 @@ export function createDonorSchema(locale: Locale = "bn") {
     availabilityStatus: z
       .enum(DONOR_AVAILABILITY_STATUSES)
       .default("available"),
+
+    consent: z
+      .boolean()
+      .refine((val) => val === true, {
+        message: t.validation.consentRequired,
+      }),
   });
 }
 

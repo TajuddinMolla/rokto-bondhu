@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { PlusCircle, X, ShieldAlert, HeartHandshake } from "lucide-react";
 
@@ -20,8 +21,6 @@ export function RequestResultsState({ locale }: RequestResultsStateProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-
-  const [isNoticeOpen, setIsNoticeOpen] = React.useState(false);
 
   const bloodGroup = searchParams.get("bloodGroup");
   const divisionId = searchParams.get("division");
@@ -148,41 +147,18 @@ export function RequestResultsState({ locale }: RequestResultsStateProps) {
           </div>
         </div>
 
-        {/* Create Request Action CTA with Transparent Notice */}
-        <div className="pt-4 max-w-md mx-auto space-y-3">
+        {/* Create Request Action CTA */}
+        <div className="pt-2 max-w-md mx-auto">
           <Button
-            type="button"
+            asChild
             size="lg"
-            onClick={() => setIsNoticeOpen(true)}
             className="w-full sm:w-auto font-semibold shadow-xs"
           >
-            <PlusCircle className="size-4 mr-2" aria-hidden="true" />
-            {t.bloodRequestsPage.createRequestCta}
+            <Link href={locale === "en" ? "/en/blood-request/create" : "/blood-request/create"}>
+              <PlusCircle className="size-4 mr-2" aria-hidden="true" />
+              {t.bloodRequestsPage.createRequestCta}
+            </Link>
           </Button>
-
-          {isNoticeOpen ? (
-            <div
-              role="alert"
-              className="p-3.5 rounded-lg border border-primary/30 bg-primary/5 text-xs text-foreground text-left space-y-2 animate-in fade-in duration-200"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <span className="font-semibold text-primary">
-                  {t.brand.name}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsNoticeOpen(false)}
-                  className="text-muted-foreground hover:text-foreground"
-                  aria-label="Close notice"
-                >
-                  <X className="size-3.5" aria-hidden="true" />
-                </button>
-              </div>
-              <p className="text-muted-foreground">
-                {t.bloodRequestsPage.createRequestNotice}
-              </p>
-            </div>
-          ) : null}
         </div>
       </Card>
     </div>

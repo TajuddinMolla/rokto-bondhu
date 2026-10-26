@@ -33,6 +33,7 @@ const ROUTE_MAP: Record<string, string> = {
   "/": "/en",
   "/donors": "/en/donors",
   "/blood-request": "/en/blood-request",
+  "/blood-request/create": "/en/blood-request/create",
   "/register": "/en/register",
   "/login": "/en/login",
 };

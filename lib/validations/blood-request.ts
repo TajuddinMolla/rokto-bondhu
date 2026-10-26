@@ -82,6 +82,12 @@ export function createBloodRequestSchema(locale: Locale = "bn") {
       .max(500, t.validation.notesMax)
       .optional()
       .or(z.literal("")),
+
+    consent: z
+      .boolean()
+      .refine((val) => val === true, {
+        message: t.validation.consentRequired,
+      }),
   });
 }
 

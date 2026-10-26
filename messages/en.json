@@ -76,7 +76,8 @@
     "dateInvalid": "Please provide a valid date (YYYY-MM-DD)",
     "futureDateNotAllowed": "Last donation date cannot be in the future",
     "neededAtRequired": "Required date and time must be specified",
-    "notesMax": "Additional notes must be at most 500 characters"
+    "notesMax": "Additional notes must be at most 500 characters",
+    "consentRequired": "Consent to terms and conditions is required"
   },
   "home": {
     "hero": {
@@ -237,6 +238,108 @@
       "demoNoticeDesc": "The platform is not yet connected to a live database. To prevent misinformation during medical emergencies, no fictitious or mock blood requisitions are displayed.",
       "emergencyNoticeTitle": "Emergency Medical Notice",
       "emergencyNoticeDesc": "In critical life-threatening situations, promptly contact certified local blood banks and emergency hospital care units directly."
+    }
+  },
+  "registrationPage": {
+    "title": "Donor Registration",
+    "description": "Register as a voluntary blood donor and help save lives in critical moments across Bangladesh.",
+    "badge": "Voluntary Donation",
+    "heading": "Register as a Blood Donor",
+    "subtitle": "Provide accurate information to join the voluntary donor network. In an emergency, your single donation can save a life.",
+    "form": {
+      "personalInfoTitle": "Personal & Contact Information",
+      "personalInfoSubtitle": "Recipients and coordinators will reach out using this contact information in emergencies",
+      "nameLabel": "Full Name",
+      "namePlaceholder": "Enter your full name (e.g. Mohammad Karim)",
+      "bloodGroupLabel": "Blood Group",
+      "bloodGroupPlaceholder": "Select blood group",
+      "phoneLabel": "Mobile Number",
+      "phonePlaceholder": "01XXXXXXXXX",
+      "phoneHelper": "Valid 11-digit Bangladeshi mobile number (e.g. 01712345678 or +8801712345678)",
+      "phonePublicLabel": "Display phone number publicly",
+      "phonePublicHelper": "When checked, your phone number will be directly visible in donor search results",
+      "locationTitle": "Current Location & Address",
+      "locationSubtitle": "Specify where you are currently located so nearby requests can be routed to you",
+      "divisionLabel": "Division",
+      "divisionPlaceholder": "Select division",
+      "districtLabel": "District",
+      "districtPlaceholder": "Select district",
+      "upazilaLabel": "Upazila / Thana",
+      "upazilaPlaceholder": "Select upazila / thana",
+      "areaLabel": "Area or Street Address (Optional)",
+      "areaPlaceholder": "House, Road, or neighborhood description",
+      "donationTitle": "Donation History & Availability",
+      "donationSubtitle": "Your last donation history and current donation readiness",
+      "lastDonationDateLabel": "Last Donation Date (if you have donated before)",
+      "lastDonationDateHelper": "Select date (future dates are not allowed)",
+      "availabilityLabel": "Current Availability Status",
+      "availabilityPlaceholder": "Select availability status",
+      "consentLabel": "I certify that all information provided is true and accurate. I voluntarily wish to participate as a blood donor and acknowledge that RoktoBondhu is a humanitarian voluntary coordination platform.",
+      "privacyNotice": "Privacy & Security Notice: RoktoBondhu strictly prohibits any misuse of contact data. Your information will never be sold or used for commercial purposes.",
+      "submitButton": "Complete Donor Registration",
+      "submittingButton": "Validating..."
+    },
+    "demoSuccess": {
+      "title": "Registration Preview Complete (Demo Mode)",
+      "badge": "Validation Successful",
+      "desc": "Thank you! All submitted information has been successfully validated. The platform is currently operating in frontend preview mode; your personal data has not been saved or transmitted to any server. When database connectivity is activated, your profile will be securely saved.",
+      "resetButton": "Submit Another Entry",
+      "searchDonorsButton": "Browse Donor Search"
+    }
+  },
+  "bloodRequestCreatePage": {
+    "title": "Create Blood Request",
+    "description": "Submit an urgent blood request with patient and hospital details.",
+    "badge": "Emergency Blood Requisition",
+    "heading": "Create a Blood Request",
+    "subtitle": "Provide accurate requisition details so potential donors in your area can respond swiftly.",
+    "emergencyBanner": {
+      "title": "Emergency Medical Alert",
+      "desc": "If the patient is in critical or life-threatening condition, immediately contact National Emergency Service (999) or the nearest hospital blood bank directly."
+    },
+    "form": {
+      "patientInfoTitle": "Patient & Contact Information",
+      "patientInfoSubtitle": "Donors will use this contact number to coordinate their arrival at the hospital",
+      "requesterNameLabel": "Requester / Patient Contact Name",
+      "requesterNamePlaceholder": "Name of contact person or guardian",
+      "contactLabel": "Emergency Contact Number",
+      "contactPlaceholder": "01XXXXXXXXX",
+      "contactHelper": "Provide a Bangladeshi phone number that remains reachable 24/7",
+      "bloodDetailsTitle": "Blood Requirements & Urgency",
+      "bloodDetailsSubtitle": "Specify blood group, required units, and urgency level",
+      "bloodGroupLabel": "Required Blood Group",
+      "bloodGroupPlaceholder": "Select blood group",
+      "unitsLabel": "Units / Bags Needed",
+      "unitsPlaceholder": "1",
+      "unitsHelper": "Between 1 and 20 bags",
+      "urgencyLabel": "Urgency Level",
+      "urgencyPlaceholder": "Select urgency level",
+      "neededAtLabel": "Needed Date & Time",
+      "neededAtHelper": "When the blood transfusion will be required",
+      "hospitalLocationTitle": "Hospital & Facility Location",
+      "hospitalLocationSubtitle": "Location where the donor must report",
+      "divisionLabel": "Division",
+      "divisionPlaceholder": "Select division",
+      "districtLabel": "District",
+      "districtPlaceholder": "Select district",
+      "upazilaLabel": "Upazila / Thana",
+      "upazilaPlaceholder": "Select upazila / thana",
+      "hospitalNameLabel": "Hospital / Clinic Name (Optional)",
+      "hospitalNamePlaceholder": "e.g. Dhaka Medical College Hospital",
+      "locationAddressLabel": "Hospital Address, Ward or Bed No. (Optional)",
+      "locationAddressPlaceholder": "Ward no., cabin no., or building description",
+      "notesLabel": "Additional Medical Notes or Instructions (Optional)",
+      "notesPlaceholder": "e.g. Patient has low hemoglobin, scheduled cesarean section, platelets needed",
+      "consentLabel": "I certify that this is a genuine medical request for blood, and respectful communication will be maintained with responding donors.",
+      "submitButton": "Submit Blood Request",
+      "submittingButton": "Validating..."
+    },
+    "demoSuccess": {
+      "title": "Request Preview Complete (Demo Mode)",
+      "badge": "Validation Successful",
+      "desc": "Your blood request has been formatted and validated successfully. Because the platform is currently in frontend preview mode, this request has not been stored in any database and has not been posted to public listings.",
+      "resetButton": "Create Another Request",
+      "viewRequestsButton": "View Blood Requests"
     }
   }
 }
