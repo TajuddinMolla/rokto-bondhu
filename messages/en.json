@@ -1,0 +1,38 @@
+{
+  "brand": {
+    "name": "RoktoBondhu",
+    "tagline": "Find Blood, Save Lives"
+  },
+  "nav": {
+    "home": "Home",
+    "findDonors": "Find Donors",
+    "bloodRequests": "Blood Requests",
+    "becomeDonor": "Become a Donor",
+    "login": "Login"
+  },
+  "languageSwitcher": {
+    "label": "Change language",
+    "bn": "বাংলা",
+    "en": "English",
+    "accessibleAria": "Website language selection menu"
+  },
+  "footer": {
+    "tagline": "Find Blood, Save Lives",
+    "quickLinks": "Quick Links",
+    "participation": "Participation",
+    "donationMessage": "Blood donation is a noble and life-saving humanitarian contribution. RoktoBondhu connects blood recipients and voluntary donors across Bangladesh in emergency times.",
+    "copyright": "RoktoBondhu. All rights reserved.",
+    "missionNote": "Be a part of voluntary humanitarian action"
+  },
+  "accessibility": {
+    "skipToContent": "Skip to main content",
+    "openMenu": "Open navigation menu",
+    "closeMenu": "Close navigation menu",
+    "changeLanguage": "Change language"
+  },
+  "seo": {
+    "defaultTitle": "RoktoBondhu — Find Blood, Save Lives",
+    "titleTemplate": "%s | RoktoBondhu",
+    "description": "A trusted digital platform connecting blood donors and recipients across Bangladesh."
+  }
+}
