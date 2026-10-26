@@ -1,26 +1,147 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Platform Base Palette */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+
+  /* Surfaces & Cards */
+  --surface: #ffffff;
+  --surface-foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+
+  /* Brand / Primary Red */
+  --primary: #b91c1c;
+  --primary-foreground: #ffffff;
+
+  /* Dark Navy / Secondary */
+  --secondary: #0f172a;
+  --secondary-foreground: #ffffff;
+
+  /* Muted Text & Backgrounds */
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+
+  /* Subtle Accent / Red Tint */
+  --accent: #fef2f2;
+  --accent-foreground: #b91c1c;
+
+  /* Destructive / Emergency Red */
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  /* Borders & Inputs */
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #b91c1c;
+
+  /* Status Tokens */
+  --status-available: #16a34a;
+  --status-available-foreground: #ffffff;
+  --status-emergency: #dc2626;
+  --status-emergency-foreground: #ffffff;
+  --status-pending: #d97706;
+  --status-pending-foreground: #ffffff;
+  --status-unavailable: #64748b;
+  --status-unavailable-foreground: #ffffff;
+
+  /* Border Radii */
+  --radius: 0.5rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Status Colors */
+  --color-status-available: var(--status-available);
+  --color-status-available-foreground: var(--status-available-foreground);
+  --color-status-emergency: var(--status-emergency);
+  --color-status-emergency-foreground: var(--status-emergency-foreground);
+  --color-status-pending: var(--status-pending);
+  --color-status-pending-foreground: var(--status-pending-foreground);
+  --color-status-unavailable: var(--status-unavailable);
+  --color-status-unavailable-foreground: var(--status-unavailable-foreground);
+
+  /* Radii */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Typography */
+  --font-sans: var(--font-noto-sans-bengali), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0b0f17;
+    --foreground: #f8fafc;
+
+    --surface: #131c2e;
+    --surface-foreground: #f8fafc;
+    --card: #131c2e;
+    --card-foreground: #f8fafc;
+    --popover: #131c2e;
+    --popover-foreground: #f8fafc;
+
+    --primary: #dc2626;
+    --primary-foreground: #ffffff;
+
+    --secondary: #1e293b;
+    --secondary-foreground: #f8fafc;
+
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
+
+    --accent: #1e293b;
+    --accent-foreground: #f87171;
+
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+
+    --border: #1e293b;
+    --input: #1e293b;
+    --ring: #dc2626;
+
+    --status-available: #22c55e;
+    --status-available-foreground: #ffffff;
+    --status-emergency: #ef4444;
+    --status-emergency-foreground: #ffffff;
+    --status-pending: #f59e0b;
+    --status-pending-foreground: #ffffff;
+    --status-unavailable: #94a3b8;
+    --status-unavailable-foreground: #0f172a;
   }
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
