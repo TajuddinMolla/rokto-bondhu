@@ -144,9 +144,9 @@ export function HeroSection({ locale }: HeroSectionProps) {
                     {["A+", "B+", "O+", "AB+", "A-", "B-", "O-", "AB-"].map((group) => (
                       <div
                         key={group}
-                        className="flex flex-col items-center justify-center py-2.5 rounded-lg border border-border bg-background hover:border-primary/40 hover:bg-primary/5 transition-colors"
+                        className="flex h-9 items-center justify-center rounded-lg border border-border bg-background transition-colors"
                       >
-                        <span className="font-extrabold text-foreground text-sm">
+                        <span className="font-extrabold text-foreground text-sm leading-none text-center">
                           {group}
                         </span>
                       </div>

@@ -70,11 +70,11 @@ export function BloodGroupsSection({
           </Badge>
           <h2
             id="blood-groups-heading"
-            className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight"
+            className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight text-center"
           >
             {t.home.bloodGroups.sectionTitle}
           </h2>
-          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+          <p className="text-sm sm:text-base text-muted-foreground leading-relaxed text-center">
             {t.home.bloodGroups.sectionSubtitle}
           </p>
         </div>
@@ -106,7 +106,7 @@ export function BloodGroupsSection({
                 {/* Micro badge for universal traits */}
                 {isUniversalDonor ? (
                   <span
-                    className={`absolute -top-2.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                    className={`absolute -top-2.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider leading-none inline-flex items-center justify-center text-center ${
                       isSelected
                         ? "bg-white text-primary"
                         : "bg-primary/10 text-primary border border-primary/20"
@@ -118,7 +118,7 @@ export function BloodGroupsSection({
 
                 {isUniversalRecipient ? (
                   <span
-                    className={`absolute -top-2.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                    className={`absolute -top-2.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider leading-none inline-flex items-center justify-center text-center ${
                       isSelected
                         ? "bg-white text-primary"
                         : "bg-primary/10 text-primary border border-primary/20"
@@ -129,12 +129,12 @@ export function BloodGroupsSection({
                 ) : null}
 
                 <Droplet
-                  className={`size-6 mb-2 ${
+                  className={`size-6 mb-2 shrink-0 ${
                     isSelected ? "fill-white text-white" : "fill-primary text-primary"
                   }`}
                   aria-hidden="true"
                 />
-                <span className="text-xl sm:text-2xl font-extrabold tracking-tight">
+                <span className="text-xl sm:text-2xl font-extrabold tracking-tight leading-none text-center inline-flex items-center justify-center">
                   {group}
                 </span>
               </button>
@@ -147,14 +147,14 @@ export function BloodGroupsSection({
           <CardContent className="p-6 sm:p-8 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-border">
               <div className="flex items-center gap-3">
-                <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-black text-2xl shadow-xs">
-                  {selectedGroup}
+                <div className="flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-black text-2xl leading-none text-center shadow-xs shrink-0 select-none">
+                  <span className="leading-none flex items-center justify-center">{selectedGroup}</span>
                 </div>
-                <div>
-                  <h3 className="text-lg sm:text-xl font-bold text-foreground">
+                <div className="flex flex-col justify-center space-y-1">
+                  <h3 className="text-lg sm:text-xl font-bold text-foreground leading-tight">
                     {locale === "bn" ? `গ্রুপ ${selectedGroup}` : `Group ${selectedGroup}`}
                   </h3>
-                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <div className="flex flex-wrap items-center gap-2">
                     {selectedGroup === "O-" ? (
                       <Badge variant="outline" className="border-available/40 text-available bg-available/10 text-xs">
                         {t.home.bloodGroups.universalDonor}
@@ -172,10 +172,10 @@ export function BloodGroupsSection({
               <Button
                 type="button"
                 onClick={handleScrollToSearch}
-                className="self-start sm:self-auto font-semibold gap-2 shadow-xs"
+                className="self-start sm:self-auto font-semibold gap-2 shadow-xs inline-flex items-center justify-center"
               >
-                <span>{t.home.bloodGroups.searchGroupButton}</span>
-                <ArrowRight className="size-4" aria-hidden="true" />
+                <span className="leading-none">{t.home.bloodGroups.searchGroupButton}</span>
+                <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
               </Button>
             </div>
 
@@ -184,14 +184,14 @@ export function BloodGroupsSection({
               {/* Can Donate To */}
               <div className="space-y-3 rounded-xl border border-border bg-surface p-4 sm:p-5">
                 <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <ArrowRight className="size-3.5 text-available" aria-hidden="true" />
-                  <span>{t.home.bloodGroups.canDonateToLabel}</span>
+                  <ArrowRight className="size-3.5 text-available shrink-0" aria-hidden="true" />
+                  <span className="leading-none">{t.home.bloodGroups.canDonateToLabel}</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {canDonateTo.map((recipient) => (
                     <span
                       key={recipient}
-                      className="inline-flex items-center px-3 py-1.5 rounded-lg border border-available/30 bg-available/10 text-available font-bold text-sm"
+                      className="inline-flex items-center justify-center min-w-11 h-9 px-3 rounded-lg border border-border bg-background text-foreground font-bold text-sm leading-none text-center select-none"
                     >
                       {recipient}
                     </span>
@@ -202,14 +202,14 @@ export function BloodGroupsSection({
               {/* Can Receive From */}
               <div className="space-y-3 rounded-xl border border-border bg-surface p-4 sm:p-5">
                 <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <Droplet className="size-3.5 text-primary" aria-hidden="true" />
-                  <span>{t.home.bloodGroups.canReceiveFromLabel}</span>
+                  <Droplet className="size-3.5 text-primary shrink-0" aria-hidden="true" />
+                  <span className="leading-none">{t.home.bloodGroups.canReceiveFromLabel}</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {canReceiveFrom.map((donor) => (
                     <span
                       key={donor}
-                      className="inline-flex items-center px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary font-bold text-sm"
+                      className="inline-flex items-center justify-center min-w-11 h-9 px-3 rounded-lg border border-primary/20 bg-primary/10 text-primary font-bold text-sm leading-none text-center select-none"
                     >
                       {donor}
                     </span>
@@ -219,7 +219,7 @@ export function BloodGroupsSection({
             </div>
 
             {/* Scientific Notice */}
-            <div className="text-xs text-muted-foreground pt-2 text-center sm:text-left">
+            <div className="text-xs text-muted-foreground pt-2 text-center sm:text-left leading-normal">
               * {t.home.bloodGroups.donorCountNotice}
             </div>
           </CardContent>

@@ -76,7 +76,7 @@ export function HowItWorksSection({ locale }: HowItWorksSectionProps) {
                     <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
                       <Icon className="size-6" aria-hidden="true" />
                     </div>
-                    <span className="text-2xl sm:text-3xl font-extrabold text-muted-foreground/30 font-mono">
+                    <span className="text-2xl sm:text-3xl font-extrabold text-muted-foreground/30 font-mono leading-none select-none">
                       {step.number}
                     </span>
                   </div>
