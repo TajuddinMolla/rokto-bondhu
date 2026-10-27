@@ -17,6 +17,7 @@ import {
   CalendarClock,
   User,
   PhoneCall,
+  ClipboardList,
 } from "lucide-react";
 
 import { BLOOD_GROUPS } from "@/constants/blood-groups";
@@ -30,6 +31,10 @@ import {
   getUpazilaById,
 } from "@/constants/locations";
 import { createBloodRequestSchema, type BloodRequestInput } from "@/lib/validations/blood-request";
+import type { BloodRequest } from "@/types/request";
+import { useAuth } from "@/hooks/use-auth";
+import { useUserProfile } from "@/hooks/queries/use-user-profile";
+import { useCreateBloodRequest } from "@/hooks/mutations/use-create-blood-request";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,9 +68,14 @@ const INITIAL_FORM_STATE: BloodRequestInput = {
 export function BloodRequestForm({ locale }: BloodRequestFormProps) {
   const t = getTranslations(locale);
   const formId = React.useId();
+  const { user, status } = useAuth();
+
+  const { data: userProfile } = useUserProfile(user?.uid);
+  const createRequestMutation = useCreateBloodRequest();
 
   const [isSuccess, setIsSuccess] = React.useState(false);
-  const [submittedSnapshot, setSubmittedSnapshot] = React.useState<BloodRequestInput | null>(null);
+  const [submittedSnapshot, setSubmittedSnapshot] = React.useState<BloodRequest | BloodRequestInput | null>(null);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
 
   // Schema initialized with active locale
   const requestSchema = React.useMemo(() => createBloodRequestSchema(locale), [locale]);
@@ -76,13 +86,29 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<BloodRequestInput>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(requestSchema as any),
     defaultValues: INITIAL_FORM_STATE,
     mode: "onTouched",
   });
+
+  // Pre-fill user data once available
+  const hasInitializedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (!hasInitializedRef.current) {
+      if (user?.displayName || userProfile?.displayName) {
+        setValue("requesterName", user?.displayName || userProfile?.displayName || "");
+      }
+      if (userProfile?.phoneNumber) {
+        setValue("contactNumber", userProfile.phoneNumber);
+      }
+      if (user?.displayName || userProfile?.phoneNumber) {
+        hasInitializedRef.current = true;
+      }
+    }
+  }, [user?.displayName, userProfile?.displayName, userProfile?.phoneNumber, setValue]);
 
   // Watch location fields for cascading dependencies
   const watchedDivisionId = useWatch({ control, name: "divisionId" });
@@ -118,14 +144,54 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
   };
 
   const onSubmit = async (data: BloodRequestInput) => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    setSubmittedSnapshot(data);
-    setIsSuccess(true);
+    if (!user?.uid) {
+      setSubmitError(
+        locale === "en"
+          ? "Please sign in to your RoktoBondhu account to submit a blood request."
+          : "রক্তের অনুরোধ প্রকাশ করতে অনুগ্রহ করে আপনার রক্তবন্ধু একাউন্টে লগইন করুন।"
+      );
+      return;
+    }
+
+    setSubmitError(null);
+
+    try {
+      const created = await createRequestMutation.mutateAsync({
+        userId: user.uid,
+        input: {
+          requesterName: data.requesterName,
+          contactNumber: data.contactNumber,
+          bloodGroup: data.bloodGroup,
+          unitsNeeded: data.unitsNeeded,
+          divisionId: data.divisionId,
+          districtId: data.districtId,
+          upazilaId: data.upazilaId,
+          hospitalName: data.hospitalName || undefined,
+          locationAddress: data.locationAddress || undefined,
+          neededAt: data.neededAt,
+          urgency: data.urgency,
+          additionalNotes: data.additionalNotes || undefined,
+        },
+      });
+
+      setSubmittedSnapshot(created);
+      setIsSuccess(true);
+    } catch (err: unknown) {
+      const msg =
+        (err as { message?: string })?.message ||
+        (locale === "en" ? "Failed to save blood request. Please try again." : "রক্তের অনুরোধ সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।");
+      setSubmitError(msg);
+    }
   };
 
   const handleReset = () => {
-    reset(INITIAL_FORM_STATE);
+    reset({
+      ...INITIAL_FORM_STATE,
+      requesterName: user?.displayName || userProfile?.displayName || "",
+      contactNumber: userProfile?.phoneNumber || "",
+    });
     setSubmittedSnapshot(null);
+    setSubmitError(null);
     setIsSuccess(false);
   };
 
@@ -142,6 +208,8 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
       .filter(Boolean)
       .join(", ");
 
+    const myRequestsHref = locale === "en" ? "/en/account/requests" : "/account/requests";
+
     return (
       <Card className="border border-primary/20 bg-surface shadow-sm overflow-hidden animate-in fade-in duration-300">
         <div className="bg-primary/5 border-b border-primary/10 p-6 sm:p-8 text-center space-y-3">
@@ -150,21 +218,25 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
           </div>
           <div>
             <Badge variant="outline" className="border-primary/30 text-primary mb-2">
-              {t.bloodRequestCreatePage.demoSuccess.badge}
+              {locale === "en" ? "Request Published" : "অনুরোধ প্রকাশিত"}
             </Badge>
             <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-              {t.bloodRequestCreatePage.demoSuccess.title}
+              {locale === "en"
+                ? "Blood Request Successfully Published!"
+                : "রক্তের অনুরোধ সফলভাবে সংরক্ষিত হয়েছে!"}
             </h2>
           </div>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            {t.bloodRequestCreatePage.demoSuccess.desc}
+            {locale === "en"
+              ? "Your blood requisition has been saved to the database. You can track, update, or cancel it anytime from your account."
+              : "আপনার রক্তের অনুরোধ সফলভাবে ডাটাবেজে সংরক্ষিত হয়েছে। আপনি আপনার অ্যাকাউন্ট থেকে যেকোনো সময় অনুরোধের বিবরণ আপডেট বা সম্পন্ন/বাতিল করতে পারবেন।"}
           </p>
         </div>
 
         <CardContent className="p-6 sm:p-8 space-y-6">
           <div className="rounded-xl border border-border bg-muted/20 p-4 sm:p-5 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {locale === "en" ? "Broadcast Preview" : "অনুরোধের তথ্য প্রিভিউ"}
+              {locale === "en" ? "Broadcast Details" : "অনুরোধের বিবরণ"}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div>
@@ -240,6 +312,12 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
               <span>{t.bloodRequestCreatePage.demoSuccess.resetButton}</span>
             </Button>
             <Button asChild className="w-full sm:w-auto gap-2">
+              <Link href={myRequestsHref}>
+                <ClipboardList className="size-4" aria-hidden="true" />
+                <span>{locale === "en" ? "My Blood Requests" : "আমার রক্তের অনুরোধ"}</span>
+              </Link>
+            </Button>
+            <Button asChild variant="secondary" className="w-full sm:w-auto gap-2">
               <Link href={locale === "en" ? "/en/blood-request" : "/blood-request"}>
                 <ListFilter className="size-4" aria-hidden="true" />
                 <span>{t.bloodRequestCreatePage.demoSuccess.viewRequestsButton}</span>
@@ -251,8 +329,47 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
     );
   }
 
+  const isPending = createRequestMutation.isPending;
+
   return (
     <div className="space-y-6">
+      {/* Authentication Guidance Callout */}
+      {status === "unauthenticated" ? (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border border-amber-500/20 bg-amber-500/10 text-xs sm:text-sm">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="size-4.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
+            <span className="text-foreground leading-relaxed">
+              {locale === "en"
+                ? "You must be signed in to submit and broadcast a blood request."
+                : "রক্তের অনুরোধ প্রকাশ করতে এবং পরবর্তীতে পরিচালনা করতে একাউন্টে লগইন থাকতে হবে।"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button asChild variant="outline" size="sm">
+              <Link href={locale === "en" ? "/en/login" : "/login"}>
+                {locale === "en" ? "Sign In" : "লগইন"}
+              </Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link href={locale === "en" ? "/en/register" : "/register"}>
+                {locale === "en" ? "Create Account" : "একাউন্ট তৈরি"}
+              </Link>
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Error Alert Banner */}
+      {submitError ? (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex items-start gap-2.5 rounded-xl border border-destructive/20 bg-destructive/10 p-4 text-xs sm:text-sm text-destructive font-medium animate-in fade-in duration-200"
+        >
+          <AlertCircle className="size-5 shrink-0 mt-0.5" aria-hidden="true" />
+          <span className="leading-relaxed">{submitError}</span>
+        </div>
+      ) : null}
       {/* Emergency Medical Alert Banner */}
       <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 text-destructive flex items-start gap-3">
         <ShieldAlert className="size-5 shrink-0 mt-0.5" aria-hidden="true" />
@@ -659,10 +776,10 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
                 <Button
                   type="submit"
                   size="lg"
-                  disabled={isSubmitting}
+                  disabled={isPending || status === "unauthenticated"}
                   className="w-full sm:w-auto font-semibold shadow-xs min-w-[220px]"
                 >
-                  {isSubmitting ? (
+                  {isPending ? (
                     <>
                       <Loader2 className="size-4 mr-2 animate-spin" aria-hidden="true" />
                       <span>{t.bloodRequestCreatePage.form.submittingButton}</span>

@@ -10,6 +10,7 @@ import type { BloodGroup, RequestStatus, RequestUrgency } from "@/types/blood";
  */
 export interface BloodRequest {
   id: string;
+  requesterId: string;
   requesterName: string;
   contactNumber: string;
   bloodGroup: BloodGroup;
@@ -25,6 +26,43 @@ export interface BloodRequest {
   additionalNotes?: string;
   createdAt: string; // ISO 8601 string
   updatedAt: string; // ISO 8601 string
+}
+
+/**
+ * Input type for creating a new blood request.
+ */
+export interface CreateBloodRequestInput {
+  requesterName: string;
+  contactNumber: string;
+  bloodGroup: BloodGroup;
+  unitsNeeded: number;
+  divisionId: string;
+  districtId: string;
+  upazilaId: string;
+  hospitalName?: string;
+  locationAddress?: string;
+  neededAt: string;
+  urgency: RequestUrgency;
+  additionalNotes?: string;
+}
+
+/**
+ * Input type for updating an existing blood request.
+ */
+export interface UpdateBloodRequestInput {
+  requesterName?: string;
+  contactNumber?: string;
+  bloodGroup?: BloodGroup;
+  unitsNeeded?: number;
+  divisionId?: string;
+  districtId?: string;
+  upazilaId?: string;
+  hospitalName?: string;
+  locationAddress?: string;
+  neededAt?: string;
+  urgency?: RequestUrgency;
+  additionalNotes?: string;
+  status?: RequestStatus;
 }
 
 /**

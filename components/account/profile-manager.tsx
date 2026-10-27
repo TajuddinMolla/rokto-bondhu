@@ -16,11 +16,15 @@ import {
   CheckCircle2,
   LogOut,
   Power,
+  ClipboardList,
+  PlusCircle,
+  ArrowRight,
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useUserProfile } from "@/hooks/queries/use-user-profile";
 import { useDonorProfile } from "@/hooks/queries/use-donor-profile";
+import { useMyBloodRequests } from "@/hooks/queries/use-my-blood-requests";
 import { useUpdateDonorAvailability } from "@/hooks/mutations/use-update-donor-availability";
 import { useUpdateUserProfile } from "@/hooks/mutations/use-update-user-profile";
 import { getDivisionById, getDistrictById, getUpazilaById } from "@/constants/locations";
@@ -46,6 +50,7 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
   // Queries
   const { data: userProfile, isLoading: isUserLoading } = useUserProfile(user?.uid);
   const { data: donorProfile, isLoading: isDonorLoading } = useDonorProfile(user?.uid);
+  const { data: myRequests = [] } = useMyBloodRequests(user?.uid);
 
   // Mutations
   const updateAvailabilityMutation = useUpdateDonorAvailability();
@@ -55,6 +60,8 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
   const loginHref = `${prefix}/login`;
   const donorRegisterHref = `${prefix}/donors/register`;
   const verifyEmailHref = `${prefix}/verify-email`;
+  const myRequestsHref = `${prefix}/account/requests`;
+  const createRequestHref = `${prefix}/blood-request/create`;
 
   // Redirect if not logged in
   React.useEffect(() => {
@@ -495,6 +502,65 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
                   </Button>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Blood Requests Management Card */}
+          <Card className="border border-border bg-surface shadow-xs">
+            <CardHeader className="pb-4 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <ClipboardList className="size-5 text-primary" aria-hidden="true" />
+                <div>
+                  <CardTitle className="text-base sm:text-lg font-bold text-foreground">
+                    {locale === "en" ? "My Blood Requests" : "আমার রক্তের অনুরোধ"}
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    {locale === "en"
+                      ? "Manage urgent blood requisition broadcasts"
+                      : "আপনার জরুরি রক্তের চাহিদা ও অনুরোধসমূহ পরিচালনা করুন"}
+                  </CardDescription>
+                </div>
+              </div>
+              <Button asChild size="sm" variant="outline" className="gap-1.5 self-start sm:self-auto">
+                <Link href={myRequestsHref}>
+                  <span>{locale === "en" ? "View All" : "সব দেখুন"}</span>
+                  <ArrowRight className="size-3.5" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-muted/10">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {locale === "en" ? "Active Broadcasts:" : "সক্রিয় অনুরোধ:"}
+                    </span>
+                    <Badge variant="default" className="text-xs font-bold">
+                      {myRequests.filter((r) => r.status === "open").length}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">•</span>
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {locale === "en" ? "Total Submitted:" : "মোট অনুরোধ:"}
+                    </span>
+                    <span className="text-xs font-semibold text-foreground">
+                      {myRequests.length}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {locale === "en"
+                      ? "You can update request details, mark requests as fulfilled, or cancel requests anytime."
+                      : "যেকোনো সময় অনুরোধের বিবরণ পরিবর্তন, সম্পন্ন অথবা বাতিল করতে পারবেন।"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                  <Button asChild size="sm" className="w-full sm:w-auto gap-1.5 shadow-xs">
+                    <Link href={createRequestHref}>
+                      <PlusCircle className="size-3.5" />
+                      <span>{locale === "en" ? "Create Request" : "নতুন অনুরোধ"}</span>
+                    </Link>
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

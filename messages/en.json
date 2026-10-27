@@ -344,9 +344,9 @@
       "submittingButton": "Validating..."
     },
     "demoSuccess": {
-      "title": "Request Preview Complete (Demo Mode)",
-      "badge": "Validation Successful",
-      "desc": "Your blood request has been formatted and validated successfully. Because the platform is currently in frontend preview mode, this request has not been stored in any database and has not been posted to public listings.",
+      "title": "Blood Request Successfully Published!",
+      "badge": "Request Published",
+      "desc": "Your blood requisition has been saved to the database. You can track, update, or cancel it anytime from your account.",
       "resetButton": "Create Another Request",
       "viewRequestsButton": "View Blood Requests"
     }
