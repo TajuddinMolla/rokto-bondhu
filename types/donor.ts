@@ -41,3 +41,40 @@ export interface DonorPublicSummary {
   lastDonationDate?: string;
   availabilityStatus: DonorAvailabilityStatus;
 }
+
+/**
+ * Dedicated public donor representation stored in `/publicDonorProfiles/{uid}`.
+ * Strictly omits all private phone numbers, street addresses, and auth credentials.
+ */
+export interface PublicDonorProfile {
+  id: string;
+  displayName: string;
+  bloodGroup: BloodGroup;
+  divisionId: string;
+  districtId: string;
+  upazilaId: string;
+  availabilityStatus: DonorAvailabilityStatus;
+  lastDonationDate?: string; // YYYY-MM-DD
+  updatedAt: string; // ISO 8601 string
+}
+
+/**
+ * Filter parameters for public donor discovery queries.
+ */
+export interface DonorSearchFilterParams {
+  bloodGroup?: BloodGroup | string;
+  divisionId?: string;
+  districtId?: string;
+  upazilaId?: string;
+  availabilityStatus?: DonorAvailabilityStatus | string;
+}
+
+/**
+ * Paginated result representation from cursor-based public donor queries.
+ */
+export interface PublicDonorSearchResult {
+  donors: PublicDonorProfile[];
+  nextCursorId: string | null;
+  hasMore: boolean;
+}
+

@@ -24,6 +24,17 @@ export function isBloodGroup(value: unknown): value is BloodGroup {
 }
 
 /**
+ * Normalizes blood group input strings (e.g. "b+", "B ", "b-", "ab+")
+ * to standardized uppercase BloodGroup ("B+", "B-", "AB+").
+ * Accurately handles URL query parameter decoding where "+" becomes a space " ".
+ */
+export function normalizeBloodGroup(value?: string | null): BloodGroup | undefined {
+  if (!value) return undefined;
+  const cleaned = value.trim().replace(/\s+/g, "+").toUpperCase();
+  return isBloodGroup(cleaned) ? (cleaned as BloodGroup) : undefined;
+}
+
+/**
  * Red Blood Cell (RBC) Donation Compatibility Matrix.
  * Maps a donor's blood group to the recipient blood groups they can safely donate to.
  */

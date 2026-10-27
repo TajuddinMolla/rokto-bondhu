@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Filter, RotateCcw } from "lucide-react";
 
-import { BLOOD_GROUPS, isBloodGroup } from "@/constants/blood-groups";
+import { BLOOD_GROUPS, normalizeBloodGroup } from "@/constants/blood-groups";
 import {
   DONOR_AVAILABILITY_STATUSES,
   isDonorAvailabilityStatus,
@@ -33,7 +33,7 @@ export function DonorSearchFilters({ locale }: DonorSearchFiltersProps) {
   const formId = React.useId();
 
   // Read initial values from URL query parameters
-  const initialBloodGroup = searchParams.get("bloodGroup") || "";
+  const initialBloodGroup = normalizeBloodGroup(searchParams.get("bloodGroup")) || "";
   const initialDivision = searchParams.get("division") || "";
   const initialDistrict = searchParams.get("district") || "";
   const initialUpazila = searchParams.get("upazila") || "";
@@ -49,9 +49,7 @@ export function DonorSearchFilters({ locale }: DonorSearchFiltersProps) {
     return "";
   }, [initialDivision, initialDistrict]);
 
-  const [bloodGroup, setBloodGroup] = React.useState<string>(
-    isBloodGroup(initialBloodGroup) ? initialBloodGroup : ""
-  );
+  const [bloodGroup, setBloodGroup] = React.useState<string>(initialBloodGroup);
   const [divisionId, setDivisionId] = React.useState<string>(resolvedDivision);
   const [districtId, setDistrictId] = React.useState<string>(initialDistrict);
   const [upazilaId, setUpazilaId] = React.useState<string>(initialUpazila);
@@ -64,14 +62,14 @@ export function DonorSearchFilters({ locale }: DonorSearchFiltersProps) {
   const [prevParamsString, setPrevParamsString] = React.useState(currentParamsString);
   if (currentParamsString !== prevParamsString) {
     setPrevParamsString(currentParamsString);
-    const bg = searchParams.get("bloodGroup") || "";
+    const bg = normalizeBloodGroup(searchParams.get("bloodGroup")) || "";
     const dist = searchParams.get("district") || "";
     const rawDiv = searchParams.get("division") || "";
     const div = rawDiv || (dist ? getDistrictById(dist)?.divisionId || "" : "");
     const upa = searchParams.get("upazila") || "";
     const av = searchParams.get("availability") || "";
 
-    setBloodGroup(isBloodGroup(bg) ? bg : "");
+    setBloodGroup(bg);
     setDivisionId(div);
     setDistrictId(dist);
     setUpazilaId(upa);

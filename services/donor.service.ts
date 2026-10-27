@@ -14,7 +14,8 @@ import type { DonorProfile } from "@/types/donor";
 import type { DonorAvailabilityStatus } from "@/types/blood";
 import type { DonorInput } from "@/lib/validations/donor";
 
-const DONOR_PROFILES_COLLECTION = "donorProfiles";
+export const DONOR_PROFILES_COLLECTION = "donorProfiles";
+export const PUBLIC_DONOR_PROFILES_COLLECTION = "publicDonorProfiles";
 
 function timestampToIso(value: unknown): string {
   if (!value) return new Date().toISOString();
@@ -45,7 +46,7 @@ export async function getDonorProfile(uid: string): Promise<DonorProfile | null>
   }
 
   const data = snap.data();
-  return {
+  const profile: DonorProfile = {
     id: snap.id,
     userId: snap.id,
     displayName: data.displayName || "",
@@ -61,11 +62,58 @@ export async function getDonorProfile(uid: string): Promise<DonorProfile | null>
     createdAt: timestampToIso(data.createdAt),
     updatedAt: timestampToIso(data.updatedAt),
   };
+
+  // Self-heal: ensure public projection exists for search discovery
+  ensurePublicDonorProfile(uid, profile).catch(() => {});
+
+  return profile;
+}
+
+/**
+ * Idempotently ensures that an authenticated user's public donor profile exists
+ * if they have an active private donor profile.
+ */
+export async function ensurePublicDonorProfile(
+  uid: string,
+  existingProfile?: DonorProfile | null
+): Promise<void> {
+  const db = getFirebaseDb();
+  if (!db || !uid) return;
+
+  try {
+    const publicDocRef = doc(db, PUBLIC_DONOR_PROFILES_COLLECTION, uid);
+    const publicSnap = await getDoc(publicDocRef);
+    if (publicSnap.exists()) return;
+
+    let profile = existingProfile;
+    if (!profile) {
+      profile = await getDonorProfile(uid);
+    }
+    if (!profile) return;
+
+    await setDoc(
+      publicDocRef,
+      {
+        displayName: profile.displayName || "",
+        bloodGroup: profile.bloodGroup,
+        divisionId: profile.divisionId,
+        districtId: profile.districtId,
+        upazilaId: profile.upazilaId,
+        availabilityStatus: profile.availabilityStatus || "available",
+        lastDonationDate: profile.lastDonationDate || null,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch {
+    // Non-fatal if offline
+  }
 }
 
 /**
  * Creates or updates the donor profile for an authenticated user.
  * Document ID strictly matches the user UID to guarantee 1:1 uniqueness.
+ * Synchronizes a public-safe representation to `publicDonorProfiles/{uid}`.
  */
 export async function upsertDonorProfile(
   uid: string,
@@ -77,6 +125,7 @@ export async function upsertDonorProfile(
   }
 
   const docRef = doc(db, DONOR_PROFILES_COLLECTION, uid);
+  const publicDocRef = doc(db, PUBLIC_DONOR_PROFILES_COLLECTION, uid);
   const existing = await getDoc(docRef);
   const isNew = !existing.exists();
 
@@ -99,7 +148,22 @@ export async function upsertDonorProfile(
     payload.createdAt = serverTimestamp();
   }
 
-  await setDoc(docRef, payload, { merge: true });
+  // Dual-write: private profile & public projection without phone/area
+  const publicPayload: Record<string, unknown> = {
+    displayName: input.displayName.trim(),
+    bloodGroup: input.bloodGroup,
+    divisionId: input.divisionId,
+    districtId: input.districtId,
+    upazilaId: input.upazilaId,
+    availabilityStatus: input.availabilityStatus || "available",
+    lastDonationDate: input.lastDonationDate?.trim() || null,
+    updatedAt: serverTimestamp(),
+  };
+
+  await Promise.all([
+    setDoc(docRef, payload, { merge: true }),
+    setDoc(publicDocRef, publicPayload, { merge: true }),
+  ]);
 
   // Update hasDonorProfile flag on user document
   try {
@@ -132,7 +196,7 @@ export async function upsertDonorProfile(
 }
 
 /**
- * Updates a donor's availability status.
+ * Updates a donor's availability status across both private and public records.
  */
 export async function updateDonorAvailability(
   uid: string,
@@ -144,14 +208,28 @@ export async function updateDonorAvailability(
   }
 
   const docRef = doc(db, DONOR_PROFILES_COLLECTION, uid);
-  await updateDoc(docRef, {
-    availabilityStatus: status,
-    updatedAt: serverTimestamp(),
-  });
+  const publicDocRef = doc(db, PUBLIC_DONOR_PROFILES_COLLECTION, uid);
+
+  await Promise.all([
+    updateDoc(docRef, {
+      availabilityStatus: status,
+      updatedAt: serverTimestamp(),
+    }),
+    setDoc(
+      publicDocRef,
+      {
+        availabilityStatus: status,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    ).catch(() => {
+      // Non-fatal if public doc write experiences temporary network race
+    }),
+  ]);
 }
 
 /**
- * Deletes a donor profile and updates user doc flag.
+ * Deletes a donor profile and its public projection.
  */
 export async function deleteDonorProfile(uid: string): Promise<void> {
   const db = getFirebaseDb();
@@ -160,7 +238,12 @@ export async function deleteDonorProfile(uid: string): Promise<void> {
   }
 
   const docRef = doc(db, DONOR_PROFILES_COLLECTION, uid);
-  await deleteDoc(docRef);
+  const publicDocRef = doc(db, PUBLIC_DONOR_PROFILES_COLLECTION, uid);
+
+  await Promise.all([
+    deleteDoc(docRef),
+    deleteDoc(publicDocRef).catch(() => {}),
+  ]);
 
   try {
     await setUserHasDonorProfile(uid, false);
@@ -168,3 +251,4 @@ export async function deleteDonorProfile(uid: string): Promise<void> {
     // Non-fatal
   }
 }
+

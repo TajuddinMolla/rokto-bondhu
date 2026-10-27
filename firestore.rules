@@ -61,6 +61,29 @@ service cloud.firestore {
     }
 
     // -------------------------------------------------------------
+    // Public Donor Profiles Collection: /publicDonorProfiles/{donorId}
+    // Phase 12: Dedicated public-safe projection for open donor discovery.
+    // Zero private fields (phones, street addresses, credentials) permitted.
+    // -------------------------------------------------------------
+    match /publicDonorProfiles/{donorId} {
+      // Publicly readable for volunteer discovery
+      allow read: if true;
+
+      // Only the profile owner can publish or update their public-safe card
+      allow create, update: if isOwner(donorId)
+                            && request.resource.data.keys().hasOnly([
+                              'displayName', 'bloodGroup', 'divisionId',
+                              'districtId', 'upazilaId', 'availabilityStatus',
+                              'lastDonationDate', 'updatedAt'
+                            ])
+                            && isValidBloodGroup(request.resource.data.bloodGroup)
+                            && isValidAvailability(request.resource.data.availabilityStatus);
+
+      // Only the profile owner can delete their public card
+      allow delete: if isOwner(donorId);
+    }
+
+    // -------------------------------------------------------------
     // Blood Requests Collection: /bloodRequests/{requestId}
     // Requests created by authenticated users.
     // -------------------------------------------------------------

@@ -1,15 +1,17 @@
 import * as React from "react";
-import { Phone, MapPin, Calendar, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { MapPin, Calendar, ShieldCheck, HeartHandshake } from "lucide-react";
 
-import type { DonorPublicSummary } from "@/types/donor";
+import type { PublicDonorProfile, DonorPublicSummary } from "@/types/donor";
 import { formatLocation } from "@/constants/locations";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
 
 interface DonorCardProps {
-  donor: DonorPublicSummary;
+  donor: PublicDonorProfile | DonorPublicSummary;
   locale: Locale;
 }
 
@@ -21,17 +23,22 @@ export function DonorCard({ donor, locale }: DonorCardProps) {
       divisionId: donor.divisionId,
       districtId: donor.districtId,
       upazilaId: donor.upazilaId,
-      area: donor.area,
     },
     locale
   );
 
   const statusVariant =
     donor.availabilityStatus === "available"
-      ? "border-available/40 text-available bg-available/10"
+      ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
       : donor.availabilityStatus === "pending"
-      ? "border-pending/40 text-pending bg-pending/10"
+      ? "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10"
       : "border-border text-muted-foreground bg-muted/40";
+
+  const requestHref = `${
+    locale === "en" ? "/en" : ""
+  }/blood-request/create?bloodGroup=${encodeURIComponent(
+    donor.bloodGroup
+  )}&division=${donor.divisionId}&district=${donor.districtId}&upazila=${donor.upazilaId}`;
 
   return (
     <Card className="border border-border bg-surface hover:border-primary/40 transition-all duration-200 hover:shadow-xs">
@@ -60,29 +67,33 @@ export function DonorCard({ donor, locale }: DonorCardProps) {
         </div>
 
         <div className="pt-3 border-t border-border flex flex-wrap items-center justify-between gap-3 text-xs">
-          {donor.isPhonePublic && donor.phoneNumber ? (
-            <a
-              href={`tel:${donor.phoneNumber}`}
-              className="inline-flex items-center gap-1.5 text-primary font-semibold hover:underline"
-            >
-              <Phone className="size-3.5" aria-hidden="true" />
-              <span>{donor.phoneNumber}</span>
-            </a>
-          ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Privacy Protection Indicator: Never displays raw phone numbers */}
             <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-              <ShieldCheck className="size-3.5 text-available" aria-hidden="true" />
-              <span>{t.home.becomeDonor.point3Title}</span>
+              <ShieldCheck className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
+              <span>{t.donorsPage.results.contactProtected}</span>
             </span>
-          )}
 
-          {donor.lastDonationDate ? (
-            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-              <Calendar className="size-3.5" aria-hidden="true" />
-              <span>{donor.lastDonationDate}</span>
-            </span>
-          ) : null}
+            {donor.lastDonationDate ? (
+              <span className="inline-flex items-center gap-1 text-muted-foreground">
+                <Calendar className="size-3.5 shrink-0" aria-hidden="true" />
+                <span>
+                  {t.donorsPage.results.lastDonationLabel} <strong>{donor.lastDonationDate}</strong>
+                </span>
+              </span>
+            ) : null}
+          </div>
+
+          {/* Secure Contact Action: Links to Blood Request Creation */}
+          <Button asChild size="sm" variant="outline" className="h-7 text-xs gap-1.5 font-medium border-primary/30 text-primary hover:bg-primary/10">
+            <Link href={requestHref}>
+              <HeartHandshake className="size-3.5" aria-hidden="true" />
+              <span>{t.donorsPage.results.requestBloodCta}</span>
+            </Link>
+          </Button>
         </div>
       </CardContent>
     </Card>
   );
 }
+
