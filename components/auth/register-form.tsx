@@ -3,9 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@/lib/validations/zod-resolver";
 import { Loader2, AlertCircle, ArrowRight, Heart, ShieldAlert } from "lucide-react";
 
-import { createRegisterSchema } from "@/lib/validations/auth";
+import { createRegisterSchema, type RegisterInput } from "@/lib/validations/auth";
 import { getFirebaseErrorMessage } from "@/lib/firebase/errors";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -19,40 +21,36 @@ export interface RegisterFormProps {
   locale: Locale;
 }
 
-interface RegisterState {
-  fullName: string;
-  email: string;
-  phoneNumber: string;
-  password: string;
-  confirmPassword: string;
-  consent: boolean;
-}
-
-const INITIAL_STATE: RegisterState = {
-  fullName: "",
-  email: "",
-  phoneNumber: "",
-  password: "",
-  confirmPassword: "",
-  consent: false,
-};
-
 export function RegisterForm({ locale }: RegisterFormProps) {
   const t = getTranslations(locale);
   const router = useRouter();
   const formId = React.useId();
-  const { register, isConfigured, status, user } = useAuth();
-
-  const [formData, setFormData] = React.useState<RegisterState>(INITIAL_STATE);
-  const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const { register: registerAuth, isConfigured, status, user } = useAuth();
   const [authError, setAuthError] = React.useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const registerSchema = React.useMemo(() => createRegisterSchema(locale), [locale]);
 
   const prefix = locale === "en" ? "/en" : "";
   const donorRegisterHref = `${prefix}/donors/register`;
   const homeHref = prefix || "/";
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterInput>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      phoneNumber: "",
+      password: "",
+      confirmPassword: "",
+      consent: false,
+    },
+    mode: "onTouched",
+  });
 
   // Redirect if already authenticated
   React.useEffect(() => {
@@ -65,76 +63,31 @@ export function RegisterForm({ locale }: RegisterFormProps) {
     }
   }, [status, user, router, prefix, homeHref]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-
-    if (errors[name]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
-    }
-    if (authError) {
-      setAuthError(null);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setErrors({});
+  const onSubmit = async (data: RegisterInput) => {
     setAuthError(null);
-
-    const result = registerSchema.safeParse(formData);
-
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      for (const issue of result.error.issues) {
-        const key = issue.path[0]?.toString();
-        if (key && !fieldErrors[key]) {
-          fieldErrors[key] = issue.message;
-        }
-      }
-      setErrors(fieldErrors);
-
-      const firstField = Object.keys(fieldErrors)[0];
-      if (firstField) {
-        const el = document.getElementById(`${formId}-${firstField}`);
-        el?.focus();
-      }
-      return;
-    }
 
     if (!isConfigured) {
       setAuthError(getFirebaseErrorMessage("auth/not-configured", locale));
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      await register(formData.fullName, formData.email, formData.password);
+      await registerAuth(data.fullName, data.email, data.password);
       // Clean up sensitive state immediately
-      setFormData(INITIAL_STATE);
+      reset();
       // Direct user to verify email
       router.push(`${prefix}/verify-email`);
     } catch (err: unknown) {
       const firebaseError = err as { code?: string; message?: string };
       const errorCode = firebaseError?.code || "auth/generic-error";
       setAuthError(getFirebaseErrorMessage(errorCode, locale));
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   return (
     <form
       id={formId}
-      onSubmit={handleSubmit}
+      onSubmit={handleSubmit(onSubmit)}
       noValidate
       className="space-y-4"
     >
@@ -179,19 +132,21 @@ export function RegisterForm({ locale }: RegisterFormProps) {
         id={`${formId}-fullName`}
         label={t.auth.register.fullNameLabel}
         required
-        error={errors.fullName}
+        error={errors.fullName?.message}
       >
         <Input
           id={`${formId}-fullName`}
-          name="fullName"
           type="text"
-          value={formData.fullName}
-          onChange={handleChange}
           placeholder={t.auth.register.fullNamePlaceholder}
           autoComplete="name"
           disabled={isSubmitting}
           aria-invalid={!!errors.fullName}
           aria-describedby={errors.fullName ? `${formId}-fullName-error` : undefined}
+          {...register("fullName", {
+            onChange: () => {
+              if (authError) setAuthError(null);
+            },
+          })}
         />
       </FormField>
 
@@ -200,19 +155,21 @@ export function RegisterForm({ locale }: RegisterFormProps) {
         id={`${formId}-email`}
         label={t.auth.register.emailLabel}
         required
-        error={errors.email}
+        error={errors.email?.message}
       >
         <Input
           id={`${formId}-email`}
-          name="email"
           type="email"
-          value={formData.email}
-          onChange={handleChange}
           placeholder={t.auth.register.emailPlaceholder}
           autoComplete="email"
           disabled={isSubmitting}
           aria-invalid={!!errors.email}
           aria-describedby={errors.email ? `${formId}-email-error` : undefined}
+          {...register("email", {
+            onChange: () => {
+              if (authError) setAuthError(null);
+            },
+          })}
         />
       </FormField>
 
@@ -221,15 +178,12 @@ export function RegisterForm({ locale }: RegisterFormProps) {
         id={`${formId}-phoneNumber`}
         label={t.auth.register.phoneLabel}
         required
-        error={errors.phoneNumber}
+        error={errors.phoneNumber?.message}
         helperText={t.auth.register.phoneHelper}
       >
         <Input
           id={`${formId}-phoneNumber`}
-          name="phoneNumber"
           type="tel"
-          value={formData.phoneNumber}
-          onChange={handleChange}
           placeholder={t.auth.register.phonePlaceholder}
           autoComplete="tel"
           disabled={isSubmitting}
@@ -239,6 +193,11 @@ export function RegisterForm({ locale }: RegisterFormProps) {
               ? `${formId}-phoneNumber-error`
               : `${formId}-phoneNumber-help`
           }
+          {...register("phoneNumber", {
+            onChange: () => {
+              if (authError) setAuthError(null);
+            },
+          })}
         />
       </FormField>
 
@@ -247,14 +206,11 @@ export function RegisterForm({ locale }: RegisterFormProps) {
         id={`${formId}-password`}
         label={t.auth.register.passwordLabel}
         required
-        error={errors.password}
+        error={errors.password?.message}
         helperText={t.auth.register.passwordHint}
       >
         <PasswordInput
           id={`${formId}-password`}
-          name="password"
-          value={formData.password}
-          onChange={handleChange}
           placeholder={t.auth.register.passwordPlaceholder}
           autoComplete="new-password"
           disabled={isSubmitting}
@@ -266,6 +222,11 @@ export function RegisterForm({ locale }: RegisterFormProps) {
               ? `${formId}-password-error`
               : `${formId}-password-help`
           }
+          {...register("password", {
+            onChange: () => {
+              if (authError) setAuthError(null);
+            },
+          })}
         />
       </FormField>
 
@@ -274,13 +235,10 @@ export function RegisterForm({ locale }: RegisterFormProps) {
         id={`${formId}-confirmPassword`}
         label={t.auth.register.confirmPasswordLabel}
         required
-        error={errors.confirmPassword}
+        error={errors.confirmPassword?.message}
       >
         <PasswordInput
           id={`${formId}-confirmPassword`}
-          name="confirmPassword"
-          value={formData.confirmPassword}
-          onChange={handleChange}
           placeholder={t.auth.register.confirmPasswordPlaceholder}
           autoComplete="new-password"
           disabled={isSubmitting}
@@ -292,6 +250,11 @@ export function RegisterForm({ locale }: RegisterFormProps) {
               ? `${formId}-confirmPassword-error`
               : undefined
           }
+          {...register("confirmPassword", {
+            onChange: () => {
+              if (authError) setAuthError(null);
+            },
+          })}
         />
       </FormField>
 
@@ -300,13 +263,11 @@ export function RegisterForm({ locale }: RegisterFormProps) {
         <label className="flex items-start gap-2.5 cursor-pointer select-none text-xs sm:text-sm text-muted-foreground hover:text-foreground">
           <input
             type="checkbox"
-            name="consent"
-            checked={formData.consent}
-            onChange={handleChange}
             disabled={isSubmitting}
             className="size-4 mt-0.5 rounded border-input text-primary focus:ring-primary/20 accent-primary shrink-0"
             aria-invalid={!!errors.consent}
             aria-describedby={errors.consent ? `${formId}-consent-error` : undefined}
+            {...register("consent")}
           />
           <span className="leading-relaxed">
             {t.auth.register.consentLabel}
@@ -321,7 +282,7 @@ export function RegisterForm({ locale }: RegisterFormProps) {
             role="alert"
             className="text-xs font-medium text-destructive transition-all"
           >
-            {errors.consent}
+            {errors.consent.message}
           </p>
         )}
       </div>

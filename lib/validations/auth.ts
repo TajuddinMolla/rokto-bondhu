@@ -126,3 +126,9 @@ export function createResetPasswordSchema(locale: Locale = "bn") {
       path: ["confirmPassword"],
     });
 }
+
+export type LoginInput = z.infer<ReturnType<typeof createLoginSchema>>;
+export type RegisterInput = z.infer<ReturnType<typeof createRegisterSchema>>;
+export type ForgotPasswordInput = z.infer<ReturnType<typeof createForgotPasswordSchema>>;
+export type ResetPasswordInput = z.infer<ReturnType<typeof createResetPasswordSchema>>;
+

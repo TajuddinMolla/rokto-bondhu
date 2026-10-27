@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@/lib/validations/zod-resolver";
 import { Loader2, CheckCircle2, AlertCircle, ArrowLeft, Send, RotateCcw, ShieldAlert } from "lucide-react";
 
-import { createForgotPasswordSchema } from "@/lib/validations/auth";
+import { createForgotPasswordSchema, type ForgotPasswordInput } from "@/lib/validations/auth";
 import { getFirebaseErrorMessage } from "@/lib/firebase/errors";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -22,10 +24,7 @@ export function ForgotPasswordForm({ locale }: ForgotPasswordFormProps) {
   const formId = React.useId();
   const { resetPassword, isConfigured } = useAuth();
 
-  const [email, setEmail] = React.useState("");
-  const [error, setError] = React.useState<string | undefined>();
   const [authError, setAuthError] = React.useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSuccess, setIsSuccess] = React.useState(false);
   const [submittedEmail, setSubmittedEmail] = React.useState("");
 
@@ -34,58 +33,56 @@ export function ForgotPasswordForm({ locale }: ForgotPasswordFormProps) {
   const prefix = locale === "en" ? "/en" : "";
   const loginHref = `${prefix}/login`;
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setError(undefined);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ForgotPasswordInput>({
+    resolver: zodResolver(forgotSchema),
+    defaultValues: {
+      email: "",
+    },
+    mode: "onTouched",
+  });
+
+  const onSubmit = async (data: ForgotPasswordInput) => {
     setAuthError(null);
-
-    const result = forgotSchema.safeParse({ email });
-
-    if (!result.success) {
-      const issue = result.error.issues[0];
-      setError(issue?.message);
-      const el = document.getElementById(`${formId}-email`);
-      el?.focus();
-      return;
-    }
 
     if (!isConfigured) {
       setAuthError(getFirebaseErrorMessage("auth/not-configured", locale));
       return;
     }
 
-    setIsSubmitting(true);
+    const emailToUse = data.email.trim();
 
     try {
-      await resetPassword(email.trim());
-      setSubmittedEmail(email.trim());
+      await resetPassword(emailToUse);
+      setSubmittedEmail(emailToUse);
       setIsSuccess(true);
-      setEmail("");
+      reset();
     } catch (err: unknown) {
       const firebaseError = err as { code?: string };
-      // User enumeration defense: if user-not-found, still show generic success confirmation!
+      // User enumeration defense: if user-not-found or invalid-credential, still show generic success confirmation!
       if (
         firebaseError?.code === "auth/user-not-found" ||
         firebaseError?.code === "auth/invalid-credential"
       ) {
-        setSubmittedEmail(email.trim());
+        setSubmittedEmail(emailToUse);
         setIsSuccess(true);
-        setEmail("");
+        reset();
       } else {
         const errorCode = firebaseError?.code || "auth/generic-error";
         setAuthError(getFirebaseErrorMessage(errorCode, locale));
       }
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   const handleResetDemo = () => {
     setIsSuccess(false);
     setSubmittedEmail("");
-    setEmail("");
-    setError(undefined);
     setAuthError(null);
+    reset();
   };
 
   if (isSuccess) {
@@ -146,7 +143,7 @@ export function ForgotPasswordForm({ locale }: ForgotPasswordFormProps) {
   return (
     <form
       id={formId}
-      onSubmit={handleSubmit}
+      onSubmit={handleSubmit(onSubmit)}
       noValidate
       className="space-y-4"
     >
@@ -172,30 +169,31 @@ export function ForgotPasswordForm({ locale }: ForgotPasswordFormProps) {
         </div>
       )}
 
-      {/* Email Input */}
+      {/* Email Field */}
       <FormField
         id={`${formId}-email`}
         label={t.auth.forgotPassword.emailLabel}
         required
-        error={error}
+        error={errors.email?.message}
         helperText={t.auth.forgotPassword.emailHelper}
       >
         <Input
           id={`${formId}-email`}
           type="email"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            if (error) setError(undefined);
-            if (authError) setAuthError(null);
-          }}
           placeholder={t.auth.forgotPassword.emailPlaceholder}
           autoComplete="email"
           disabled={isSubmitting}
-          aria-invalid={!!error}
+          aria-invalid={!!errors.email}
           aria-describedby={
-            error ? `${formId}-email-error` : `${formId}-email-help`
+            errors.email
+              ? `${formId}-email-error`
+              : `${formId}-email-help`
           }
+          {...register("email", {
+            onChange: () => {
+              if (authError) setAuthError(null);
+            },
+          })}
         />
       </FormField>
 
@@ -212,19 +210,19 @@ export function ForgotPasswordForm({ locale }: ForgotPasswordFormProps) {
           </>
         ) : (
           <>
-            <Send className="size-4 mr-1.5" aria-hidden="true" />
+            <Send className="size-4 mr-2" aria-hidden="true" />
             {t.auth.forgotPassword.submitButton}
           </>
         )}
       </Button>
 
       {/* Back to Login Link */}
-      <div className="text-center pt-2">
+      <div className="pt-2 text-center">
         <Link
           href={loginHref}
-          className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+          className="inline-flex items-center text-xs sm:text-sm text-muted-foreground hover:text-foreground font-medium transition-colors"
         >
-          <ArrowLeft className="size-4 mr-1.5" aria-hidden="true" />
+          <ArrowLeft className="size-3.5 mr-1.5" aria-hidden="true" />
           {t.auth.forgotPassword.backToLogin}
         </Link>
       </div>
