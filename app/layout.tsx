@@ -6,6 +6,7 @@ import { constructMetadata } from "@/lib/seo/metadata";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { SkipLink } from "@/components/layout/skip-link";
+import { AuthProvider } from "@/components/auth/auth-provider";
 
 const notoSansBengali = Noto_Sans_Bengali({
   variable: "--font-noto-sans-bengali",
@@ -26,21 +27,23 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${notoSansBengali.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
-        {/* Dynamic localized skip-to-content accessible link */}
-        <SkipLink />
+        <AuthProvider>
+          {/* Dynamic localized skip-to-content accessible link */}
+          <SkipLink />
 
-        <Header />
+          <Header />
 
-        {/* Stable target ID for skip link without creating nested <main> tags */}
-        <div
-          id="main-content"
-          className="flex-1 flex flex-col focus:outline-none"
-          tabIndex={-1}
-        >
-          {children}
-        </div>
+          {/* Stable target ID for skip link without creating nested <main> tags */}
+          <div
+            id="main-content"
+            className="flex-1 flex flex-col focus:outline-none"
+            tabIndex={-1}
+          >
+            {children}
+          </div>
 
-        <Footer />
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

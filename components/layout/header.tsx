@@ -2,18 +2,21 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Droplet } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Droplet, LogOut, AlertCircle } from "lucide-react";
 
 import { getLocaleFromPathname, isAuthPathname } from "@/i18n/config";
 import { getTranslations } from "@/i18n/translations";
 import { getMainNavItems, getUserNavItems } from "@/constants/navigation";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, status, loading, logout } = useAuth();
 
   // Completely omit header on authentication routes
   if (isAuthPathname(pathname)) {
@@ -27,8 +30,17 @@ export function Header() {
   const userNavItems = getUserNavItems(currentLocale);
 
   const homeHref = currentLocale === "en" ? "/en" : "/";
+  const verifyEmailHref = currentLocale === "en" ? "/en/verify-email" : "/verify-email";
   const primaryAction = userNavItems.find((item) => item.isPrimary);
   const secondaryAction = userNavItems.find((item) => !item.isPrimary);
+
+  const handleLogout = async () => {
+    await logout();
+    router.push(homeHref);
+  };
+
+  const displayName = user?.displayName || user?.email?.split("@")[0] || "User";
+  const userInitial = displayName.charAt(0).toUpperCase();
 
   return (
     <header
@@ -79,10 +91,47 @@ export function Header() {
         <div className="hidden md:flex items-center gap-3">
           <LanguageSwitcher />
 
-          {secondaryAction && (
-            <Button asChild variant="ghost" size="sm">
-              <Link href={secondaryAction.href}>{secondaryAction.label}</Link>
-            </Button>
+          {!loading && status === "authenticated" && user ? (
+            <div className="flex items-center gap-2">
+              {/* Authenticated User Status Chip */}
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-border bg-background text-xs font-medium">
+                <div className="flex items-center justify-center size-6 rounded-full bg-primary/10 text-primary font-bold text-[11px]">
+                  {userInitial}
+                </div>
+                <span className="max-w-[120px] truncate text-foreground" title={user.email || ""}>
+                  {displayName}
+                </span>
+
+                {!user.emailVerified && (
+                  <Link
+                    href={verifyEmailHref}
+                    title={t.auth.userMenu.emailNotVerified}
+                    className="inline-flex items-center text-[10px] text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/20 transition-colors"
+                  >
+                    <AlertCircle className="size-3 mr-1" aria-hidden="true" />
+                    {t.auth.userMenu.verifyNow}
+                  </Link>
+                )}
+              </div>
+
+              {/* Logout Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="text-xs text-muted-foreground hover:text-foreground"
+                aria-label={t.auth.userMenu.logout}
+              >
+                <LogOut className="size-3.5 mr-1" aria-hidden="true" />
+                {t.auth.userMenu.logout}
+              </Button>
+            </div>
+          ) : (
+            secondaryAction && (
+              <Button asChild variant="ghost" size="sm">
+                <Link href={secondaryAction.href}>{secondaryAction.label}</Link>
+              </Button>
+            )
           )}
 
           {primaryAction && (

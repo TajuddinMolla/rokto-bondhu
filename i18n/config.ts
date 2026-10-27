@@ -39,6 +39,7 @@ const ROUTE_MAP: Record<string, string> = {
   "/register": "/en/register",
   "/forgot-password": "/en/forgot-password",
   "/reset-password": "/en/reset-password",
+  "/verify-email": "/en/verify-email",
 };
 
 // Inverted map for English -> Bangla lookup
@@ -91,7 +92,8 @@ export function isAuthPathname(pathname: string): boolean {
     stripped === "/login" ||
     stripped === "/register" ||
     stripped === "/forgot-password" ||
-    stripped === "/reset-password"
+    stripped === "/reset-password" ||
+    stripped === "/verify-email"
   );
 }
 

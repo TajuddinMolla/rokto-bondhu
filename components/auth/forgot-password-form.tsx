@@ -2,9 +2,11 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Loader2, CheckCircle2, AlertCircle, ArrowLeft, Send, RotateCcw } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, ArrowLeft, Send, RotateCcw, ShieldAlert } from "lucide-react";
 
 import { createForgotPasswordSchema } from "@/lib/validations/auth";
+import { getFirebaseErrorMessage } from "@/lib/firebase/errors";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/forms/form-field";
@@ -18,9 +20,11 @@ export interface ForgotPasswordFormProps {
 export function ForgotPasswordForm({ locale }: ForgotPasswordFormProps) {
   const t = getTranslations(locale);
   const formId = React.useId();
+  const { resetPassword, isConfigured } = useAuth();
 
   const [email, setEmail] = React.useState("");
   const [error, setError] = React.useState<string | undefined>();
+  const [authError, setAuthError] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isSuccess, setIsSuccess] = React.useState(false);
   const [submittedEmail, setSubmittedEmail] = React.useState("");
@@ -30,9 +34,10 @@ export function ForgotPasswordForm({ locale }: ForgotPasswordFormProps) {
   const prefix = locale === "en" ? "/en" : "";
   const loginHref = `${prefix}/login`;
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(undefined);
+    setAuthError(null);
 
     const result = forgotSchema.safeParse({ email });
 
@@ -44,14 +49,35 @@ export function ForgotPasswordForm({ locale }: ForgotPasswordFormProps) {
       return;
     }
 
-    // Input is valid: simulate latency for demo
+    if (!isConfigured) {
+      setAuthError(getFirebaseErrorMessage("auth/not-configured", locale));
+      return;
+    }
+
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSubmittedEmail(email);
+
+    try {
+      await resetPassword(email.trim());
+      setSubmittedEmail(email.trim());
       setIsSuccess(true);
       setEmail("");
-    }, 500);
+    } catch (err: unknown) {
+      const firebaseError = err as { code?: string };
+      // User enumeration defense: if user-not-found, still show generic success confirmation!
+      if (
+        firebaseError?.code === "auth/user-not-found" ||
+        firebaseError?.code === "auth/invalid-credential"
+      ) {
+        setSubmittedEmail(email.trim());
+        setIsSuccess(true);
+        setEmail("");
+      } else {
+        const errorCode = firebaseError?.code || "auth/generic-error";
+        setAuthError(getFirebaseErrorMessage(errorCode, locale));
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleResetDemo = () => {
@@ -59,6 +85,7 @@ export function ForgotPasswordForm({ locale }: ForgotPasswordFormProps) {
     setSubmittedEmail("");
     setEmail("");
     setError(undefined);
+    setAuthError(null);
   };
 
   if (isSuccess) {
@@ -123,11 +150,27 @@ export function ForgotPasswordForm({ locale }: ForgotPasswordFormProps) {
       noValidate
       className="space-y-4"
     >
-      {/* Demo Notice Banner */}
-      <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
-        <AlertCircle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
-        <span className="leading-relaxed">{t.auth.common.demoNotice}</span>
-      </div>
+      {/* Configuration Status Notice (if .env.local is missing) */}
+      {!isConfigured && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+          <AlertCircle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
+          <span className="leading-relaxed">
+            {t.auth.firebaseErrors.notConfigured}
+          </span>
+        </div>
+      )}
+
+      {/* Auth Error Banner */}
+      {authError && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive font-medium animate-in fade-in duration-200"
+        >
+          <ShieldAlert className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
+          <span className="leading-relaxed">{authError}</span>
+        </div>
+      )}
 
       {/* Email Input */}
       <FormField
@@ -144,6 +187,7 @@ export function ForgotPasswordForm({ locale }: ForgotPasswordFormProps) {
           onChange={(e) => {
             setEmail(e.target.value);
             if (error) setError(undefined);
+            if (authError) setAuthError(null);
           }}
           placeholder={t.auth.forgotPassword.emailPlaceholder}
           autoComplete="email"

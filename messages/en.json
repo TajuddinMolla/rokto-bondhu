@@ -445,6 +445,55 @@
       "feature3Desc": "Connecting donors across all 64 districts and 495 upazilas",
       "quote": "A single bag of donated blood can give someone a second chance at life.",
       "quoteAuthor": "RoktoBondhu Humanitarian Initiative"
+    },
+    "firebaseErrors": {
+      "emailAlreadyInUse": "This email is already registered to another account.",
+      "invalidEmail": "Please provide a valid email address.",
+      "invalidCredentials": "Incorrect email address or password.",
+      "userDisabled": "This user account has been disabled.",
+      "tooManyRequests": "Access temporarily disabled due to too many failed attempts. Please try again later.",
+      "weakPassword": "Password is too weak. Please use at least 8 characters.",
+      "networkError": "Network connection failed. Please check your internet connection.",
+      "requiresRecentLogin": "Please log in again to perform this sensitive action.",
+      "notConfigured": "Firebase configuration is missing. Please check your .env.local file.",
+      "genericError": "An unexpected error occurred. Please try again."
+    },
+    "verifyEmail": {
+      "title": "Email Verification",
+      "subtitle": "Verify your email address to secure your RoktoBondhu account",
+      "badge": "Email Confirmation",
+      "sentNoticeTitle": "Verification Email Sent",
+      "sentNoticeDesc": "We have sent a confirmation link to your registered email. Please check your inbox (or spam folder) and click the link.",
+      "currentEmailLabel": "Registered Email",
+      "statusLabel": "Verification Status",
+      "statusVerified": "Verified (Active)",
+      "statusUnverified": "Pending (Unverified)",
+      "checkStatusButton": "I have verified (Check Status)",
+      "checkingButton": "Checking status...",
+      "resendButton": "Resend Verification Link",
+      "resendingButton": "Sending...",
+      "resendSuccess": "Verification link has been resent! Please check your inbox.",
+      "verifiedSuccessTitle": "Email Successfully Verified!",
+      "verifiedSuccessDesc": "Your RoktoBondhu account is now fully active. You can now register as a donor and access all platform features.",
+      "goToHomeButton": "Go to Homepage",
+      "goToDonorRegisterButton": "Register as a Donor",
+      "logoutButton": "Logout"
+    },
+    "userMenu": {
+      "profile": "Profile",
+      "emailNotVerified": "Email not verified",
+      "verifyNow": "Verify now",
+      "logout": "Logout",
+      "loggingOut": "Logging out..."
+    },
+    "donorFormAuth": {
+      "unauthenticatedNotice": "A RoktoBondhu account is required to register as a blood donor. You may fill the form now or log in first.",
+      "loginPrompt": "Log In",
+      "registerPrompt": "Create Account",
+      "authenticatedAs": "Logged in as:",
+      "authSuccessTitle": "Profile Input Validated Successfully",
+      "authSuccessDesc": "Your account is authenticated. Persistent cloud database storage will be connected in a later phase.",
+      "unverifiedWarning": "Your email is not verified yet. Please verify your email to become an active donor."
     }
   }
 }

@@ -2,19 +2,22 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Menu, X, Droplet } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Menu, X, Droplet, LogOut, AlertCircle } from "lucide-react";
 
 import { getLocaleFromPathname } from "@/i18n/config";
 import { getTranslations } from "@/i18n/translations";
 import { getMainNavItems, getUserNavItems } from "@/constants/navigation";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { cn } from "@/lib/utils";
 
 export function MobileNav() {
   const [isOpen, setIsOpen] = React.useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const [prevPathname, setPrevPathname] = React.useState(pathname);
 
   // Synchronize state during render when route changes (React 19 recommended pattern)
@@ -25,8 +28,14 @@ export function MobileNav() {
 
   const currentLocale = getLocaleFromPathname(pathname);
   const t = getTranslations(currentLocale);
+  const { user, status, loading, logout } = useAuth();
   const mainNavItems = getMainNavItems(currentLocale);
   const userNavItems = getUserNavItems(currentLocale);
+
+  const homeHref = currentLocale === "en" ? "/en" : "/";
+  const verifyEmailHref = currentLocale === "en" ? "/en/verify-email" : "/verify-email";
+  const primaryAction = userNavItems.find((item) => item.isPrimary);
+  const secondaryAction = userNavItems.find((item) => !item.isPrimary);
 
   // Close on Escape key press
   React.useEffect(() => {
@@ -51,6 +60,15 @@ export function MobileNav() {
       document.body.style.overflow = "";
     };
   }, [isOpen]);
+
+  const handleLogout = async () => {
+    setIsOpen(false);
+    await logout();
+    router.push(homeHref);
+  };
+
+  const displayName = user?.displayName || user?.email?.split("@")[0] || "User";
+  const userInitial = displayName.charAt(0).toUpperCase();
 
   return (
     <div className="md:hidden flex items-center gap-2">
@@ -112,38 +130,95 @@ export function MobileNav() {
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3">
               {currentLocale === "bn" ? "অ্যাকাউন্ট ও পদক্ষেপ" : "Account & Actions"}
             </span>
-            {userNavItems.map((item) => {
-              if (item.isPrimary) {
-                return (
+
+            {!loading && status === "authenticated" && user ? (
+              <div className="space-y-3">
+                {/* User Info Card */}
+                <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-surface">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center justify-center size-9 rounded-full bg-primary/10 text-primary font-bold text-sm shrink-0">
+                      {userInitial}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-sm text-foreground truncate">
+                        {displayName}
+                      </div>
+                      <div className="text-xs text-muted-foreground font-mono truncate">
+                        {user.email}
+                      </div>
+                    </div>
+                  </div>
+
+                  {!user.emailVerified ? (
+                    <Link
+                      href={verifyEmailHref}
+                      onClick={() => setIsOpen(false)}
+                      className="inline-flex items-center text-xs text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded border border-amber-500/20 font-medium shrink-0"
+                    >
+                      <AlertCircle className="size-3 mr-1" aria-hidden="true" />
+                      {t.auth.userMenu.verifyNow}
+                    </Link>
+                  ) : (
+                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/5 text-[11px] shrink-0">
+                      {t.auth.verifyEmail.statusVerified}
+                    </Badge>
+                  )}
+                </div>
+
+                {primaryAction && (
                   <Button
-                    key={item.href}
                     asChild
                     variant="default"
                     size="lg"
                     className="w-full justify-center shadow-sm"
                   >
-                    <Link href={item.href} onClick={() => setIsOpen(false)}>
+                    <Link href={primaryAction.href} onClick={() => setIsOpen(false)}>
                       <Droplet className="size-4 fill-current mr-2" />
-                      {item.label}
+                      {primaryAction.label}
                     </Link>
                   </Button>
-                );
-              }
+                )}
 
-              return (
                 <Button
-                  key={item.href}
-                  asChild
                   variant="outline"
                   size="lg"
-                  className="w-full justify-center"
+                  onClick={handleLogout}
+                  className="w-full justify-center text-destructive hover:bg-destructive/10"
                 >
-                  <Link href={item.href} onClick={() => setIsOpen(false)}>
-                    {item.label}
-                  </Link>
+                  <LogOut className="size-4 mr-2" />
+                  {t.auth.userMenu.logout}
                 </Button>
-              );
-            })}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {secondaryAction && (
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="lg"
+                    className="w-full justify-center"
+                  >
+                    <Link href={secondaryAction.href} onClick={() => setIsOpen(false)}>
+                      {secondaryAction.label}
+                    </Link>
+                  </Button>
+                )}
+
+                {primaryAction && (
+                  <Button
+                    asChild
+                    variant="default"
+                    size="lg"
+                    className="w-full justify-center shadow-sm"
+                  >
+                    <Link href={primaryAction.href} onClick={() => setIsOpen(false)}>
+                      <Droplet className="size-4 fill-current mr-2" />
+                      {primaryAction.label}
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

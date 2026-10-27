@@ -33,6 +33,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { FormField } from "@/components/forms/form-field";
 import { getTranslations } from "@/i18n/translations";
+import { useAuth } from "@/hooks/use-auth";
 import type { Locale } from "@/i18n/config";
 
 interface DonorRegistrationFormProps {
@@ -70,6 +71,7 @@ const INITIAL_FORM_STATE: FormState = {
 export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
   const t = getTranslations(locale);
   const formId = React.useId();
+  const { user, status } = useAuth();
 
   const [formData, setFormData] = React.useState<FormState>(INITIAL_FORM_STATE);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -81,6 +83,14 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
     () => new Date().toISOString().split("T")[0],
     () => undefined
   );
+
+  const [prevUserDisplayName, setPrevUserDisplayName] = React.useState<string | undefined>(undefined);
+  if (user?.displayName && user.displayName !== prevUserDisplayName) {
+    setPrevUserDisplayName(user.displayName);
+    if (!formData.displayName) {
+      setFormData((prev) => ({ ...prev, displayName: user.displayName || "" }));
+    }
+  }
 
   // Schema initialized with active locale
   const donorSchema = React.useMemo(() => createDonorSchema(locale), [locale]);
@@ -214,11 +224,15 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
               {t.registrationPage.demoSuccess.badge}
             </Badge>
             <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-              {t.registrationPage.demoSuccess.title}
+              {status === "authenticated"
+                ? t.auth.donorFormAuth.authSuccessTitle
+                : t.registrationPage.demoSuccess.title}
             </h2>
           </div>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            {t.registrationPage.demoSuccess.desc}
+            {status === "authenticated"
+              ? t.auth.donorFormAuth.authSuccessDesc
+              : t.registrationPage.demoSuccess.desc}
           </p>
         </div>
 
@@ -304,8 +318,55 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
     );
   }
 
+  const loginHref = locale === "en" ? "/en/login" : "/login";
+  const registerHref = locale === "en" ? "/en/register" : "/register";
+  const verifyEmailHref = locale === "en" ? "/en/verify-email" : "/verify-email";
+
   return (
-    <Card className="border border-border bg-surface shadow-sm">
+    <div className="space-y-6">
+      {/* Authentication Guidance / Status Callout */}
+      {status === "unauthenticated" ? (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border border-amber-500/20 bg-amber-500/10 text-xs sm:text-sm">
+          <div className="flex items-start gap-2.5">
+            <AlertCircle className="size-4.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
+            <span className="text-foreground leading-relaxed">
+              {t.auth.donorFormAuth.unauthenticatedNotice}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button asChild variant="outline" size="sm">
+              <Link href={loginHref}>
+                {t.auth.donorFormAuth.loginPrompt}
+              </Link>
+            </Button>
+            <Button asChild variant="default" size="sm">
+              <Link href={registerHref}>
+                {t.auth.donorFormAuth.registerPrompt}
+              </Link>
+            </Button>
+          </div>
+        </div>
+      ) : user ? (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border border-primary/20 bg-primary/5 text-xs sm:text-sm">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="size-4.5 text-primary shrink-0" aria-hidden="true" />
+            <span className="text-foreground">
+              <span className="text-muted-foreground mr-1.5">{t.auth.donorFormAuth.authenticatedAs}</span>
+              <strong>{user.displayName || user.email}</strong>
+            </span>
+          </div>
+          {!user.emailVerified && (
+            <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/20">
+              <span>{t.auth.donorFormAuth.unverifiedWarning}</span>
+              <Link href={verifyEmailHref} className="font-semibold underline">
+                {t.auth.userMenu.verifyNow}
+              </Link>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      <Card className="border border-border bg-surface shadow-sm">
       <CardHeader className="pb-6 border-b border-border">
         <div className="flex items-center gap-2">
           <Heart className="size-5 text-primary" aria-hidden="true" />
@@ -673,5 +734,6 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
         </form>
       </CardContent>
     </Card>
+    </div>
   );
 }

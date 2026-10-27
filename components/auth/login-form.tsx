@@ -2,9 +2,12 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Loader2, CheckCircle2, AlertCircle, ArrowRight, RotateCcw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, AlertCircle, ArrowRight, ShieldAlert } from "lucide-react";
 
 import { createLoginSchema } from "@/lib/validations/auth";
+import { getFirebaseErrorMessage } from "@/lib/firebase/errors";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/forms/form-field";
@@ -30,22 +33,33 @@ const INITIAL_STATE: LoginState = {
 
 export function LoginForm({ locale }: LoginFormProps) {
   const t = getTranslations(locale);
+  const router = useRouter();
   const formId = React.useId();
+  const { login, isConfigured, status, user } = useAuth();
 
   const [formData, setFormData] = React.useState<LoginState>(INITIAL_STATE);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [authError, setAuthError] = React.useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isSuccess, setIsSuccess] = React.useState(false);
-  const [submittedIdentifier, setSubmittedIdentifier] = React.useState<string>("");
 
   const loginSchema = React.useMemo(() => createLoginSchema(locale), [locale]);
 
   const prefix = locale === "en" ? "/en" : "";
   const forgotPasswordHref = `${prefix}/forgot-password`;
+  const homeHref = prefix || "/";
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  // Redirect if already authenticated
+  React.useEffect(() => {
+    if (status === "authenticated" && user) {
+      if (!user.emailVerified) {
+        router.push(`${prefix}/verify-email`);
+      } else {
+        router.push(homeHref);
+      }
+    }
+  }, [status, user, router, prefix, homeHref]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -59,11 +73,15 @@ export function LoginForm({ locale }: LoginFormProps) {
         return next;
       });
     }
+    if (authError) {
+      setAuthError(null);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setErrors({});
+    setAuthError(null);
 
     const result = loginSchema.safeParse(formData);
 
@@ -77,7 +95,6 @@ export function LoginForm({ locale }: LoginFormProps) {
       }
       setErrors(fieldErrors);
 
-      // Focus first error field for accessibility
       const firstField = Object.keys(fieldErrors)[0];
       if (firstField) {
         const el = document.getElementById(`${formId}-${firstField}`);
@@ -86,67 +103,42 @@ export function LoginForm({ locale }: LoginFormProps) {
       return;
     }
 
-    // Input is valid: simulate latency for demo
+    if (!isConfigured) {
+      setAuthError(getFirebaseErrorMessage("auth/not-configured", locale));
+      return;
+    }
+
+    // Firebase Email Authentication requires a valid email string
+    const emailToUse = formData.identifier.trim();
+    if (!emailToUse.includes("@")) {
+      setErrors({
+        identifier: locale === "en"
+          ? "Please enter your email address to log in (phone login will be supported in a later phase)."
+          : "লগইন করতে অনুগ্রহ করে ইমেইল ঠিকানা প্রদান করুন (ফোন নম্বর লগইন পরবর্তী ধাপে যুক্ত করা হবে)।",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      // NOTE: We only store the identifier for the display confirmation. Passwords are NEVER persisted.
-      setSubmittedIdentifier(formData.identifier);
-      setIsSuccess(true);
+
+    try {
+      const loggedInUser = await login(emailToUse, formData.password);
       // Clean up sensitive state immediately
       setFormData(INITIAL_STATE);
-    }, 500);
+
+      if (!loggedInUser.emailVerified) {
+        router.push(`${prefix}/verify-email`);
+      } else {
+        router.push(homeHref);
+      }
+    } catch (err: unknown) {
+      const firebaseError = err as { code?: string; message?: string };
+      const errorCode = firebaseError?.code || "auth/generic-error";
+      setAuthError(getFirebaseErrorMessage(errorCode, locale));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-
-  const handleResetDemo = () => {
-    setIsSuccess(false);
-    setSubmittedIdentifier("");
-    setFormData(INITIAL_STATE);
-    setErrors({});
-  };
-
-  if (isSuccess) {
-    return (
-      <div
-        role="region"
-        aria-live="polite"
-        className="rounded-xl border border-primary/20 bg-primary/5 p-6 text-center space-y-4 animate-in fade-in duration-200"
-      >
-        <div className="inline-flex items-center justify-center size-12 rounded-full bg-primary/10 text-primary border border-primary/20">
-          <CheckCircle2 className="size-6" aria-hidden="true" />
-        </div>
-
-        <div className="space-y-2">
-          <h3 className="text-lg font-bold text-foreground">
-            {t.auth.login.demoSuccessTitle}
-          </h3>
-          <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-            {t.auth.login.demoSuccessDesc}
-          </p>
-        </div>
-
-        <div className="bg-surface rounded-lg p-3 text-xs text-muted-foreground border border-border inline-block max-w-xs break-all">
-          <span className="font-semibold text-foreground mr-1">
-            {t.auth.login.identifierLabel}:
-          </span>
-          {submittedIdentifier}
-        </div>
-
-        <div className="pt-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleResetDemo}
-            className="w-full sm:w-auto"
-          >
-            <RotateCcw className="size-3.5 mr-1.5" aria-hidden="true" />
-            {t.auth.common.tryAnother}
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <form
@@ -155,13 +147,29 @@ export function LoginForm({ locale }: LoginFormProps) {
       noValidate
       className="space-y-4"
     >
-      {/* Demo Notice Banner */}
-      <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
-        <AlertCircle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
-        <span className="leading-relaxed">{t.auth.common.demoNotice}</span>
-      </div>
+      {/* Configuration Status Notice (if .env.local is missing) */}
+      {!isConfigured && (
+        <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+          <AlertCircle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
+          <span className="leading-relaxed">
+            {t.auth.firebaseErrors.notConfigured}
+          </span>
+        </div>
+      )}
 
-      {/* Identifier Field: Email or BD Phone */}
+      {/* Auth Error Banner */}
+      {authError && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive font-medium animate-in fade-in duration-200"
+        >
+          <ShieldAlert className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
+          <span className="leading-relaxed">{authError}</span>
+        </div>
+      )}
+
+      {/* Identifier Field: Email */}
       <FormField
         id={`${formId}-identifier`}
         label={t.auth.login.identifierLabel}
@@ -172,11 +180,11 @@ export function LoginForm({ locale }: LoginFormProps) {
         <Input
           id={`${formId}-identifier`}
           name="identifier"
-          type="text"
+          type="email"
           value={formData.identifier}
           onChange={handleChange}
           placeholder={t.auth.login.identifierPlaceholder}
-          autoComplete="username"
+          autoComplete="email"
           disabled={isSubmitting}
           aria-invalid={!!errors.identifier}
           aria-describedby={
