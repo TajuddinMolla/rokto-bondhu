@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Droplet } from "lucide-react";
 
-import { getLocaleFromPathname } from "@/i18n/config";
+import { getLocaleFromPathname, isAuthPathname } from "@/i18n/config";
 import { getTranslations } from "@/i18n/translations";
 import { getMainNavItems, getUserNavItems } from "@/constants/navigation";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,12 @@ import { LanguageSwitcher } from "@/components/layout/language-switcher";
 
 export function Header() {
   const pathname = usePathname();
+
+  // Completely omit header on authentication routes
+  if (isAuthPathname(pathname)) {
+    return null;
+  }
+
   const currentLocale = getLocaleFromPathname(pathname);
   const t = getTranslations(currentLocale);
 

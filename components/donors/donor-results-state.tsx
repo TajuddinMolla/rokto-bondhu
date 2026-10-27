@@ -28,7 +28,7 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
   const upazilaId = searchParams.get("upazila");
   const availability = searchParams.get("availability");
 
-  const registerHref = locale === "en" ? "/en/register" : "/register";
+  const registerHref = locale === "en" ? "/en/donors/register" : "/donors/register";
 
   const division = divisionId ? getDivisionById(divisionId) : undefined;
   const district = districtId ? getDistrictById(districtId) : undefined;

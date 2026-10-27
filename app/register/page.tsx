@@ -1,14 +1,14 @@
 import * as React from "react";
 import type { Metadata } from "next";
-import { Heart } from "lucide-react";
+import Link from "next/link";
 
 import { constructMetadata } from "@/lib/seo/metadata";
 import { getTranslations } from "@/i18n/translations";
-import { Badge } from "@/components/ui/badge";
-import { DonorRegistrationForm } from "@/components/forms/donor-registration-form";
+import { AuthLayout } from "@/components/auth/auth-layout";
+import { RegisterForm } from "@/components/auth/register-form";
 
 export const metadata: Metadata = constructMetadata({
-  title: "রক্তদাতা নিবন্ধন",
+  title: "নতুন একাউন্ট নিবন্ধন",
   path: "/register",
   locale: "bn",
 });
@@ -17,34 +17,25 @@ export default function RegisterPage() {
   const t = getTranslations("bn");
 
   return (
-    <main className="flex-1 bg-background py-8 sm:py-12 lg:py-16">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-10">
-        {/* Page Header */}
-        <div className="space-y-3 text-center sm:text-left">
-          <Badge
-            variant="outline"
-            className="border-primary/30 text-primary bg-primary/5 px-3 py-1 text-xs font-semibold rounded-full"
+    <AuthLayout
+      locale="bn"
+      maxWidth="lg"
+      badgeText={t.auth.register.badge}
+      title={t.auth.register.title}
+      subtitle={t.auth.register.subtitle}
+      footerContent={
+        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+          <span>{t.auth.register.hasAccountText}</span>
+          <Link
+            href="/login"
+            className="font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
           >
-            <Heart className="size-3.5 mr-1.5" aria-hidden="true" />
-            {t.registrationPage.badge}
-          </Badge>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight">
-            {t.registrationPage.heading}
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground max-w-2xl leading-relaxed">
-            {t.registrationPage.subtitle}
-          </p>
+            {t.auth.register.loginLink}
+          </Link>
         </div>
-
-        {/* Registration Form Component */}
-        <React.Suspense
-          fallback={
-            <div className="h-96 rounded-xl border border-border bg-surface/50 animate-pulse" />
-          }
-        >
-          <DonorRegistrationForm locale="bn" />
-        </React.Suspense>
-      </div>
-    </main>
+      }
+    >
+      <RegisterForm locale="bn" />
+    </AuthLayout>
   );
 }

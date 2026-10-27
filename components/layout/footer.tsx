@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Droplet, Heart } from "lucide-react";
 
-import { getLocaleFromPathname } from "@/i18n/config";
+import { getLocaleFromPathname, isAuthPathname } from "@/i18n/config";
 import { getTranslations } from "@/i18n/translations";
 import { getMainNavItems, getUserNavItems } from "@/constants/navigation";
 
@@ -24,6 +24,12 @@ function DynamicYear() {
 
 export function Footer() {
   const pathname = usePathname();
+
+  // Completely omit footer on authentication routes
+  if (isAuthPathname(pathname)) {
+    return null;
+  }
+
   const currentLocale = getLocaleFromPathname(pathname);
   const t = getTranslations(currentLocale);
 

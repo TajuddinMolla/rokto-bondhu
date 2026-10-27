@@ -11,7 +11,7 @@ interface FinalCtaSectionProps {
 
 export function FinalCtaSection({ locale }: FinalCtaSectionProps) {
   const t = getTranslations(locale);
-  const registerHref = locale === "en" ? "/en/register" : "/register";
+  const registerHref = locale === "en" ? "/en/donors/register" : "/donors/register";
 
   return (
     <section

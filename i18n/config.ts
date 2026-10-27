@@ -32,10 +32,13 @@ export function getLocaleFromPathname(pathname: string): Locale {
 const ROUTE_MAP: Record<string, string> = {
   "/": "/en",
   "/donors": "/en/donors",
+  "/donors/register": "/en/donors/register",
   "/blood-request": "/en/blood-request",
   "/blood-request/create": "/en/blood-request/create",
-  "/register": "/en/register",
   "/login": "/en/login",
+  "/register": "/en/register",
+  "/forgot-password": "/en/forgot-password",
+  "/reset-password": "/en/reset-password",
 };
 
 // Inverted map for English -> Bangla lookup
@@ -72,3 +75,23 @@ export function getLocalizedPath(pathname: string, targetLocale: Locale): string
 
   return REVERSE_ROUTE_MAP[normalized] ?? "/";
 }
+
+/**
+ * Determines whether a given pathname belongs to an authentication flow.
+ * Matches /login, /register, /forgot-password, /reset-password in both Bangla and English.
+ */
+export function isAuthPathname(pathname: string): boolean {
+  if (!pathname) return false;
+  const normalized = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  const stripped = normalized.startsWith("/en")
+    ? normalized.slice(3) || "/"
+    : normalized;
+
+  return (
+    stripped === "/login" ||
+    stripped === "/register" ||
+    stripped === "/forgot-password" ||
+    stripped === "/reset-password"
+  );
+}
+

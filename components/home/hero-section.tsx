@@ -12,7 +12,7 @@ interface HeroSectionProps {
 
 export function HeroSection({ locale }: HeroSectionProps) {
   const t = getTranslations(locale);
-  const registerHref = locale === "en" ? "/en/register" : "/register";
+  const registerHref = locale === "en" ? "/en/donors/register" : "/donors/register";
 
   return (
     <section

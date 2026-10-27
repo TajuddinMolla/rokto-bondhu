@@ -26,7 +26,7 @@ export function getUserNavItems(locale: Locale): readonly NavItem[] {
     { label: t.nav.login, href: `${prefix}/login` },
     {
       label: t.nav.becomeDonor,
-      href: `${prefix}/register`,
+      href: `${prefix}/donors/register`,
       isPrimary: true,
     },
   ];

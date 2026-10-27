@@ -77,7 +77,16 @@
     "futureDateNotAllowed": "Last donation date cannot be in the future",
     "neededAtRequired": "Required date and time must be specified",
     "notesMax": "Additional notes must be at most 500 characters",
-    "consentRequired": "Consent to terms and conditions is required"
+    "consentRequired": "Consent to terms and conditions is required",
+    "emailRequired": "Email address is required",
+    "emailInvalid": "Please provide a valid email address (e.g., user@example.com)",
+    "identifierRequired": "Email or mobile number is required",
+    "identifierInvalid": "Enter a valid email or 11-digit Bangladeshi mobile number",
+    "passwordRequired": "Password is required",
+    "passwordMin": "Password must be at least 8 characters",
+    "passwordRule": "Password must contain at least one letter and one number",
+    "confirmPasswordRequired": "Please confirm your password",
+    "passwordMismatch": "Passwords do not match"
   },
   "home": {
     "hero": {
@@ -340,6 +349,102 @@
       "desc": "Your blood request has been formatted and validated successfully. Because the platform is currently in frontend preview mode, this request has not been stored in any database and has not been posted to public listings.",
       "resetButton": "Create Another Request",
       "viewRequestsButton": "View Blood Requests"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Account Login",
+      "subtitle": "Enter your credentials to access your RoktoBondhu account",
+      "badge": "User Account",
+      "identifierLabel": "Email or Mobile Number",
+      "identifierPlaceholder": "name@example.com or 01XXXXXXXXX",
+      "identifierHelper": "Your registered email or 11-digit Bangladeshi mobile number",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your confidential password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submitButton": "Log In",
+      "submittingButton": "Verifying...",
+      "noAccountText": "Don't have an account?",
+      "registerLink": "Create a new account",
+      "demoSuccessTitle": "Login Credentials Validated (Demo Mode)",
+      "demoSuccessDesc": "Your login details passed frontend validation. There is no active backend or Firebase authentication connected yet. No real session or cookie was created."
+    },
+    "register": {
+      "title": "Create an Account",
+      "subtitle": "Create your personal user account on RoktoBondhu platform",
+      "badge": "User Account",
+      "fullNameLabel": "Full Name",
+      "fullNamePlaceholder": "Enter your full name",
+      "emailLabel": "Email Address",
+      "emailPlaceholder": "name@example.com",
+      "phoneLabel": "Mobile Number",
+      "phonePlaceholder": "01XXXXXXXXX",
+      "phoneHelper": "11-digit Bangladeshi mobile number for emergency communication",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "At least 8 characters strong password",
+      "passwordHint": "Minimum 8 characters, at least one letter and one number",
+      "confirmPasswordLabel": "Confirm Password",
+      "confirmPasswordPlaceholder": "Re-enter your password",
+      "consentLabel": "I agree to the Terms of Service and Privacy Policy of RoktoBondhu.",
+      "submitButton": "Create Account",
+      "submittingButton": "Validating...",
+      "hasAccountText": "Already have an account?",
+      "loginLink": "Log In",
+      "donorNotice": "Looking to list yourself as an available blood donor?",
+      "donorRegisterLink": "Register directly as a Blood Donor",
+      "demoSuccessTitle": "Registration Validated (Demo Mode)",
+      "demoSuccessDesc": "Your registration inputs passed frontend validation. Because no backend database or Firebase is connected, no passwords were saved and no user was created."
+    },
+    "forgotPassword": {
+      "title": "Password Recovery",
+      "subtitle": "Enter your registered email address and we will send password reset instructions",
+      "badge": "Security & Recovery",
+      "emailLabel": "Registered Email Address",
+      "emailPlaceholder": "name@example.com",
+      "emailHelper": "Enter the email associated with your account",
+      "submitButton": "Send Reset Instructions",
+      "submittingButton": "Sending Request...",
+      "backToLogin": "Back to Login",
+      "demoSuccessTitle": "Recovery Request Received (Demo Mode)",
+      "demoSuccessDesc": "Email format was successfully validated. Since this platform is in frontend demo mode, no email was dispatched and account existence was not checked."
+    },
+    "resetPassword": {
+      "title": "Set New Password",
+      "subtitle": "Set a secure new password for your account",
+      "badge": "Password Reset",
+      "tokenNoticeTitle": "Reset Token Preview Mode",
+      "tokenNoticeDesc": "In production, this page will be protected with a secure token sent to your email. You can preview and test form validation now.",
+      "passwordLabel": "New Password",
+      "passwordPlaceholder": "Minimum 8 characters new password",
+      "passwordHint": "Minimum 8 characters, at least one letter and one number",
+      "confirmPasswordLabel": "Confirm New Password",
+      "confirmPasswordPlaceholder": "Re-type your new password",
+      "submitButton": "Update Password",
+      "submittingButton": "Updating...",
+      "backToLogin": "Back to Login",
+      "demoSuccessTitle": "Password Reset Validated (Demo Mode)",
+      "demoSuccessDesc": "New password validation completed successfully. No backend database was modified and no password was stored."
+    },
+    "common": {
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "tryAnother": "Try another input",
+      "backToHome": "Return to Homepage",
+      "demoNotice": "This is a frontend demonstration interface. No backend or Firebase is connected."
+    },
+    "layout": {
+      "backToHome": "Back to Home",
+      "heroHeading": "Find Blood, Save Lives",
+      "heroSubtitle": "A nationwide humanitarian platform connecting voluntary blood donors and patients across Bangladesh.",
+      "feature1Title": "Fast Donor Lookup",
+      "feature1Desc": "Division, district, and upazila-level real-time donor search",
+      "feature2Title": "100% Voluntary & Safe",
+      "feature2Desc": "A trusted, non-commercial blood donation network",
+      "feature3Title": "Nationwide Network",
+      "feature3Desc": "Connecting donors across all 64 districts and 495 upazilas",
+      "quote": "A single bag of donated blood can give someone a second chance at life.",
+      "quoteAuthor": "RoktoBondhu Humanitarian Initiative"
     }
   }
 }
