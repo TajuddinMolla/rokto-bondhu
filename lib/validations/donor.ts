@@ -57,6 +57,7 @@ export function createDonorSchema(locale: Locale = "bn") {
       .regex(BD_PHONE_REGEX, t.validation.phoneInvalid),
 
     isPhonePublic: z.boolean().default(false),
+    contactMode: z.enum(["PUBLIC", "PRIVATE"]).default("PRIVATE"),
 
     divisionId: z
       .string()

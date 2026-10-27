@@ -1,6 +1,13 @@
 import type { BloodGroup, DonorAvailabilityStatus } from "@/types/blood";
 
 /**
+ * Donor-controlled contact visibility mode.
+ * - `PUBLIC`: Phone number is publicly displayed with direct "Call Now" (tel:) access.
+ * - `PRIVATE`: Phone number is protected; requesters must send an explicit contact request.
+ */
+export type DonorContactMode = "PUBLIC" | "PRIVATE";
+
+/**
  * Full Donor Profile representation.
  *
  * Date representation notes:
@@ -18,6 +25,7 @@ export interface DonorProfile {
   area?: string;
   phoneNumber: string;
   isPhonePublic: boolean;
+  contactMode?: DonorContactMode;
   lastDonationDate?: string; // YYYY-MM-DD
   availabilityStatus: DonorAvailabilityStatus;
   createdAt: string; // ISO 8601 string
@@ -37,14 +45,15 @@ export interface DonorPublicSummary {
   upazilaId: string;
   area?: string;
   isPhonePublic: boolean;
-  phoneNumber?: string; // Only present if isPhonePublic is true
+  contactMode?: DonorContactMode;
+  phoneNumber?: string; // Only present if contactMode === "PUBLIC" or isPhonePublic is true
   lastDonationDate?: string;
   availabilityStatus: DonorAvailabilityStatus;
 }
 
 /**
  * Dedicated public donor representation stored in `/publicDonorProfiles/{uid}`.
- * Strictly omits all private phone numbers, street addresses, and auth credentials.
+ * Only includes phone number if the donor explicitly consented to PUBLIC contact mode.
  */
 export interface PublicDonorProfile {
   id: string;
@@ -54,6 +63,8 @@ export interface PublicDonorProfile {
   districtId: string;
   upazilaId: string;
   availabilityStatus: DonorAvailabilityStatus;
+  contactMode?: DonorContactMode;
+  phoneNumber?: string; // Strictly present ONLY when contactMode === "PUBLIC"
   lastDonationDate?: string; // YYYY-MM-DD
   updatedAt: string; // ISO 8601 string
 }

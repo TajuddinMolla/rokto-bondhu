@@ -14,7 +14,11 @@ import {
 import { getFirebaseDb } from "@/lib/firebase/config";
 import { PUBLIC_DONOR_PROFILES_COLLECTION } from "@/services/donor.service";
 import { normalizeBloodGroup } from "@/constants/blood-groups";
-import type { PublicDonorProfile, DonorSearchFilterParams } from "@/types/donor";
+import type {
+  PublicDonorProfile,
+  DonorSearchFilterParams,
+  DonorContactMode,
+} from "@/types/donor";
 import type { DonorAvailabilityStatus, BloodGroup } from "@/types/blood";
 
 export const DEFAULT_PAGE_SIZE = 20;
@@ -108,6 +112,9 @@ export async function searchPublicDonors(
 
   const donors: PublicDonorProfile[] = snap.docs.map((docSnap) => {
     const data = docSnap.data();
+    const contactMode = (data.contactMode ||
+      (data.phoneNumber ? "PUBLIC" : "PRIVATE")) as DonorContactMode;
+
     return {
       id: docSnap.id,
       displayName: data.displayName || "",
@@ -115,8 +122,12 @@ export async function searchPublicDonors(
       divisionId: data.divisionId || "",
       districtId: data.districtId || "",
       upazilaId: data.upazilaId || "",
-      availabilityStatus: (data.availabilityStatus || "available") as DonorAvailabilityStatus,
+      availabilityStatus: (data.availabilityStatus ||
+        "available") as DonorAvailabilityStatus,
       lastDonationDate: data.lastDonationDate || undefined,
+      contactMode,
+      phoneNumber:
+        contactMode === "PUBLIC" ? data.phoneNumber || undefined : undefined,
       updatedAt: timestampToIso(data.updatedAt),
     };
   });

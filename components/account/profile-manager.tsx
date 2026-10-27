@@ -19,14 +19,23 @@ import {
   ClipboardList,
   PlusCircle,
   ArrowRight,
+  Lock,
+  Globe,
+  PhoneCall,
+  MessageSquare,
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useUserProfile } from "@/hooks/queries/use-user-profile";
 import { useDonorProfile } from "@/hooks/queries/use-donor-profile";
 import { useMyBloodRequests } from "@/hooks/queries/use-my-blood-requests";
+import {
+  useIncomingContactRequests,
+  useOutgoingContactRequests,
+} from "@/hooks/queries/use-contact-requests";
 import { useUpdateDonorAvailability } from "@/hooks/mutations/use-update-donor-availability";
 import { useUpdateUserProfile } from "@/hooks/mutations/use-update-user-profile";
+import { useUpdateDonorContactMode } from "@/hooks/mutations/use-contact-request-mutations";
 import { getDivisionById, getDistrictById, getUpazilaById } from "@/constants/locations";
 import { BD_PHONE_REGEX } from "@/lib/validations/donor";
 import { Button } from "@/components/ui/button";
@@ -34,13 +43,16 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FormField } from "@/components/forms/form-field";
+import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
+import type { DonorContactMode } from "@/types/donor";
 
 interface ProfileManagerProps {
   locale: Locale;
 }
 
 export function ProfileManager({ locale }: ProfileManagerProps) {
+  const t = getTranslations(locale);
   const router = useRouter();
   const { user, status, logout } = useAuth();
 
@@ -51,16 +63,20 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
   const { data: userProfile, isLoading: isUserLoading } = useUserProfile(user?.uid);
   const { data: donorProfile, isLoading: isDonorLoading } = useDonorProfile(user?.uid);
   const { data: myRequests = [] } = useMyBloodRequests(user?.uid);
+  const { data: incomingContactRequests = [] } = useIncomingContactRequests(user?.uid);
+  const { data: outgoingContactRequests = [] } = useOutgoingContactRequests(user?.uid);
 
   // Mutations
   const updateAvailabilityMutation = useUpdateDonorAvailability();
   const updateUserMutation = useUpdateUserProfile();
+  const updateContactModeMutation = useUpdateDonorContactMode();
 
   const prefix = locale === "en" ? "/en" : "";
   const loginHref = `${prefix}/login`;
   const donorRegisterHref = `${prefix}/donors/register`;
   const verifyEmailHref = `${prefix}/verify-email`;
   const myRequestsHref = `${prefix}/account/requests`;
+  const contactRequestsHref = `${prefix}/account/contact-requests`;
   const createRequestHref = `${prefix}/blood-request/create`;
 
   // Redirect if not logged in
@@ -142,6 +158,23 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
       uid: user.uid,
       status: nextStatus,
     });
+  };
+
+  const [contactModeSuccess, setContactModeSuccess] = React.useState(false);
+
+  const handleSelectContactMode = async (mode: DonorContactMode) => {
+    if (!user || !donorProfile) return;
+    if (donorProfile.contactMode === mode) return;
+    try {
+      await updateContactModeMutation.mutateAsync({
+        uid: user.uid,
+        mode,
+      });
+      setContactModeSuccess(true);
+      setTimeout(() => setContactModeSuccess(false), 3000);
+    } catch {
+      // Error handled by mutation
+    }
   };
 
   const handleLogout = async () => {
@@ -438,9 +471,9 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
                         {donorProfile.phoneNumber}
                       </span>
                       <span className="text-[11px] text-muted-foreground block mt-0.5">
-                        {donorProfile.isPhonePublic
-                          ? (locale === "en" ? "Publicly visible" : "পাবলিকলি দৃশ্যমান")
-                          : (locale === "en" ? "Private" : "ব্যক্তিগত")}
+                        {donorProfile.contactMode === "PUBLIC"
+                          ? (locale === "en" ? "Public (Direct Calling)" : "পাবলিক (সরাসরি কল)")
+                          : (locale === "en" ? "Private (Request Required)" : "প্রাইভেট (অনুরোধ সাপেক্ষে)")}
                       </span>
                     </div>
 
@@ -466,6 +499,82 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
                         {donorProfile.lastDonationDate || (locale === "en" ? "Never donated yet" : "এখনো রক্ত দেননি")}
                       </span>
                     </div>
+                  </div>
+
+                  {/* Donor Contact Privacy Mode Switcher */}
+                  <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        {donorProfile.contactMode === "PUBLIC" ? (
+                          <Globe className="size-4 text-emerald-600" />
+                        ) : (
+                          <Lock className="size-4 text-primary" />
+                        )}
+                        <strong className="text-sm font-bold text-foreground">
+                          {t.contactModeSettings.title}
+                        </strong>
+                      </div>
+                      <Badge variant={donorProfile.contactMode === "PUBLIC" ? "default" : "secondary"}>
+                        {donorProfile.contactMode === "PUBLIC" ? "PUBLIC" : "PRIVATE"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {t.contactModeSettings.description}
+                    </p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSelectContactMode("PUBLIC")}
+                        disabled={updateContactModeMutation.isPending}
+                        className={`text-left p-3 rounded-lg border transition-all ${
+                          donorProfile.contactMode === "PUBLIC"
+                            ? "border-emerald-500 bg-emerald-500/10 text-emerald-950 dark:text-emerald-100 ring-1 ring-emerald-500"
+                            : "border-border bg-surface hover:border-muted-foreground/30 text-foreground"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 font-semibold text-xs mb-1">
+                          <PhoneCall className="size-3.5 text-emerald-600 shrink-0" />
+                          <span>{t.contactModeSettings.publicMode}</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          {t.contactModeSettings.publicDesc}
+                        </p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleSelectContactMode("PRIVATE")}
+                        disabled={updateContactModeMutation.isPending}
+                        className={`text-left p-3 rounded-lg border transition-all ${
+                          (donorProfile.contactMode || "PRIVATE") === "PRIVATE"
+                            ? "border-primary bg-primary/10 text-foreground ring-1 ring-primary"
+                            : "border-border bg-surface hover:border-muted-foreground/30 text-foreground"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 font-semibold text-xs mb-1">
+                          <Lock className="size-3.5 text-primary shrink-0" />
+                          <span>{t.contactModeSettings.privateMode}</span>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground leading-relaxed">
+                          {t.contactModeSettings.privateDesc}
+                        </p>
+                      </button>
+                    </div>
+
+                    {donorProfile.contactMode === "PUBLIC" && (
+                      <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-200">
+                        <AlertCircle className="size-3.5 shrink-0 mt-0.5 text-amber-600" />
+                        <span>{t.contactModeSettings.publicPrivacyWarning}</span>
+                      </div>
+                    )}
+
+                    {contactModeSuccess && (
+                      <div className="flex items-center gap-2 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-700 dark:text-emerald-300">
+                        <CheckCircle2 className="size-3.5 shrink-0" />
+                        <span>{t.contactModeSettings.switchSuccess}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions */}
@@ -559,6 +668,69 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
                       <span>{locale === "en" ? "Create Request" : "নতুন অনুরোধ"}</span>
                     </Link>
                   </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Direct Contact Requests Summary Card */}
+          <Card className="border border-border bg-surface shadow-xs">
+            <CardHeader className="pb-4 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <MessageSquare className="size-5 text-primary" aria-hidden="true" />
+                <div>
+                  <CardTitle className="text-base sm:text-lg font-bold text-foreground">
+                    {t.contactModeSettings.contactRequestsSummary}
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    {t.contactModeSettings.contactRequestsDesc}
+                  </CardDescription>
+                </div>
+              </div>
+              <Button asChild size="sm" variant="outline" className="gap-1.5 self-start sm:self-auto">
+                <Link href={contactRequestsHref}>
+                  <span>{t.contactModeSettings.manageRequestsAction}</span>
+                  <ArrowRight className="size-3.5" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="p-5 sm:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Incoming Requests Box */}
+                <div className="p-4 rounded-xl border border-border bg-muted/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {locale === "en" ? "Incoming (For Donor)" : "ইনকামিং (রক্তদাতা হিসেবে)"}
+                    </span>
+                    <Badge
+                      variant={incomingContactRequests.some((r) => r.status === "PENDING") ? "default" : "secondary"}
+                      className="text-xs font-bold"
+                    >
+                      {incomingContactRequests.filter((r) => r.status === "PENDING").length} {locale === "en" ? "Pending" : "অপেক্ষমান"}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {locale === "en"
+                      ? `${incomingContactRequests.length} total direct requests received from patients.`
+                      : `রোগীদের থেকে মোট ${incomingContactRequests.length} টি অনুরোধ এসেছে।`}
+                  </p>
+                </div>
+
+                {/* Outgoing Requests Box */}
+                <div className="p-4 rounded-xl border border-border bg-muted/10 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {locale === "en" ? "Outgoing (For Patient)" : "আউটগোয়িং (গ্রহীতা হিসেবে)"}
+                    </span>
+                    <Badge variant="outline" className="text-xs font-bold">
+                      {outgoingContactRequests.filter((r) => r.status === "ACCEPTED").length} {locale === "en" ? "Accepted" : "গৃহীত"}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {locale === "en"
+                      ? `${outgoingContactRequests.length} total requests sent to private donors.`
+                      : `ব্যক্তিগত রক্তদাতাদের কাছে মোট ${outgoingContactRequests.length} টি অনুরোধ পাঠানো হয়েছে।`}
+                  </p>
                 </div>
               </div>
             </CardContent>

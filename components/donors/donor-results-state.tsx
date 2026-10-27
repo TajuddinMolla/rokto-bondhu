@@ -11,11 +11,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DonorCard } from "@/components/donors/donor-card";
+import { ContactRequestModal } from "@/components/donors/contact-request-modal";
 import { useDonorSearch } from "@/hooks/queries/use-donor-search";
 import { useIsDonor } from "@/hooks/use-is-donor";
 import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
-import type { DonorSearchFilterParams } from "@/types/donor";
+import type {
+  DonorSearchFilterParams,
+  PublicDonorProfile,
+  DonorPublicSummary,
+} from "@/types/donor";
 
 interface DonorResultsStateProps {
   locale: Locale;
@@ -48,6 +53,8 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
   const router = useRouter();
   const pathname = usePathname();
   const { isDonor } = useIsDonor();
+  const [contactTargetDonor, setContactTargetDonor] =
+    React.useState<PublicDonorProfile | DonorPublicSummary | null>(null);
 
   const rawBloodGroup = searchParams.get("bloodGroup");
   const bloodGroup = normalizeBloodGroup(rawBloodGroup);
@@ -269,7 +276,12 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
           {/* Donor Cards Grid */}
           <div className="space-y-4">
             {allDonors.map((donor) => (
-              <DonorCard key={donor.id} donor={donor} locale={locale} />
+              <DonorCard
+                key={donor.id}
+                donor={donor}
+                locale={locale}
+                onRequestContact={setContactTargetDonor}
+              />
             ))}
           </div>
 
@@ -296,6 +308,15 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
           ) : null}
         </div>
       ) : null}
+
+      {/* Direct Contact Request Modal */}
+      {contactTargetDonor && (
+        <ContactRequestModal
+          donor={contactTargetDonor}
+          locale={locale}
+          onClose={() => setContactTargetDonor(null)}
+        />
+      )}
     </div>
   );
 }

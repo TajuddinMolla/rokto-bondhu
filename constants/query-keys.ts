@@ -29,4 +29,14 @@ export const queryKeys = {
     profile: (userId?: string) => [...queryKeys.user.all, "profile", userId ?? "me"] as const,
     activity: (userId?: string) => [...queryKeys.user.all, "activity", userId ?? "me"] as const,
   },
+
+  contactRequests: {
+    all: ["contact-requests"] as const,
+    incoming: (donorId?: string) =>
+      [...queryKeys.contactRequests.all, "incoming", donorId ?? "me"] as const,
+    outgoing: (requesterId?: string) =>
+      [...queryKeys.contactRequests.all, "outgoing", requesterId ?? "me"] as const,
+    active: (requesterId: string, donorId: string) =>
+      [...queryKeys.contactRequests.all, "active", requesterId, donorId] as const,
+  },
 } as const;

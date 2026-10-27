@@ -50,6 +50,7 @@ const INITIAL_FORM_STATE: DonorInput = {
   bloodGroup: "" as unknown as DonorInput["bloodGroup"],
   phoneNumber: "",
   isPhonePublic: false,
+  contactMode: "PRIVATE",
   divisionId: "",
   districtId: "",
   upazilaId: "",

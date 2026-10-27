@@ -4,13 +4,14 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
 
 import { getFirebaseDb } from "@/lib/firebase/config";
 import { setUserHasDonorProfile } from "@/services/user.service";
-import type { DonorProfile } from "@/types/donor";
+import type { DonorProfile, DonorContactMode } from "@/types/donor";
 import type { DonorAvailabilityStatus } from "@/types/blood";
 import type { DonorInput } from "@/lib/validations/donor";
 
@@ -32,11 +33,14 @@ function timestampToIso(value: unknown): string {
 }
 
 /**
- * Retrieves the donor profile for an authenticated user.
+ * Retrieves the private donor profile for an authenticated user.
+ * Returns null if no donor profile exists yet.
  */
 export async function getDonorProfile(uid: string): Promise<DonorProfile | null> {
   const db = getFirebaseDb();
-  if (!db || !uid) return null;
+  if (!db || !uid) {
+    return null;
+  }
 
   const docRef = doc(db, DONOR_PROFILES_COLLECTION, uid);
   const snap = await getDoc(docRef);
@@ -46,6 +50,9 @@ export async function getDonorProfile(uid: string): Promise<DonorProfile | null>
   }
 
   const data = snap.data();
+  const contactMode: DonorContactMode =
+    data.contactMode || (data.isPhonePublic ? "PUBLIC" : "PRIVATE");
+
   const profile: DonorProfile = {
     id: snap.id,
     userId: snap.id,
@@ -56,7 +63,8 @@ export async function getDonorProfile(uid: string): Promise<DonorProfile | null>
     upazilaId: data.upazilaId,
     area: data.area || undefined,
     phoneNumber: data.phoneNumber,
-    isPhonePublic: Boolean(data.isPhonePublic),
+    isPhonePublic: contactMode === "PUBLIC",
+    contactMode,
     lastDonationDate: data.lastDonationDate || undefined,
     availabilityStatus: data.availabilityStatus as DonorAvailabilityStatus,
     createdAt: timestampToIso(data.createdAt),
@@ -91,20 +99,27 @@ export async function ensurePublicDonorProfile(
     }
     if (!profile) return;
 
-    await setDoc(
-      publicDocRef,
-      {
-        displayName: profile.displayName || "",
-        bloodGroup: profile.bloodGroup,
-        divisionId: profile.divisionId,
-        districtId: profile.districtId,
-        upazilaId: profile.upazilaId,
-        availabilityStatus: profile.availabilityStatus || "available",
-        lastDonationDate: profile.lastDonationDate || null,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+    const isPublic =
+      profile.contactMode === "PUBLIC" || Boolean(profile.isPhonePublic);
+    const contactMode: DonorContactMode = isPublic ? "PUBLIC" : "PRIVATE";
+
+    const publicPayload: Record<string, unknown> = {
+      displayName: profile.displayName || "",
+      bloodGroup: profile.bloodGroup,
+      divisionId: profile.divisionId,
+      districtId: profile.districtId,
+      upazilaId: profile.upazilaId,
+      availabilityStatus: profile.availabilityStatus || "available",
+      lastDonationDate: profile.lastDonationDate || null,
+      contactMode,
+      updatedAt: serverTimestamp(),
+    };
+
+    if (isPublic) {
+      publicPayload.phoneNumber = profile.phoneNumber;
+    }
+
+    await setDoc(publicDocRef, publicPayload, { merge: true });
   } catch {
     // Non-fatal if offline
   }
@@ -129,12 +144,17 @@ export async function upsertDonorProfile(
   const existing = await getDoc(docRef);
   const isNew = !existing.exists();
 
+  const isPublic =
+    input.contactMode === "PUBLIC" || Boolean(input.isPhonePublic);
+  const contactMode: DonorContactMode = isPublic ? "PUBLIC" : "PRIVATE";
+
   const payload: Record<string, unknown> = {
     userId: uid,
     displayName: input.displayName.trim(),
     bloodGroup: input.bloodGroup,
     phoneNumber: input.phoneNumber.trim(),
-    isPhonePublic: Boolean(input.isPhonePublic),
+    isPhonePublic: isPublic,
+    contactMode,
     divisionId: input.divisionId,
     districtId: input.districtId,
     upazilaId: input.upazilaId,
@@ -148,7 +168,7 @@ export async function upsertDonorProfile(
     payload.createdAt = serverTimestamp();
   }
 
-  // Dual-write: private profile & public projection without phone/area
+  // Dual-write: private profile & public projection
   const publicPayload: Record<string, unknown> = {
     displayName: input.displayName.trim(),
     bloodGroup: input.bloodGroup,
@@ -157,8 +177,15 @@ export async function upsertDonorProfile(
     upazilaId: input.upazilaId,
     availabilityStatus: input.availabilityStatus || "available",
     lastDonationDate: input.lastDonationDate?.trim() || null,
+    contactMode,
     updatedAt: serverTimestamp(),
   };
+
+  if (isPublic) {
+    publicPayload.phoneNumber = input.phoneNumber.trim();
+  } else {
+    publicPayload.phoneNumber = deleteField();
+  }
 
   await Promise.all([
     setDoc(docRef, payload, { merge: true }),
@@ -173,9 +200,10 @@ export async function upsertDonorProfile(
   }
 
   const now = new Date().toISOString();
-  const createdAtValue = isNew || !existing.data()?.createdAt
-    ? now
-    : timestampToIso(existing.data()?.createdAt);
+  const createdAtValue =
+    isNew || !existing.data()?.createdAt
+      ? now
+      : timestampToIso(existing.data()?.createdAt);
 
   return {
     id: uid,
@@ -187,7 +215,8 @@ export async function upsertDonorProfile(
     upazilaId: input.upazilaId,
     area: input.area?.trim() || undefined,
     phoneNumber: input.phoneNumber.trim(),
-    isPhonePublic: Boolean(input.isPhonePublic),
+    isPhonePublic: isPublic,
+    contactMode,
     lastDonationDate: input.lastDonationDate?.trim() || undefined,
     availabilityStatus: input.availabilityStatus || "available",
     createdAt: createdAtValue,
@@ -229,6 +258,54 @@ export async function updateDonorAvailability(
 }
 
 /**
+ * Updates a donor's contact privacy mode (PUBLIC vs PRIVATE).
+ * When mode is PUBLIC, publishes phone number to public card.
+ * When mode is PRIVATE, immediately removes phone number from public card.
+ */
+export async function updateDonorContactMode(
+  uid: string,
+  mode: DonorContactMode
+): Promise<void> {
+  const db = getFirebaseDb();
+  if (!db) {
+    throw new Error("Firestore is not configured");
+  }
+
+  const docRef = doc(db, DONOR_PROFILES_COLLECTION, uid);
+  const publicDocRef = doc(db, PUBLIC_DONOR_PROFILES_COLLECTION, uid);
+
+  const existingSnap = await getDoc(docRef);
+  if (!existingSnap.exists()) {
+    throw new Error("Donor profile not found");
+  }
+
+  const existingData = existingSnap.data();
+  const isPublic = mode === "PUBLIC";
+
+  const privateUpdates: Record<string, unknown> = {
+    contactMode: mode,
+    isPhonePublic: isPublic,
+    updatedAt: serverTimestamp(),
+  };
+
+  const publicUpdates: Record<string, unknown> = {
+    contactMode: mode,
+    updatedAt: serverTimestamp(),
+  };
+
+  if (isPublic) {
+    publicUpdates.phoneNumber = existingData.phoneNumber || "";
+  } else {
+    publicUpdates.phoneNumber = deleteField();
+  }
+
+  await Promise.all([
+    updateDoc(docRef, privateUpdates),
+    setDoc(publicDocRef, publicUpdates, { merge: true }),
+  ]);
+}
+
+/**
  * Deletes a donor profile and its public projection.
  */
 export async function deleteDonorProfile(uid: string): Promise<void> {
@@ -251,4 +328,3 @@ export async function deleteDonorProfile(uid: string): Promise<void> {
     // Non-fatal
   }
 }
-

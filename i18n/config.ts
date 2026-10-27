@@ -42,6 +42,7 @@ const ROUTE_MAP: Record<string, string> = {
   "/verify-email": "/en/verify-email",
   "/account": "/en/account",
   "/account/requests": "/en/account/requests",
+  "/account/contact-requests": "/en/account/contact-requests",
 };
 
 // Inverted map for English -> Bangla lookup

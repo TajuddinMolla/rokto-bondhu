@@ -1,6 +1,14 @@
 import * as React from "react";
 import Link from "next/link";
-import { MapPin, Calendar, ShieldCheck, HeartHandshake } from "lucide-react";
+import {
+  MapPin,
+  Calendar,
+  ShieldCheck,
+  PhoneCall,
+  Send,
+  HeartHandshake,
+  Phone,
+} from "lucide-react";
 
 import type { PublicDonorProfile, DonorPublicSummary } from "@/types/donor";
 import { formatLocation } from "@/constants/locations";
@@ -13,9 +21,10 @@ import type { Locale } from "@/i18n/config";
 interface DonorCardProps {
   donor: PublicDonorProfile | DonorPublicSummary;
   locale: Locale;
+  onRequestContact?: (donor: PublicDonorProfile | DonorPublicSummary) => void;
 }
 
-export function DonorCard({ donor, locale }: DonorCardProps) {
+export function DonorCard({ donor, locale, onRequestContact }: DonorCardProps) {
   const t = getTranslations(locale);
 
   const locationText = formatLocation(
@@ -34,11 +43,16 @@ export function DonorCard({ donor, locale }: DonorCardProps) {
       ? "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10"
       : "border-border text-muted-foreground bg-muted/40";
 
-  const requestHref = `${
+  const isPublicContact =
+    donor.contactMode === "PUBLIC" && Boolean(donor.phoneNumber);
+
+  const requestBloodHref = `${
     locale === "en" ? "/en" : ""
   }/blood-request/create?bloodGroup=${encodeURIComponent(
     donor.bloodGroup
-  )}&division=${donor.divisionId}&district=${donor.districtId}&upazila=${donor.upazilaId}`;
+  )}&division=${donor.divisionId}&district=${donor.districtId}&upazila=${
+    donor.upazilaId
+  }`;
 
   return (
     <Card className="border border-border bg-surface hover:border-primary/40 transition-all duration-200 hover:shadow-xs">
@@ -68,32 +82,77 @@ export function DonorCard({ donor, locale }: DonorCardProps) {
 
         <div className="pt-3 border-t border-border flex flex-wrap items-center justify-between gap-3 text-xs">
           <div className="flex flex-wrap items-center gap-3">
-            {/* Privacy Protection Indicator: Never displays raw phone numbers */}
-            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-              <ShieldCheck className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
-              <span>{t.donorsPage.results.contactProtected}</span>
-            </span>
+            {/* Contact Visibility Badge */}
+            {isPublicContact ? (
+              <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                <Phone className="size-3.5 shrink-0" aria-hidden="true" />
+                <span className="font-mono font-semibold">{donor.phoneNumber}</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                <ShieldCheck
+                  className="size-3.5 text-emerald-600 dark:text-emerald-400 shrink-0"
+                  aria-hidden="true"
+                />
+                <span>{t.donorsPage.results.contactProtected}</span>
+              </span>
+            )}
 
             {donor.lastDonationDate ? (
               <span className="inline-flex items-center gap-1 text-muted-foreground">
                 <Calendar className="size-3.5 shrink-0" aria-hidden="true" />
                 <span>
-                  {t.donorsPage.results.lastDonationLabel} <strong>{donor.lastDonationDate}</strong>
+                  {t.donorsPage.results.lastDonationLabel}{" "}
+                  <strong>{donor.lastDonationDate}</strong>
                 </span>
               </span>
             ) : null}
           </div>
 
-          {/* Secure Contact Action: Links to Blood Request Creation */}
-          <Button asChild size="sm" variant="outline" className="h-7 text-xs gap-1.5 font-medium border-primary/30 text-primary hover:bg-primary/10">
-            <Link href={requestHref}>
-              <HeartHandshake className="size-3.5" aria-hidden="true" />
-              <span>{t.donorsPage.results.requestBloodCta}</span>
-            </Link>
-          </Button>
+          {/* Action CTAs */}
+          <div className="flex items-center gap-2">
+            {isPublicContact ? (
+              /* PUBLIC MODE: Direct Calling with tel: */
+              <Button
+                asChild
+                size="sm"
+                className="h-8 text-xs gap-1.5 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+              >
+                <a href={`tel:${donor.phoneNumber}`}>
+                  <PhoneCall className="size-3.5" aria-hidden="true" />
+                  <span>{t.donorsPage.results.callNowCta}</span>
+                </a>
+              </Button>
+            ) : (
+              /* PRIVATE MODE: Direct Contact Request */
+              <Button
+                type="button"
+                size="sm"
+                variant="default"
+                onClick={() => onRequestContact?.(donor)}
+                className="h-8 text-xs gap-1.5 font-semibold shadow-xs"
+              >
+                <Send className="size-3.5" aria-hidden="true" />
+                <span>{t.donorsPage.results.requestContactCta}</span>
+              </Button>
+            )}
+
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1 font-medium border-border hover:bg-muted"
+            >
+              <Link href={requestBloodHref} title={t.donorsPage.results.requestBloodCta}>
+                <HeartHandshake className="size-3.5" aria-hidden="true" />
+                <span className="hidden sm:inline">
+                  {t.donorsPage.results.requestBloodCta}
+                </span>
+              </Link>
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 }
-

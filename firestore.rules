@@ -62,25 +62,107 @@ service cloud.firestore {
 
     // -------------------------------------------------------------
     // Public Donor Profiles Collection: /publicDonorProfiles/{donorId}
-    // Phase 12: Dedicated public-safe projection for open donor discovery.
-    // Zero private fields (phones, street addresses, credentials) permitted.
+    // Phase 12 & 13: Dedicated public projection for open donor discovery.
+    // In PRIVATE mode, phone number is strictly forbidden.
+    // In PUBLIC mode, verified phone number is permitted for direct calling.
     // -------------------------------------------------------------
     match /publicDonorProfiles/{donorId} {
       // Publicly readable for volunteer discovery
       allow read: if true;
 
-      // Only the profile owner can publish or update their public-safe card
+      // Only the profile owner can publish or update their public card
       allow create, update: if isOwner(donorId)
-                            && request.resource.data.keys().hasOnly([
-                              'displayName', 'bloodGroup', 'divisionId',
-                              'districtId', 'upazilaId', 'availabilityStatus',
-                              'lastDonationDate', 'updatedAt'
-                            ])
+                            && (
+                              // PRIVATE mode: strictly NO phone number
+                              (
+                                (!('contactMode' in request.resource.data) || request.resource.data.contactMode == 'PRIVATE')
+                                && request.resource.data.keys().hasOnly([
+                                  'displayName', 'bloodGroup', 'divisionId',
+                                  'districtId', 'upazilaId', 'availabilityStatus',
+                                  'lastDonationDate', 'updatedAt', 'contactMode'
+                                ])
+                              ) ||
+                              // PUBLIC mode: donor explicitly consents to sharing phone number
+                              (
+                                request.resource.data.contactMode == 'PUBLIC'
+                                && request.resource.data.keys().hasOnly([
+                                  'displayName', 'bloodGroup', 'divisionId',
+                                  'districtId', 'upazilaId', 'availabilityStatus',
+                                  'lastDonationDate', 'updatedAt', 'contactMode', 'phoneNumber'
+                                ])
+                                && request.resource.data.phoneNumber is string
+                                && request.resource.data.phoneNumber.size() >= 11
+                                && request.resource.data.phoneNumber.size() <= 15
+                              )
+                            )
                             && isValidBloodGroup(request.resource.data.bloodGroup)
                             && isValidAvailability(request.resource.data.availabilityStatus);
 
       // Only the profile owner can delete their public card
       allow delete: if isOwner(donorId);
+    }
+
+    // -------------------------------------------------------------
+    // Donor Contact Requests Collection: /donorContactRequests/{requestId}
+    // Phase 13: Hybrid 1-to-1 donor contact and consent disclosure.
+    // -------------------------------------------------------------
+    match /donorContactRequests/{requestId} {
+      // Readable ONLY by the recipient donor or the authenticated requester
+      allow read: if isAuthenticated() && (
+        resource.data.donorId == request.auth.uid || 
+        resource.data.requesterId == request.auth.uid
+      );
+
+      // Create: Authenticated requesters only.
+      // Strictly prevent self-requests and prevent unauthorized initial fields.
+      allow create: if isAuthenticated()
+                    && request.resource.data.requesterId == request.auth.uid
+                    && request.resource.data.donorId != request.auth.uid
+                    && request.resource.data.status == 'PENDING'
+                    && request.resource.data.donorConsentGiven == false
+                    && !('sharedContactDetails' in request.resource.data)
+                    && request.resource.data.requesterName is string
+                    && request.resource.data.requesterPhone is string
+                    && request.resource.data.urgency in ['normal', 'urgent', 'critical'];
+
+      // Update rules enforce strict role-based state machine:
+      // 1. Requester can CANCEL their own PENDING request.
+      // 2. Donor can ACCEPT or DECLINE a PENDING request.
+      // 3. Donor can explicitly give contact consent (step 2) and attach sharedContactDetails.
+      // 4. Donor or Requester can mark an ACCEPTED request as COMPLETED.
+      // Neither party can alter immutable IDs or timestamps.
+      allow update: if isAuthenticated()
+                    && (!('donorId' in resource.data) || request.resource.data.donorId == resource.data.donorId)
+                    && (!('requesterId' in resource.data) || request.resource.data.requesterId == resource.data.requesterId)
+                    && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
+                    && (
+                      // Requester cancellation
+                      (
+                        resource.data.requesterId == request.auth.uid
+                        && resource.data.status == 'PENDING'
+                        && request.resource.data.status == 'CANCELLED'
+                      ) ||
+                      // Donor response & consent lifecycle
+                      (
+                        resource.data.donorId == request.auth.uid
+                        && (
+                          // Accept or Decline pending request
+                          (resource.data.status == 'PENDING' && request.resource.data.status in ['ACCEPTED', 'DECLINED']) ||
+                          // Explicit step-2 consent to share phone number
+                          (resource.data.status == 'ACCEPTED' 
+                            && request.resource.data.status == 'ACCEPTED'
+                            && request.resource.data.donorConsentGiven == true
+                            && request.resource.data.sharedContactDetails is map
+                            && request.resource.data.sharedContactDetails.phoneNumber is string
+                          ) ||
+                          // Complete accepted request
+                          (resource.data.status == 'ACCEPTED' && request.resource.data.status == 'COMPLETED')
+                        )
+                      )
+                    );
+
+      // Disallow hard deletion
+      allow delete: if false;
     }
 
     // -------------------------------------------------------------
