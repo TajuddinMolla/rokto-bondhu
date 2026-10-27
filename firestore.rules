@@ -1,0 +1,68 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidBloodGroup(group) {
+      return group in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+    }
+
+    function isValidAvailability(status) {
+      return status in ['available', 'unavailable'];
+    }
+
+    // -------------------------------------------------------------
+    // Users Collection: /users/{userId}
+    // Private user account documents. Only the account owner can read or write.
+    // -------------------------------------------------------------
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+
+      allow create: if isOwner(userId)
+                    && request.resource.data.uid == userId
+                    && (request.resource.data.email == request.auth.token.email || request.auth.token.email == null);
+
+      allow update: if isOwner(userId)
+                    && request.resource.data.uid == userId
+                    && request.resource.data.createdAt == resource.data.createdAt;
+
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------
+    // Donor Profiles Collection: /donorProfiles/{donorId}
+    // Phase 10: Private to donor owner (public donor search is deferred to Phase 11).
+    // Document ID strictly matches the user's Auth UID.
+    // -------------------------------------------------------------
+    match /donorProfiles/{donorId} {
+      allow read: if isOwner(donorId);
+
+      allow create: if isOwner(donorId)
+                    && request.resource.data.userId == donorId
+                    && isValidBloodGroup(request.resource.data.bloodGroup)
+                    && isValidAvailability(request.resource.data.availabilityStatus);
+
+      allow update: if isOwner(donorId)
+                    && request.resource.data.userId == donorId
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && isValidBloodGroup(request.resource.data.bloodGroup)
+                    && isValidAvailability(request.resource.data.availabilityStatus);
+
+      allow delete: if isOwner(donorId);
+    }
+
+    // Default: Deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
