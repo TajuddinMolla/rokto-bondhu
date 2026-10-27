@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { UserPlus, X, Search, Loader2, AlertCircle, RefreshCw, Compass } from "lucide-react";
+import { UserPlus, X, Search, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 
 import { getDivisionById, getDistrictById, getUpazilaById } from "@/constants/locations";
 import { normalizeBloodGroup } from "@/constants/blood-groups";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { DonorCard } from "@/components/donors/donor-card";
 import { useDonorSearch } from "@/hooks/queries/use-donor-search";
+import { useIsDonor } from "@/hooks/use-is-donor";
 import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
 import type { DonorSearchFilterParams } from "@/types/donor";
@@ -46,6 +47,7 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const { isDonor } = useIsDonor();
 
   const rawBloodGroup = searchParams.get("bloodGroup");
   const bloodGroup = normalizeBloodGroup(rawBloodGroup);
@@ -53,8 +55,6 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
   const districtId = searchParams.get("district") || undefined;
   const upazilaId = searchParams.get("upazila") || undefined;
   const availability = searchParams.get("availability") || undefined;
-
-  const [hasRequestedBrowseAll, setHasRequestedBrowseAll] = React.useState(false);
 
   const registerHref = locale === "en" ? "/en/donors/register" : "/donors/register";
 
@@ -130,9 +130,7 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
     [bloodGroup, divisionId, districtId, upazilaId, availability]
   );
 
-  // Search activates when at least one filter is selected OR user clicks browse all
-  const isSearchActive = activeFilters.length > 0 || hasRequestedBrowseAll;
-
+  // Search is active by default to display all donors immediately on page load
   const {
     data,
     isLoading,
@@ -142,7 +140,7 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
     isFetchingNextPage,
     refetch,
   } = useDonorSearch(filters, {
-    enabled: isSearchActive,
+    enabled: true,
     pageSize: 20,
   });
 
@@ -178,44 +176,8 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
         </div>
       ) : null}
 
-      {/* State 1: Guided Initial Prompt (No filters chosen yet) */}
-      {!isSearchActive ? (
-        <Card className="border border-border bg-surface text-center p-8 sm:p-12 space-y-6">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary mx-auto border border-primary/20 shadow-xs">
-            <Compass className="size-7" aria-hidden="true" />
-          </div>
-
-          <div className="max-w-xl mx-auto space-y-2">
-            <h3 className="text-lg sm:text-xl font-bold text-foreground">
-              {t.donorsPage.results.guidedPromptTitle}
-            </h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {t.donorsPage.results.guidedPromptDesc}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setHasRequestedBrowseAll(true)}
-              className="font-medium gap-2 border-primary/30 text-primary hover:bg-primary/5"
-            >
-              <Search className="size-4" aria-hidden="true" />
-              <span>{t.donorsPage.results.browseAllAction}</span>
-            </Button>
-            <Button asChild className="font-medium gap-2 shadow-xs">
-              <Link href={registerHref}>
-                <UserPlus className="size-4" aria-hidden="true" />
-                <span>{t.donorsPage.results.becomeDonorCta}</span>
-              </Link>
-            </Button>
-          </div>
-        </Card>
-      ) : null}
-
-      {/* State 2: Initial Loading Skeletons */}
-      {isSearchActive && isLoading ? (
+      {/* State 1: Initial Loading Skeletons */}
+      {isLoading ? (
         <div className="space-y-4">
           <DonorCardSkeleton />
           <DonorCardSkeleton />
@@ -223,8 +185,8 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
         </div>
       ) : null}
 
-      {/* State 3: Error Banner */}
-      {isSearchActive && !isLoading && isError ? (
+      {/* State 2: Error Banner */}
+      {!isLoading && isError ? (
         <Card className="border border-destructive/20 bg-destructive/5 p-6 sm:p-8 text-center space-y-4">
           <div className="inline-flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive border border-destructive/20">
             <AlertCircle className="size-6" aria-hidden="true" />
@@ -249,8 +211,8 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
         </Card>
       ) : null}
 
-      {/* State 4: Empty State (0 Donors Found) */}
-      {isSearchActive && !isLoading && !isError && allDonors.length === 0 ? (
+      {/* State 3: Empty State (0 Donors Found) */}
+      {!isLoading && !isError && allDonors.length === 0 ? (
         <Card className="border border-border bg-surface text-center p-8 sm:p-12 space-y-6">
           <div className="flex size-14 items-center justify-center rounded-2xl bg-muted/40 text-muted-foreground mx-auto border border-border shadow-xs">
             <Search className="size-7" aria-hidden="true" />
@@ -265,33 +227,37 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
             </p>
           </div>
 
-          <div className="text-xs text-muted-foreground bg-muted/20 p-3 rounded-md max-w-md mx-auto border border-border/50">
-            {t.donorsPage.results.emptyStateSuggestion}
-          </div>
-
-          {/* Become a Donor Callout */}
-          <div className="pt-6 border-t border-border max-w-lg mx-auto space-y-4">
-            <div className="space-y-1">
-              <h4 className="text-sm sm:text-base font-bold text-foreground">
-                {t.donorsPage.results.becomeDonorTitle}
-              </h4>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                {t.donorsPage.results.becomeDonorDesc}
-              </p>
+          {activeFilters.length > 0 && (
+            <div className="text-xs text-muted-foreground bg-muted/20 p-3 rounded-md max-w-md mx-auto border border-border/50">
+              {t.donorsPage.results.emptyStateSuggestion}
             </div>
+          )}
 
-            <Button asChild className="font-semibold shadow-xs">
-              <Link href={registerHref}>
-                <UserPlus className="size-4 mr-2" aria-hidden="true" />
-                {t.donorsPage.results.becomeDonorCta}
-              </Link>
-            </Button>
-          </div>
+          {/* Become a Donor Callout - Hidden if user is already a donor */}
+          {!isDonor && (
+            <div className="pt-6 border-t border-border max-w-lg mx-auto space-y-4">
+              <div className="space-y-1">
+                <h4 className="text-sm sm:text-base font-bold text-foreground">
+                  {t.donorsPage.results.becomeDonorTitle}
+                </h4>
+                <p className="text-xs sm:text-sm text-muted-foreground">
+                  {t.donorsPage.results.becomeDonorDesc}
+                </p>
+              </div>
+
+              <Button asChild className="font-semibold shadow-xs">
+                <Link href={registerHref}>
+                  <UserPlus className="size-4 mr-2" aria-hidden="true" />
+                  {t.donorsPage.results.becomeDonorCta}
+                </Link>
+              </Button>
+            </div>
+          )}
         </Card>
       ) : null}
 
-      {/* State 5: Donors List with Cursor-Based Pagination */}
-      {isSearchActive && !isLoading && allDonors.length > 0 ? (
+      {/* State 4: Donors List with Cursor-Based Pagination */}
+      {!isLoading && !isError && allDonors.length > 0 ? (
         <div className="space-y-4">
           {/* Result Count Indicator */}
           <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
@@ -333,4 +299,3 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
     </div>
   );
 }
-

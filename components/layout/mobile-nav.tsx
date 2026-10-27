@@ -9,6 +9,7 @@ import { getLocaleFromPathname } from "@/i18n/config";
 import { getTranslations } from "@/i18n/translations";
 import { getMainNavItems, getUserNavItems } from "@/constants/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { useIsDonor } from "@/hooks/use-is-donor";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
@@ -29,6 +30,7 @@ export function MobileNav() {
   const currentLocale = getLocaleFromPathname(pathname);
   const t = getTranslations(currentLocale);
   const { user, status, loading, logout } = useAuth();
+  const { isDonor } = useIsDonor();
   const mainNavItems = getMainNavItems(currentLocale);
   const userNavItems = getUserNavItems(currentLocale);
 
@@ -165,7 +167,7 @@ export function MobileNav() {
                   )}
                 </Link>
 
-                {primaryAction && (
+                {!isDonor && primaryAction && (
                   <Button
                     asChild
                     variant="default"

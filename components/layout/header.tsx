@@ -9,6 +9,7 @@ import { getLocaleFromPathname, isAuthPathname } from "@/i18n/config";
 import { getTranslations } from "@/i18n/translations";
 import { getMainNavItems, getUserNavItems } from "@/constants/navigation";
 import { useAuth } from "@/hooks/use-auth";
+import { useIsDonor } from "@/hooks/use-is-donor";
 import { Button } from "@/components/ui/button";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
@@ -17,6 +18,7 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, status, loading, logout } = useAuth();
+  const { isDonor } = useIsDonor();
 
   // Completely omit header on authentication routes
   if (isAuthPathname(pathname)) {
@@ -137,7 +139,7 @@ export function Header() {
             )
           )}
 
-          {primaryAction && (
+          {!isDonor && primaryAction && (
             <Button asChild variant="default" size="sm" className="shadow-sm">
               <Link href={primaryAction.href}>
                 <Droplet className="size-4 fill-current mr-1.5" aria-hidden="true" />

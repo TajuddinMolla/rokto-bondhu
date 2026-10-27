@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { Heart, Clock, ShieldCheck, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useIsDonor } from "@/hooks/use-is-donor";
 import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
 
@@ -12,6 +15,7 @@ interface BecomeDonorSectionProps {
 
 export function BecomeDonorSection({ locale }: BecomeDonorSectionProps) {
   const t = getTranslations(locale);
+  const { isDonor } = useIsDonor();
   const registerHref = locale === "en" ? "/en/donors/register" : "/donors/register";
 
   return (
@@ -86,14 +90,16 @@ export function BecomeDonorSection({ locale }: BecomeDonorSectionProps) {
               </div>
             </div>
 
-            <div className="pt-6">
-              <Button asChild size="lg" className="font-semibold text-base shadow-sm">
-                <Link href={registerHref}>
-                  <UserPlus className="size-4 mr-2" aria-hidden="true" />
-                  {t.home.becomeDonor.cta}
-                </Link>
-              </Button>
-            </div>
+            {!isDonor && (
+              <div className="pt-6">
+                <Button asChild size="lg" className="font-semibold text-base shadow-sm">
+                  <Link href={registerHref}>
+                    <UserPlus className="size-4 mr-2" aria-hidden="true" />
+                    {t.home.becomeDonor.cta}
+                  </Link>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       </div>

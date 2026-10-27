@@ -1,8 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { Droplet, Search, UserPlus, ShieldCheck, MapPin } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useIsDonor } from "@/hooks/use-is-donor";
 import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
 
@@ -12,6 +15,7 @@ interface HeroSectionProps {
 
 export function HeroSection({ locale }: HeroSectionProps) {
   const t = getTranslations(locale);
+  const { isDonor } = useIsDonor();
   const registerHref = locale === "en" ? "/en/donors/register" : "/donors/register";
 
   return (
@@ -63,17 +67,19 @@ export function HeroSection({ locale }: HeroSectionProps) {
                 </a>
               </Button>
 
-              <Button
-                asChild
-                variant="outline"
-                size="lg"
-                className="w-full sm:w-auto text-base border-primary/20 hover:border-primary/50 hover:bg-primary/5 hover:text-primary font-semibold"
-              >
-                <Link href={registerHref}>
-                  <UserPlus className="size-4 mr-2" aria-hidden="true" />
-                  {t.home.hero.secondaryCta}
-                </Link>
-              </Button>
+              {!isDonor && (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto text-base border-primary/20 hover:border-primary/50 hover:bg-primary/5 hover:text-primary font-semibold"
+                >
+                  <Link href={registerHref}>
+                    <UserPlus className="size-4 mr-2" aria-hidden="true" />
+                    {t.home.hero.secondaryCta}
+                  </Link>
+                </Button>
+              )}
             </div>
 
             {/* Micro Highlights */}

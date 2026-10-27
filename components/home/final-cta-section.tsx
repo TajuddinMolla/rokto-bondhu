@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { Search, UserPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useIsDonor } from "@/hooks/use-is-donor";
 import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
 
@@ -11,6 +14,7 @@ interface FinalCtaSectionProps {
 
 export function FinalCtaSection({ locale }: FinalCtaSectionProps) {
   const t = getTranslations(locale);
+  const { isDonor } = useIsDonor();
   const registerHref = locale === "en" ? "/en/donors/register" : "/donors/register";
 
   return (
@@ -42,17 +46,19 @@ export function FinalCtaSection({ locale }: FinalCtaSectionProps) {
             </a>
           </Button>
 
-          <Button
-            asChild
-            variant="outline"
-            size="lg"
-            className="w-full sm:w-auto border-slate-700 bg-slate-800 text-white hover:border-slate-500 hover:bg-slate-700 hover:text-white font-semibold text-base"
-          >
-            <Link href={registerHref}>
-              <UserPlus className="size-4 mr-2" aria-hidden="true" />
-              {t.home.finalCta.registerCta}
-            </Link>
-          </Button>
+          {!isDonor && (
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="w-full sm:w-auto border-slate-700 bg-slate-800 text-white hover:border-slate-500 hover:bg-slate-700 hover:text-white font-semibold text-base"
+            >
+              <Link href={registerHref}>
+                <UserPlus className="size-4 mr-2" aria-hidden="true" />
+                {t.home.finalCta.registerCta}
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
     </section>
