@@ -95,7 +95,7 @@ export async function upsertDonorProfile(
     updatedAt: serverTimestamp(),
   };
 
-  if (isNew) {
+  if (isNew || !existing.data()?.createdAt) {
     payload.createdAt = serverTimestamp();
   }
 
@@ -109,6 +109,10 @@ export async function upsertDonorProfile(
   }
 
   const now = new Date().toISOString();
+  const createdAtValue = isNew || !existing.data()?.createdAt
+    ? now
+    : timestampToIso(existing.data()?.createdAt);
+
   return {
     id: uid,
     userId: uid,
@@ -122,7 +126,7 @@ export async function upsertDonorProfile(
     isPhonePublic: Boolean(input.isPhonePublic),
     lastDonationDate: input.lastDonationDate?.trim() || undefined,
     availabilityStatus: input.availabilityStatus || "available",
-    createdAt: isNew ? now : timestampToIso(existing.data()?.createdAt),
+    createdAt: createdAtValue,
     updatedAt: now,
   };
 }

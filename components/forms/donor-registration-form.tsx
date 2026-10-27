@@ -174,12 +174,37 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
       });
       setSubmittedSnapshot(savedProfile);
       setIsSuccess(true);
-    } catch {
-      setSubmitError(
-        locale === "en"
-          ? "Failed to save donor profile to database. Please check your connection and try again."
-          : "ডাটাবেজে রক্তদাতা প্রোফাইল সংরক্ষণ ব্যর্থ হয়েছে। ইন্টারনেট সংযোগ যাচাই করে পুনরায় চেষ্টা করুন।"
-      );
+    } catch (err: unknown) {
+      console.error("[DonorRegistrationForm] Submission error:", err);
+      const firestoreErr = err as { code?: string; message?: string };
+      const errorCode = firestoreErr?.code;
+
+      if (errorCode === "permission-denied") {
+        setSubmitError(
+          locale === "en"
+            ? "Permission denied by Firestore database. Please make sure the Firestore Security Rules are published in your Firebase Console."
+            : "ডাটাবেজে তথ্য সংরক্ষণের অনুমতি নেই (Permission Denied)। অনুগ্রহ করে ফায়ারবেস কনসোলে সিকিউরিটি রুলস প্রকাশ করুন অথবা পুনরায় লগইন করুন।"
+        );
+      } else if (errorCode === "unauthenticated") {
+        setSubmitError(
+          locale === "en"
+            ? "Your login session has expired. Please sign in again."
+            : "লগইন সেশনের মেয়াদ শেষ হয়েছে। অনুগ্রহ করে পুনরায় লগইন করুন।"
+        );
+      } else if (errorCode === "unavailable") {
+        setSubmitError(
+          locale === "en"
+            ? "Database is currently unavailable. Please check your internet connection."
+            : "ডাটাবেজের সাথে সংযোগ স্থাপন সম্ভব হয়নি। ইন্টারনেট সংযোগ যাচাই করে পুনরায় চেষ্টা করুন।"
+        );
+      } else {
+        setSubmitError(
+          firestoreErr?.message ||
+            (locale === "en"
+              ? "Failed to save donor profile to database. Please check your connection and try again."
+              : "ডাটাবেজে রক্তদাতা প্রোফাইল সংরক্ষণ ব্যর্থ হয়েছে। ইন্টারনেট সংযোগ যাচাই করে পুনরায় চেষ্টা করুন।")
+        );
+      }
     }
   };
 
