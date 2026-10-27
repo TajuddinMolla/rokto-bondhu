@@ -14,7 +14,8 @@ import {
   Loader2,
   CheckCircle2,
   RotateCcw,
-  Search,
+  ShieldAlert,
+  Edit3,
 } from "lucide-react";
 
 import { BLOOD_GROUPS } from "@/constants/blood-groups";
@@ -27,6 +28,8 @@ import {
   getUpazilaById,
 } from "@/constants/locations";
 import { createDonorSchema, type DonorInput } from "@/lib/validations/donor";
+import { useDonorProfile } from "@/hooks/queries/use-donor-profile";
+import { useSaveDonorProfile } from "@/hooks/mutations/use-save-donor-profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -36,6 +39,7 @@ import { FormField } from "@/components/forms/form-field";
 import { getTranslations } from "@/i18n/translations";
 import { useAuth } from "@/hooks/use-auth";
 import type { Locale } from "@/i18n/config";
+import type { DonorProfile } from "@/types/donor";
 
 interface DonorRegistrationFormProps {
   locale: Locale;
@@ -61,7 +65,12 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
   const { user, status } = useAuth();
 
   const [isSuccess, setIsSuccess] = React.useState(false);
-  const [submittedSnapshot, setSubmittedSnapshot] = React.useState<DonorInput | null>(null);
+  const [submittedSnapshot, setSubmittedSnapshot] = React.useState<DonorProfile | DonorInput | null>(null);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+
+  const { data: existingProfile, isLoading: isProfileLoading } = useDonorProfile(user?.uid);
+  const saveDonorMutation = useSaveDonorProfile();
+
   const maxDate = React.useSyncExternalStore(
     () => () => {},
     () => new Date().toISOString().split("T")[0],
@@ -77,7 +86,7 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
     handleSubmit,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<DonorInput>({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(donorSchema as any),
@@ -93,12 +102,29 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
   const watchedDistrictId = useWatch({ control, name: "districtId" });
   const watchedAvailabilityStatus = useWatch({ control, name: "availabilityStatus" });
 
-  // Update display name if user logs in after mount
-  const [prevUserDisplayName, setPrevUserDisplayName] = React.useState<string | undefined>(undefined);
-  if (user?.displayName && user.displayName !== prevUserDisplayName) {
-    setPrevUserDisplayName(user.displayName);
-    setValue("displayName", user.displayName);
-  }
+  // Pre-fill existing donor profile when loaded (Edit Mode)
+  const hasInitializedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (existingProfile && !hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      reset({
+        displayName: existingProfile.displayName,
+        bloodGroup: existingProfile.bloodGroup,
+        phoneNumber: existingProfile.phoneNumber,
+        isPhonePublic: existingProfile.isPhonePublic,
+        divisionId: existingProfile.divisionId,
+        districtId: existingProfile.districtId,
+        upazilaId: existingProfile.upazilaId,
+        area: existingProfile.area || "",
+        lastDonationDate: existingProfile.lastDonationDate || "",
+        availabilityStatus: existingProfile.availabilityStatus,
+        consent: true,
+      });
+    } else if (user?.displayName && !hasInitializedRef.current && !existingProfile) {
+      hasInitializedRef.current = true;
+      setValue("displayName", user.displayName);
+    }
+  }, [existingProfile, user?.displayName, reset, setValue]);
 
   // Location datasets
   const divisions = React.useMemo(() => getDivisions(), []);
@@ -128,11 +154,33 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
     setValue("upazilaId", "", { shouldValidate: false });
   };
 
-  // Form submission with simulated preview latency
+  // Form submission: Persists directly to Firestore using React Query mutation
   const onSubmit = async (data: DonorInput) => {
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    setSubmittedSnapshot(data);
-    setIsSuccess(true);
+    setSubmitError(null);
+
+    if (!user) {
+      setSubmitError(
+        locale === "en"
+          ? "Please sign in or create an account to save your donor profile."
+          : "রক্তদাতা প্রোফাইল সংরক্ষণ করতে অনুগ্রহ করে লগইন করুন বা অ্যাকাউন্ট তৈরি করুন।"
+      );
+      return;
+    }
+
+    try {
+      const savedProfile = await saveDonorMutation.mutateAsync({
+        uid: user.uid,
+        input: data,
+      });
+      setSubmittedSnapshot(savedProfile);
+      setIsSuccess(true);
+    } catch {
+      setSubmitError(
+        locale === "en"
+          ? "Failed to save donor profile to database. Please check your connection and try again."
+          : "ডাটাবেজে রক্তদাতা প্রোফাইল সংরক্ষণ ব্যর্থ হয়েছে। ইন্টারনেট সংযোগ যাচাই করে পুনরায় চেষ্টা করুন।"
+      );
+    }
   };
 
   const handleReset = () => {
@@ -142,6 +190,7 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
     });
     setSubmittedSnapshot(null);
     setIsSuccess(false);
+    setSubmitError(null);
   };
 
   if (isSuccess && submittedSnapshot) {
@@ -165,25 +214,25 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
           </div>
           <div>
             <Badge variant="outline" className="border-primary/30 text-primary mb-2">
-              {t.registrationPage.demoSuccess.badge}
+              {locale === "en" ? "Profile Saved" : "প্রোফাইল সংরক্ষিত"}
             </Badge>
             <h2 className="text-xl sm:text-2xl font-bold text-foreground">
               {status === "authenticated"
-                ? t.auth.donorFormAuth.authSuccessTitle
+                ? (locale === "en" ? "Donor Profile Successfully Saved!" : "রক্তদাতা প্রোফাইল সফলভাবে সংরক্ষিত হয়েছে!")
                 : t.registrationPage.demoSuccess.title}
             </h2>
           </div>
           <p className="text-sm text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            {status === "authenticated"
-              ? t.auth.donorFormAuth.authSuccessDesc
-              : t.registrationPage.demoSuccess.desc}
+            {locale === "en"
+              ? "Your profile has been saved to the database. You can manage your availability anytime from your account."
+              : "আপনার প্রোফাইল ডাটাবেজে সংরক্ষিত হয়েছে। আপনার অ্যাকাউন্ট থেকে যেকোনো সময় প্রাপ্যতা পরিবর্তন করতে পারবেন।"}
           </p>
         </div>
 
         <CardContent className="p-6 sm:p-8 space-y-6">
           <div className="rounded-xl border border-border bg-muted/20 p-4 sm:p-5 space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              {locale === "en" ? "Validated Profile Preview" : "যাচাইকৃত প্রোফাইল প্রিভিউ"}
+              {locale === "en" ? "Active Donor Profile" : "সক্রিয় রক্তদাতা প্রোফাইল"}
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div>
@@ -259,12 +308,12 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
               className="w-full sm:w-auto gap-2"
             >
               <RotateCcw className="size-4" aria-hidden="true" />
-              <span>{t.registrationPage.demoSuccess.resetButton}</span>
+              <span>{locale === "en" ? "Edit Again" : "পুনরায় সম্পাদনা"}</span>
             </Button>
             <Button asChild className="w-full sm:w-auto gap-2">
-              <Link href={locale === "en" ? "/en/donors" : "/donors"}>
-                <Search className="size-4" aria-hidden="true" />
-                <span>{t.registrationPage.demoSuccess.searchDonorsButton}</span>
+              <Link href={locale === "en" ? "/en/account" : "/account"}>
+                <User className="size-4" aria-hidden="true" />
+                <span>{locale === "en" ? "Go to Account" : "অ্যাকাউন্টে যান"}</span>
               </Link>
             </Button>
           </div>
@@ -276,6 +325,8 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
   const loginHref = locale === "en" ? "/en/login" : "/login";
   const registerHref = locale === "en" ? "/en/register" : "/register";
   const verifyEmailHref = locale === "en" ? "/en/verify-email" : "/verify-email";
+
+  const isPending = saveDonorMutation.isPending;
 
   return (
     <div className="space-y-6">
@@ -310,27 +361,56 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
               <strong>{user.displayName || user.email}</strong>
             </span>
           </div>
-          {!user.emailVerified && (
-            <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/20">
-              <span>{t.auth.donorFormAuth.unverifiedWarning}</span>
-              <Link href={verifyEmailHref} className="font-semibold underline">
-                {t.auth.userMenu.verifyNow}
-              </Link>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {existingProfile && (
+              <Badge variant="outline" className="border-primary/40 text-primary bg-primary/10 flex items-center gap-1">
+                <Edit3 className="size-3" />
+                <span>{locale === "en" ? "Existing Donor Profile" : "বিদ্যমান রক্তদাতা প্রোফাইল"}</span>
+              </Badge>
+            )}
+            {!user.emailVerified && (
+              <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-md border border-amber-500/20">
+                <span>{t.auth.donorFormAuth.unverifiedWarning}</span>
+                <Link href={verifyEmailHref} className="font-semibold underline">
+                  {t.auth.userMenu.verifyNow}
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       ) : null}
 
+      {/* Submit Error Banner */}
+      {submitError && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive font-medium animate-in fade-in duration-200"
+        >
+          <ShieldAlert className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
+          <span className="leading-relaxed">{submitError}</span>
+        </div>
+      )}
+
       <Card className="border border-border bg-surface shadow-sm">
         <CardHeader className="pb-6 border-b border-border">
-          <div className="flex items-center gap-2">
-            <Heart className="size-5 text-primary" aria-hidden="true" />
-            <CardTitle className="text-lg sm:text-xl font-bold text-foreground">
-              {t.registrationPage.form.personalInfoTitle}
-            </CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Heart className="size-5 text-primary" aria-hidden="true" />
+              <CardTitle className="text-lg sm:text-xl font-bold text-foreground">
+                {existingProfile
+                  ? (locale === "en" ? "Edit Donor Profile" : "রক্তদাতা প্রোফাইল সম্পাদনা")
+                  : t.registrationPage.form.personalInfoTitle}
+              </CardTitle>
+            </div>
+            {isProfileLoading && (
+              <Loader2 className="size-4 text-muted-foreground animate-spin" />
+            )}
           </div>
           <CardDescription className="text-xs sm:text-sm text-muted-foreground">
-            {t.registrationPage.form.personalInfoSubtitle}
+            {existingProfile
+              ? (locale === "en" ? "Update your availability status, contact, or location details." : "আপনার প্রাপ্যতা, যোগাযোগ বা অবস্থানের তথ্য আপডেট করুন।")
+              : t.registrationPage.form.personalInfoSubtitle}
           </CardDescription>
         </CardHeader>
 
@@ -646,13 +726,18 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
                 <Button
                   type="submit"
                   size="lg"
-                  disabled={isSubmitting}
+                  disabled={isPending}
                   className="w-full sm:w-auto font-semibold shadow-xs min-w-[220px]"
                 >
-                  {isSubmitting ? (
+                  {isPending ? (
                     <>
                       <Loader2 className="size-4 mr-2 animate-spin" aria-hidden="true" />
                       <span>{t.registrationPage.form.submittingButton}</span>
+                    </>
+                  ) : existingProfile ? (
+                    <>
+                      <Edit3 className="size-4 mr-2" aria-hidden="true" />
+                      <span>{locale === "en" ? "Update Donor Profile" : "রক্তদাতা প্রোফাইল আপডেট করুন"}</span>
                     </>
                   ) : (
                     <>

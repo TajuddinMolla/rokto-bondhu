@@ -40,6 +40,7 @@ const ROUTE_MAP: Record<string, string> = {
   "/forgot-password": "/en/forgot-password",
   "/reset-password": "/en/reset-password",
   "/verify-email": "/en/verify-email",
+  "/account": "/en/account",
 };
 
 // Inverted map for English -> Bangla lookup

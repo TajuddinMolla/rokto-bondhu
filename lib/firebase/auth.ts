@@ -9,15 +9,17 @@ import {
 } from "firebase/auth";
 
 import { getFirebaseAuth } from "@/lib/firebase/config";
+import { ensureUserProfile } from "@/services/user.service";
 
 /**
  * Registers a new user account with Email + Password via Firebase Authentication.
- * Sets the display name and triggers the initial email verification dispatch.
+ * Sets the display name, creates the initial Firestore user profile, and triggers verification dispatch.
  */
 export async function signUpWithEmail(
   fullName: string,
   email: string,
-  password: string
+  password: string,
+  phoneNumber?: string
 ): Promise<User> {
   const auth = getFirebaseAuth();
   if (!auth) {
@@ -34,6 +36,19 @@ export async function signUpWithEmail(
     } catch {
       // Non-fatal if display name update is throttled
     }
+  }
+
+  // Create initial user profile document in Firestore
+  try {
+    await ensureUserProfile({
+      uid: credential.user.uid,
+      displayName: fullName.trim(),
+      email: email.trim(),
+      phoneNumber: phoneNumber?.trim() || null,
+      emailVerified: false,
+    });
+  } catch {
+    // Non-fatal: if initial Firestore write fails, ensureUserProfile in onAuthStateChanged will self-heal
   }
 
   try {

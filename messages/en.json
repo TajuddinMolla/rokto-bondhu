@@ -491,8 +491,8 @@
       "loginPrompt": "Log In",
       "registerPrompt": "Create Account",
       "authenticatedAs": "Logged in as:",
-      "authSuccessTitle": "Profile Input Validated Successfully",
-      "authSuccessDesc": "Your account is authenticated. Persistent cloud database storage will be connected in a later phase.",
+      "authSuccessTitle": "Donor Profile Successfully Saved",
+      "authSuccessDesc": "Your donor profile has been saved to the cloud database. You can manage your details and availability anytime from your account dashboard.",
       "unverifiedWarning": "Your email is not verified yet. Please verify your email to become an active donor."
     }
   }

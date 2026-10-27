@@ -9,6 +9,7 @@ import type { BloodGroup, DonorAvailabilityStatus } from "@/types/blood";
  */
 export interface DonorProfile {
   id: string;
+  userId?: string;
   displayName: string;
   bloodGroup: BloodGroup;
   divisionId: string;

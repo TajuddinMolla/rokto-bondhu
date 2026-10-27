@@ -30,7 +30,7 @@ export function Header() {
   const userNavItems = getUserNavItems(currentLocale);
 
   const homeHref = currentLocale === "en" ? "/en" : "/";
-  const verifyEmailHref = currentLocale === "en" ? "/en/verify-email" : "/verify-email";
+  const accountHref = currentLocale === "en" ? "/en/account" : "/account";
   const primaryAction = userNavItems.find((item) => item.isPrimary);
   const secondaryAction = userNavItems.find((item) => !item.isPrimary);
 
@@ -93,8 +93,12 @@ export function Header() {
 
           {!loading && status === "authenticated" && user ? (
             <div className="flex items-center gap-2">
-              {/* Authenticated User Status Chip */}
-              <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-border bg-background text-xs font-medium">
+              {/* Authenticated User Status Chip (Links to Account Dashboard) */}
+              <Link
+                href={accountHref}
+                className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-border bg-background hover:bg-muted/50 text-xs font-medium transition-colors"
+                title={currentLocale === "en" ? "My Account & Profile" : "আমার অ্যাকাউন্ট ও প্রোফাইল"}
+              >
                 <div className="flex items-center justify-center size-6 rounded-full bg-primary/10 text-primary font-bold text-[11px]">
                   {userInitial}
                 </div>
@@ -103,16 +107,15 @@ export function Header() {
                 </span>
 
                 {!user.emailVerified && (
-                  <Link
-                    href={verifyEmailHref}
+                  <span
                     title={t.auth.userMenu.emailNotVerified}
-                    className="inline-flex items-center text-[10px] text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/20 transition-colors"
+                    className="inline-flex items-center text-[10px] text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20"
                   >
                     <AlertCircle className="size-3 mr-1" aria-hidden="true" />
                     {t.auth.userMenu.verifyNow}
-                  </Link>
+                  </span>
                 )}
-              </div>
+              </Link>
 
               {/* Logout Button */}
               <Button

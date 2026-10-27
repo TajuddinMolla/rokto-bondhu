@@ -14,6 +14,8 @@ import {
 } from "@/lib/firebase/auth";
 import type { AuthUser } from "@/types/auth";
 
+import { ensureUserProfile } from "@/services/user.service";
+
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
 export interface AuthContextValue {
@@ -24,7 +26,7 @@ export interface AuthContextValue {
   isEmailVerified: boolean;
   isConfigured: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (fullName: string, email: string, password: string) => Promise<User>;
+  register: (fullName: string, email: string, password: string, phoneNumber?: string) => Promise<User>;
   logout: () => Promise<void>;
   sendVerification: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -68,6 +70,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(mapFirebaseUser(firebaseUser));
         setRawUser(firebaseUser);
         setStatus("authenticated");
+
+        // Self-healing: ensure user profile document exists in Firestore
+        ensureUserProfile(firebaseUser).catch(() => {
+          // Non-fatal if offline
+        });
       } else {
         setUser(null);
         setRawUser(null);
@@ -91,8 +98,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const register = React.useCallback(
-    async (fullName: string, email: string, password: string): Promise<User> => {
-      const newUser = await signUpWithEmail(fullName, email, password);
+    async (fullName: string, email: string, password: string, phoneNumber?: string): Promise<User> => {
+      const newUser = await signUpWithEmail(fullName, email, password, phoneNumber);
       setUser(mapFirebaseUser(newUser));
       setRawUser(newUser);
       setStatus("authenticated");

@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, connectAuthEmulator, type Auth } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator, type Firestore } from "firebase/firestore";
 
 export const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -23,7 +24,9 @@ export function isFirebaseConfigured(): boolean {
 
 let appInstance: FirebaseApp | null = null;
 let authInstance: Auth | null = null;
-let emulatorConnected = false;
+let dbInstance: Firestore | null = null;
+let authEmulatorConnected = false;
+let firestoreEmulatorConnected = false;
 
 /**
  * Initializes and retrieves the client Firebase App instance using singleton pattern.
@@ -67,13 +70,13 @@ export function getFirebaseAuth(): Auth | null {
 
   if (
     process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true" &&
-    !emulatorConnected
+    !authEmulatorConnected
   ) {
     try {
       connectAuthEmulator(authInstance, "http://localhost:9099", {
         disableWarnings: true,
       });
-      emulatorConnected = true;
+      authEmulatorConnected = true;
       console.info("[RoktoBondhu] Connected to Firebase Auth Emulator on localhost:9099");
     } catch {
       // Emulator connection error or already connected
@@ -81,4 +84,40 @@ export function getFirebaseAuth(): Auth | null {
   }
 
   return authInstance;
+}
+
+/**
+ * Retrieves the client Firestore Database instance using singleton pattern.
+ * Connects to local emulator if NEXT_PUBLIC_USE_FIREBASE_EMULATOR is set to 'true'.
+ */
+export function getFirebaseDb(): Firestore | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  if (dbInstance) {
+    return dbInstance;
+  }
+
+  const app = getFirebaseApp();
+  if (!app) {
+    return null;
+  }
+
+  dbInstance = getFirestore(app);
+
+  if (
+    process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true" &&
+    !firestoreEmulatorConnected
+  ) {
+    try {
+      connectFirestoreEmulator(dbInstance, "localhost", 8080);
+      firestoreEmulatorConnected = true;
+      console.info("[RoktoBondhu] Connected to Firestore Emulator on localhost:8080");
+    } catch {
+      // Emulator connection error or already connected
+    }
+  }
+
+  return dbInstance;
 }

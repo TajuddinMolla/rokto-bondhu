@@ -72,7 +72,7 @@ export function RegisterForm({ locale }: RegisterFormProps) {
     }
 
     try {
-      await registerAuth(data.fullName, data.email, data.password);
+      await registerAuth(data.fullName, data.email, data.password, data.phoneNumber);
       // Clean up sensitive state immediately
       reset();
       // Direct user to verify email

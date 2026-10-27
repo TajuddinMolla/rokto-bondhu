@@ -33,7 +33,7 @@ export function MobileNav() {
   const userNavItems = getUserNavItems(currentLocale);
 
   const homeHref = currentLocale === "en" ? "/en" : "/";
-  const verifyEmailHref = currentLocale === "en" ? "/en/verify-email" : "/verify-email";
+  const accountHref = currentLocale === "en" ? "/en/account" : "/account";
   const primaryAction = userNavItems.find((item) => item.isPrimary);
   const secondaryAction = userNavItems.find((item) => !item.isPrimary);
 
@@ -133,8 +133,12 @@ export function MobileNav() {
 
             {!loading && status === "authenticated" && user ? (
               <div className="space-y-3">
-                {/* User Info Card */}
-                <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-surface">
+                {/* User Info Card (Links to Account Dashboard) */}
+                <Link
+                  href={accountHref}
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-surface hover:bg-muted/40 transition-colors"
+                >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className="flex items-center justify-center size-9 rounded-full bg-primary/10 text-primary font-bold text-sm shrink-0">
                       {userInitial}
@@ -150,20 +154,16 @@ export function MobileNav() {
                   </div>
 
                   {!user.emailVerified ? (
-                    <Link
-                      href={verifyEmailHref}
-                      onClick={() => setIsOpen(false)}
-                      className="inline-flex items-center text-xs text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded border border-amber-500/20 font-medium shrink-0"
-                    >
+                    <span className="inline-flex items-center text-xs text-amber-600 bg-amber-500/10 px-2 py-1 rounded border border-amber-500/20 font-medium shrink-0">
                       <AlertCircle className="size-3 mr-1" aria-hidden="true" />
                       {t.auth.userMenu.verifyNow}
-                    </Link>
+                    </span>
                   ) : (
                     <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/5 text-[11px] shrink-0">
                       {t.auth.verifyEmail.statusVerified}
                     </Badge>
                   )}
-                </div>
+                </Link>
 
                 {primaryAction && (
                   <Button
