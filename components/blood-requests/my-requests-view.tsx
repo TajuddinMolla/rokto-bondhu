@@ -47,6 +47,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { FormField } from "@/components/forms/form-field";
 
+const emptySubscribe = () => () => {};
+let cachedClientNow = 0;
+function getClientNow(): number {
+  if (cachedClientNow === 0) {
+    cachedClientNow = Date.now();
+  }
+  return cachedClientNow;
+}
+function getServerNow(): number {
+  return 0;
+}
+
 interface MyRequestsViewProps {
   locale: Locale;
 }
@@ -55,11 +67,7 @@ export function MyRequestsView({ locale }: MyRequestsViewProps) {
   const router = useRouter();
   const { user, status } = useAuth();
 
-  const now = React.useSyncExternalStore(
-    () => () => {},
-    () => Date.now(),
-    () => 0
-  );
+  const now = React.useSyncExternalStore(emptySubscribe, getClientNow, getServerNow);
 
   const [activeFilter, setActiveFilter] = React.useState<"all" | RequestStatus>("all");
   const [editingRequest, setEditingRequest] = React.useState<BloodRequest | null>(null);

@@ -59,6 +59,18 @@ const INITIAL_FORM_STATE: DonorInput = {
   consent: false,
 };
 
+const emptySubscribe = () => () => {};
+let cachedMaxDate: string | undefined;
+function getMaxDate(): string {
+  if (!cachedMaxDate) {
+    cachedMaxDate = new Date().toISOString().split("T")[0];
+  }
+  return cachedMaxDate;
+}
+function getServerMaxDate(): undefined {
+  return undefined;
+}
+
 export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
   const t = getTranslations(locale);
   const formId = React.useId();
@@ -71,11 +83,7 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
   const { data: existingProfile, isLoading: isProfileLoading } = useDonorProfile(user?.uid);
   const saveDonorMutation = useSaveDonorProfile();
 
-  const maxDate = React.useSyncExternalStore(
-    () => () => {},
-    () => new Date().toISOString().split("T")[0],
-    () => undefined
-  );
+  const maxDate = React.useSyncExternalStore(emptySubscribe, getMaxDate, getServerMaxDate);
 
   // Schema initialized with active locale
   const donorSchema = React.useMemo(() => createDonorSchema(locale), [locale]);

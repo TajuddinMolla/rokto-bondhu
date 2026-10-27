@@ -15,7 +15,7 @@ export const metadata: Metadata = constructMetadata({
 export default function AccountPage() {
   return (
     <main className="flex-1 bg-background py-8 sm:py-12 lg:py-16">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* Page Header */}
         <div className="space-y-2 text-center sm:text-left">
           <Badge
@@ -29,7 +29,8 @@ export default function AccountPage() {
             আমার অ্যাকাউন্ট ও রক্তদাতা প্রোফাইল
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground max-w-2xl leading-relaxed">
-            আপনার অ্যাকাউন্ট তথ্য পরিচালনা করুন এবং রক্তদানের প্রাপ্যতা স্ট্যাটাস পরিবর্তন করুন।
+            আপনার অ্যাকাউন্ট তথ্য পরিচালনা করুন এবং রক্তদানের প্রাপ্যতা
+            স্ট্যাটাস পরিবর্তন করুন।
           </p>
         </div>
 
