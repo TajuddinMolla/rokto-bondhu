@@ -18,7 +18,7 @@ export default function EnCreateBloodRequestPage() {
 
   return (
     <main className="flex-1 bg-background py-8 sm:py-12 lg:py-16">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-10">
         {/* Page Header */}
         <div className="space-y-3 text-center sm:text-left">
           <Badge
