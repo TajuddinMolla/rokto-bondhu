@@ -10,7 +10,6 @@ import {
   AlertCircle,
   Loader2,
   RotateCcw,
-  ListFilter,
   ShieldAlert,
   Hospital,
   MapPin,
@@ -18,6 +17,7 @@ import {
   User,
   PhoneCall,
   ClipboardList,
+  Search,
 } from "lucide-react";
 
 import { BLOOD_GROUPS } from "@/constants/blood-groups";
@@ -302,6 +302,14 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
+            {"id" in submittedSnapshot && submittedSnapshot.id ? (
+              <Button asChild className="w-full sm:w-auto gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs font-semibold">
+                <Link href={`${locale === "en" ? "/en" : ""}/blood-request/${submittedSnapshot.id}`}>
+                  <Search className="size-4" aria-hidden="true" />
+                  <span>{t.matchingDonors.findDonorsBtn}</span>
+                </Link>
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="outline"
@@ -311,16 +319,10 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
               <RotateCcw className="size-4" aria-hidden="true" />
               <span>{t.bloodRequestCreatePage.demoSuccess.resetButton}</span>
             </Button>
-            <Button asChild className="w-full sm:w-auto gap-2">
+            <Button asChild variant="secondary" className="w-full sm:w-auto gap-2">
               <Link href={myRequestsHref}>
                 <ClipboardList className="size-4" aria-hidden="true" />
                 <span>{locale === "en" ? "My Blood Requests" : "আমার রক্তের অনুরোধ"}</span>
-              </Link>
-            </Button>
-            <Button asChild variant="secondary" className="w-full sm:w-auto gap-2">
-              <Link href={locale === "en" ? "/en/blood-request" : "/blood-request"}>
-                <ListFilter className="size-4" aria-hidden="true" />
-                <span>{t.bloodRequestCreatePage.demoSuccess.viewRequestsButton}</span>
               </Link>
             </Button>
           </div>

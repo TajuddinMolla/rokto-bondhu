@@ -11,6 +11,8 @@ export const queryKeys = {
       [...queryKeys.donors.lists(), filters ?? {}] as const,
     details: () => [...queryKeys.donors.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.donors.details(), id] as const,
+    matching: (requestId: string, scope?: string, filters?: Record<string, unknown>) =>
+      [...queryKeys.donors.all, "matching", requestId, scope ?? "default", filters ?? {}] as const,
     profile: (userId?: string) => [...queryKeys.donors.all, "profile", userId ?? "me"] as const,
   },
 

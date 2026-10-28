@@ -89,3 +89,41 @@ export interface PublicDonorSearchResult {
   hasMore: boolean;
 }
 
+/**
+ * Geographic proximity tier used for matching donors against a blood requisition.
+ */
+export type MatchingLocationScope = "upazila" | "district" | "division" | "all";
+
+/**
+ * Input parameters for matching donors to an emergency blood request.
+ */
+export interface MatchingDonorsParams {
+  bloodGroup: BloodGroup | string;
+  divisionId: string;
+  districtId: string;
+  upazilaId?: string;
+  scope?: MatchingLocationScope;
+  availabilityOnly?: boolean;
+}
+
+/**
+ * Donor profile augmented with explainable match criteria flags.
+ */
+export interface MatchingDonorItem extends PublicDonorProfile {
+  isSameUpazila: boolean;
+  isSameDistrict: boolean;
+  isSameDivision: boolean;
+}
+
+/**
+ * Paginated result from matching donor search queries.
+ */
+export interface SearchMatchingDonorsResult {
+  donors: MatchingDonorItem[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nextCursor: any | null;
+  hasMore: boolean;
+  scopeUsed: MatchingLocationScope;
+}
+
+

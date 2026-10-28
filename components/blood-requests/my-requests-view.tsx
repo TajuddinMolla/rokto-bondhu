@@ -18,6 +18,7 @@ import {
   Loader2,
   Phone,
   FileText,
+  Search,
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -489,6 +490,16 @@ function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: Requ
         {request.status === "open" ? (
           <div className="flex flex-wrap sm:flex-col items-center sm:items-end gap-2 w-full sm:w-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
             <Button
+              asChild
+              size="sm"
+              className="gap-1.5 text-xs h-8 bg-primary hover:bg-primary/90 text-primary-foreground flex-1 sm:flex-initial shadow-xs"
+            >
+              <Link href={`${locale === "en" ? "/en" : ""}/blood-request/${request.id}`}>
+                <Search className="size-3.5" />
+                <span>{locale === "en" ? "Find Donors" : "রক্তদাতা খুঁজুন"}</span>
+              </Link>
+            </Button>
+            <Button
               variant="outline"
               size="sm"
               onClick={onEdit}
@@ -515,7 +526,21 @@ function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: Requ
               <span>{locale === "en" ? "Cancel" : "বাতিল"}</span>
             </Button>
           </div>
-        ) : null}
+        ) : (
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs h-8 flex-1 sm:flex-initial"
+            >
+              <Link href={`${locale === "en" ? "/en" : ""}/blood-request/${request.id}`}>
+                <Search className="size-3.5" />
+                <span>{locale === "en" ? "View Details" : "বিস্তারিত ও ম্যাচ"}</span>
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
     </Card>
   );
