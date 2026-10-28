@@ -51,15 +51,18 @@ async function resolveAuthUser(firebaseUser: User): Promise<AuthUser> {
 
   try {
     const tokenResult = await firebaseUser.getIdTokenResult();
+    const claimRole =
+      typeof tokenResult.claims.role === "string"
+        ? tokenResult.claims.role
+        : "";
     isAdmin = Boolean(
-      tokenResult.claims.admin === true || tokenResult.claims.role === "admin",
+      tokenResult.claims.admin === true ||
+        claimRole === "ADMIN" ||
+        claimRole.toLowerCase() === "admin",
     );
     isSuspended = Boolean(tokenResult.claims.suspended === true);
-    if (
-      tokenResult.claims.role &&
-      typeof tokenResult.claims.role === "string"
-    ) {
-      role = tokenResult.claims.role;
+    if (claimRole) {
+      role = claimRole;
     }
   } catch {
     // Non-fatal if offline

@@ -271,7 +271,7 @@ export function AdminUsersView({ locale }: AdminUsersViewProps) {
                       </td>
 
                       <td className="px-4 py-3">
-                        {user.role === "admin" ? (
+                        {user.role?.toLowerCase() === "admin" ? (
                           <Badge
                             variant="outline"
                             className="text-[10px] bg-primary/10 text-primary border-primary/20 flex items-center gap-1 w-fit"
