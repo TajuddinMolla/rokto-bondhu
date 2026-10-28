@@ -2,6 +2,7 @@ import * as React from "react";
 import type { Metadata } from "next";
 
 import { constructMetadata } from "@/lib/seo/metadata";
+import { AdminGuard } from "@/components/admin/admin-guard";
 import { AdminReportsView } from "@/components/admin/admin-reports-view";
 
 export const metadata: Metadata = constructMetadata({
@@ -11,6 +12,9 @@ export const metadata: Metadata = constructMetadata({
 });
 
 export default function EnglishAdminReportsPage() {
-  return <AdminReportsView locale="en" />;
+  return (
+    <AdminGuard locale="en">
+      <AdminReportsView locale="en" />
+    </AdminGuard>
+  );
 }
-

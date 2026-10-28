@@ -44,13 +44,16 @@ export const AuthContext = React.createContext<AuthContextValue | undefined>(
   undefined,
 );
 
-async function resolveAuthUser(firebaseUser: User): Promise<AuthUser> {
+async function resolveAuthUser(
+  firebaseUser: User,
+  forceRefresh: boolean = false,
+): Promise<AuthUser> {
   let isAdmin = false;
   let isSuspended = false;
   let role = "user";
 
   try {
-    const tokenResult = await firebaseUser.getIdTokenResult();
+    const tokenResult = await firebaseUser.getIdTokenResult(forceRefresh);
     const claimRole =
       typeof tokenResult.claims.role === "string"
         ? tokenResult.claims.role
@@ -115,7 +118,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const resolved = await resolveAuthUser(firebaseUser);
+        // If locally unverified, reload from Firebase Auth server to catch
+        // verification performed in Firebase Console or via external link
+        if (!firebaseUser.emailVerified) {
+          try {
+            await firebaseUser.reload();
+            await firebaseUser.getIdToken(true);
+          } catch {
+            // Non-fatal if offline
+          }
+        }
+
+        const resolved = await resolveAuthUser(firebaseUser, true);
         setUser(resolved);
         setRawUser(firebaseUser);
         setStatus("authenticated");
@@ -138,7 +152,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = React.useCallback(
     async (email: string, password: string): Promise<User> => {
       const loggedInUser = await signInWithEmail(email, password);
-      const resolved = await resolveAuthUser(loggedInUser);
+      try {
+        await loggedInUser.reload();
+        await loggedInUser.getIdToken(true);
+      } catch {
+        // Non-fatal if offline
+      }
+      const resolved = await resolveAuthUser(loggedInUser, true);
       setUser(resolved);
       setRawUser(loggedInUser);
       setStatus("authenticated");
@@ -187,11 +207,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!rawUser) {
       return;
     }
-    await reloadUser(rawUser);
+    try {
+      await reloadUser(rawUser);
+      await rawUser.getIdToken(true);
+    } catch {
+      // Non-fatal if offline
+    }
     const auth = getFirebaseAuth();
     const updated = auth?.currentUser;
     if (updated) {
-      const resolved = await resolveAuthUser(updated);
+      const resolved = await resolveAuthUser(updated, true);
       setUser(resolved);
       setRawUser(updated);
     }

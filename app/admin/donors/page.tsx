@@ -2,6 +2,7 @@ import * as React from "react";
 import type { Metadata } from "next";
 
 import { constructMetadata } from "@/lib/seo/metadata";
+import { AdminGuard } from "@/components/admin/admin-guard";
 import { AdminDonorsView } from "@/components/admin/admin-donors-view";
 
 export const metadata: Metadata = constructMetadata({
@@ -11,6 +12,9 @@ export const metadata: Metadata = constructMetadata({
 });
 
 export default function AdminDonorsPage() {
-  return <AdminDonorsView locale="bn" />;
+  return (
+    <AdminGuard locale="bn">
+      <AdminDonorsView locale="bn" />
+    </AdminGuard>
+  );
 }
-
