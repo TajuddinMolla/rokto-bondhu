@@ -23,6 +23,8 @@ import {
   Globe,
   PhoneCall,
   MessageSquare,
+  Bell,
+  Mail,
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -33,9 +35,11 @@ import {
   useIncomingContactRequests,
   useOutgoingContactRequests,
 } from "@/hooks/queries/use-contact-requests";
+import { useUnreadNotificationsCount } from "@/hooks/queries/use-notifications";
 import { useUpdateDonorAvailability } from "@/hooks/mutations/use-update-donor-availability";
 import { useUpdateUserProfile } from "@/hooks/mutations/use-update-user-profile";
 import { useUpdateDonorContactMode } from "@/hooks/mutations/use-contact-request-mutations";
+import { useUpdateNotificationPreferences } from "@/hooks/mutations/use-notification-mutations";
 import { getDivisionById, getDistrictById, getUpazilaById } from "@/constants/locations";
 import { BD_PHONE_REGEX } from "@/lib/validations/donor";
 import { Button } from "@/components/ui/button";
@@ -65,11 +69,13 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
   const { data: myRequests = [] } = useMyBloodRequests(user?.uid);
   const { data: incomingContactRequests = [] } = useIncomingContactRequests(user?.uid);
   const { data: outgoingContactRequests = [] } = useOutgoingContactRequests(user?.uid);
+  const { data: unreadCount = 0 } = useUnreadNotificationsCount(user?.uid);
 
   // Mutations
   const updateAvailabilityMutation = useUpdateDonorAvailability();
   const updateUserMutation = useUpdateUserProfile();
   const updateContactModeMutation = useUpdateDonorContactMode();
+  const updatePreferencesMutation = useUpdateNotificationPreferences();
 
   const prefix = locale === "en" ? "/en" : "";
   const loginHref = `${prefix}/login`;
@@ -77,6 +83,7 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
   const verifyEmailHref = `${prefix}/verify-email`;
   const myRequestsHref = `${prefix}/account/requests`;
   const contactRequestsHref = `${prefix}/account/contact-requests`;
+  const notificationsHref = `${prefix}/account/notifications`;
   const createRequestHref = `${prefix}/blood-request/create`;
 
   // Redirect if not logged in
@@ -367,6 +374,54 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
               </CardContent>
             </Card>
           )}
+
+          {/* Notification Preferences Card */}
+          <Card className="border border-border bg-surface shadow-xs">
+            <CardHeader className="pb-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Mail className="size-4 text-primary" />
+                <CardTitle className="text-sm font-bold text-foreground">
+                  {locale === "en" ? "Notification Preferences" : "বিজ্ঞপ্তি পছন্দসমূহ"}
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-0.5">
+                  <span className="text-xs font-semibold text-foreground block">
+                    {locale === "en" ? "Email Notifications" : "ইমেইল বিজ্ঞপ্তি"}
+                  </span>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    {locale === "en"
+                      ? "Receive email alerts for incoming private donor contact requests when you are offline."
+                      : "জরুরি যোগাযোগের অনুরোধ আসলে অফলাইনে থাকা অবস্থায়ও আপনার ইমেইলে বার্তা পাঠানো হবে।"}
+                  </p>
+                </div>
+
+                <Button
+                  size="sm"
+                  variant={userProfile?.emailNotificationsEnabled !== false ? "default" : "outline"}
+                  disabled={updatePreferencesMutation.isPending}
+                  onClick={() => {
+                    if (!user?.uid) return;
+                    updatePreferencesMutation.mutate({
+                      userId: user.uid,
+                      emailNotificationsEnabled: userProfile?.emailNotificationsEnabled === false,
+                    });
+                  }}
+                  className="shrink-0 h-7 text-xs px-2.5"
+                >
+                  {updatePreferencesMutation.isPending ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : userProfile?.emailNotificationsEnabled !== false ? (
+                    locale === "en" ? "Enabled" : "চালু"
+                  ) : (
+                    locale === "en" ? "Disabled" : "বন্ধ"
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Right Column: Donor Profile Management */}
@@ -731,6 +786,58 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
                       ? `${outgoingContactRequests.length} total requests sent to private donors.`
                       : `ব্যক্তিগত রক্তদাতাদের কাছে মোট ${outgoingContactRequests.length} টি অনুরোধ পাঠানো হয়েছে।`}
                   </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* In-App Notifications Summary Card */}
+          <Card className="border border-border bg-surface shadow-xs">
+            <CardHeader className="pb-4 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <Bell className="size-5 text-primary" aria-hidden="true" />
+                <div>
+                  <CardTitle className="text-base sm:text-lg font-bold text-foreground">
+                    {locale === "en" ? "Notification Center" : "বিজ্ঞপ্তি কেন্দ্র"}
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    {locale === "en"
+                      ? "Recent updates on your blood requests and direct donor contact"
+                      : "আপনার রক্তের অনুরোধ এবং সরাসরি যোগাযোগের সর্বশেষ আপডেট"}
+                  </CardDescription>
+                </div>
+              </div>
+              <Button asChild size="sm" variant="outline" className="gap-1.5 self-start sm:self-auto">
+                <Link href={notificationsHref}>
+                  <span>{locale === "en" ? "View All" : "সব দেখুন"}</span>
+                  <ArrowRight className="size-3.5" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent className="p-5 sm:p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-muted/10">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {locale === "en" ? "Unread Notifications:" : "অপঠিত বিজ্ঞপ্তি:"}
+                    </span>
+                    <Badge variant={unreadCount > 0 ? "default" : "secondary"} className="text-xs font-bold">
+                      {unreadCount} {locale === "en" ? "unread" : "না পড়া"}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {locale === "en"
+                      ? "Notifications alert you when donors respond or new private contact requests arrive."
+                      : "রক্তদাতা সাড়া দিলে কিংবা নতুন অনুরোধ আসলে বিজ্ঞপ্তি কেন্দ্রে সঙ্গে সঙ্গে দেখতে পাবেন।"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                  <Button asChild size="sm" className="w-full sm:w-auto gap-1.5 shadow-xs">
+                    <Link href={notificationsHref}>
+                      <Bell className="size-3.5" />
+                      <span>{locale === "en" ? "Open Notifications" : "বিজ্ঞপ্তি খুলুন"}</span>
+                    </Link>
+                  </Button>
                 </div>
               </div>
             </CardContent>

@@ -13,6 +13,7 @@ import { useIsDonor } from "@/hooks/use-is-donor";
 import { Button } from "@/components/ui/button";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 
 export function Header() {
   const pathname = usePathname();
@@ -95,6 +96,9 @@ export function Header() {
 
           {!loading && status === "authenticated" && user ? (
             <div className="flex items-center gap-2">
+              {/* Notification Bell Dropdown */}
+              <NotificationBell locale={currentLocale} />
+
               {/* Authenticated User Status Chip (Links to Account Dashboard) */}
               <Link
                 href={accountHref}

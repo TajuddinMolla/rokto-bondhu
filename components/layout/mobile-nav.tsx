@@ -3,13 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, Droplet, LogOut, AlertCircle } from "lucide-react";
+import { Menu, X, Droplet, LogOut, AlertCircle, Bell } from "lucide-react";
 
 import { getLocaleFromPathname } from "@/i18n/config";
 import { getTranslations } from "@/i18n/translations";
 import { getMainNavItems, getUserNavItems } from "@/constants/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsDonor } from "@/hooks/use-is-donor";
+import { useUnreadNotificationsCount } from "@/hooks/queries/use-notifications";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
@@ -31,10 +32,12 @@ export function MobileNav() {
   const t = getTranslations(currentLocale);
   const { user, status, loading, logout } = useAuth();
   const { isDonor } = useIsDonor();
+  const { data: unreadCount = 0 } = useUnreadNotificationsCount(user?.uid);
   const mainNavItems = getMainNavItems(currentLocale);
   const userNavItems = getUserNavItems(currentLocale);
 
   const homeHref = currentLocale === "en" ? "/en" : "/";
+  const prefix = currentLocale === "en" ? "/en" : "";
   const accountHref = currentLocale === "en" ? "/en/account" : "/account";
   const primaryAction = userNavItems.find((item) => item.isPrimary);
   const secondaryAction = userNavItems.find((item) => !item.isPrimary);
@@ -163,6 +166,27 @@ export function MobileNav() {
                   ) : (
                     <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/5 text-[11px] shrink-0">
                       {t.auth.verifyEmail.statusVerified}
+                    </Badge>
+                  )}
+                </Link>
+
+                {/* Notifications Quick Link */}
+                <Link
+                  href={`${prefix}/account/notifications`}
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center justify-between p-3 rounded-xl border border-border bg-surface hover:bg-muted/40 transition-colors"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex items-center justify-center size-9 rounded-lg bg-primary/10 text-primary shrink-0">
+                      <Bell className="size-4.5" />
+                    </div>
+                    <span className="font-semibold text-sm text-foreground">
+                      {currentLocale === "bn" ? "বিজ্ঞপ্তি কেন্দ্র" : "Notifications"}
+                    </span>
+                  </div>
+                  {unreadCount > 0 && (
+                    <Badge variant="default" className="text-xs font-bold px-2 py-0.5">
+                      {unreadCount} {currentLocale === "bn" ? "নতুন" : "new"}
                     </Badge>
                   )}
                 </Link>

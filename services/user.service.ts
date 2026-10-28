@@ -48,6 +48,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
     phoneNumber: data.phoneNumber || undefined,
     emailVerified: Boolean(data.emailVerified),
     hasDonorProfile: Boolean(data.hasDonorProfile),
+    emailNotificationsEnabled: data.emailNotificationsEnabled !== false, // default true
     createdAt: timestampToIso(data.createdAt),
     updatedAt: timestampToIso(data.updatedAt),
   };
@@ -90,6 +91,7 @@ export async function ensureUserProfile(user: {
       phoneNumber: data.phoneNumber || user.phoneNumber || undefined,
       emailVerified: Boolean(user.emailVerified ?? data.emailVerified),
       hasDonorProfile: Boolean(data.hasDonorProfile),
+      emailNotificationsEnabled: data.emailNotificationsEnabled !== false,
       createdAt: timestampToIso(data.createdAt),
       updatedAt: timestampToIso(data.updatedAt),
     };
@@ -103,6 +105,7 @@ export async function ensureUserProfile(user: {
     phoneNumber: user.phoneNumber || null,
     emailVerified: Boolean(user.emailVerified),
     hasDonorProfile: false,
+    emailNotificationsEnabled: true,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   };
@@ -116,6 +119,7 @@ export async function ensureUserProfile(user: {
     phoneNumber: user.phoneNumber || undefined,
     emailVerified: Boolean(user.emailVerified),
     hasDonorProfile: false,
+    emailNotificationsEnabled: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -143,6 +147,9 @@ export async function updateUserProfile(
   }
   if (data.phoneNumber !== undefined) {
     updatePayload.phoneNumber = data.phoneNumber.trim() || null;
+  }
+  if (data.emailNotificationsEnabled !== undefined) {
+    updatePayload.emailNotificationsEnabled = Boolean(data.emailNotificationsEnabled);
   }
 
   await updateDoc(docRef, updatePayload);

@@ -12,6 +12,11 @@ import {
 } from "firebase/firestore";
 
 import { getFirebaseDb } from "@/lib/firebase/config";
+import {
+  dispatchNotificationSafely,
+  createInAppNotification,
+  getDeterministicNotificationId,
+} from "@/services/notification.service";
 import type {
   DonorContactRequest,
   CreateContactRequestInput,
@@ -151,6 +156,31 @@ export async function createContactRequest(
 
   await setDoc(newDocRef, payload);
 
+  // Dispatch background notification & email for the recipient donor
+  dispatchNotificationSafely({
+    event: "CONTACT_REQUEST_RECEIVED",
+    contactRequestId: id,
+  }).catch(() => {});
+
+  // Create immediate in-app confirmation notification for the requester
+  createInAppNotification({
+    id: getDeterministicNotificationId("CONTACT_REQUEST_SUBMITTED", id),
+    recipientId: requesterId,
+    type: "CONTACT_REQUEST_SUBMITTED",
+    title: {
+      bn: "অনুরোধ পাঠানো হয়েছে",
+      en: "Contact Request Submitted",
+    },
+    message: {
+      bn: `${input.donorName} (${input.donorBloodGroup})-এর কাছে যোগাযোগের অনুরোধ সফলভাবে পাঠানো হয়েছে।`,
+      en: `Your contact request to ${input.donorName} (${input.donorBloodGroup}) has been submitted.`,
+    },
+    relatedContactRequestId: id,
+    actionUrl: "/account/contact-requests",
+    read: false,
+    emailStatus: "NOT_APPLICABLE",
+  }).catch(() => {});
+
   const now = new Date().toISOString();
   return {
     id,
@@ -236,6 +266,11 @@ export async function acceptContactRequest(
     status: "ACCEPTED",
     updatedAt: serverTimestamp(),
   });
+
+  dispatchNotificationSafely({
+    event: "CONTACT_REQUEST_ACCEPTED",
+    contactRequestId: requestId,
+  }).catch(() => {});
 }
 
 /**
@@ -257,6 +292,11 @@ export async function declineContactRequest(
     status: "DECLINED",
     updatedAt: serverTimestamp(),
   });
+
+  dispatchNotificationSafely({
+    event: "CONTACT_REQUEST_DECLINED",
+    contactRequestId: requestId,
+  }).catch(() => {});
 }
 
 /**
@@ -281,6 +321,11 @@ export async function cancelContactRequest(
     status: "CANCELLED",
     updatedAt: serverTimestamp(),
   });
+
+  dispatchNotificationSafely({
+    event: "CONTACT_REQUEST_CANCELLED",
+    contactRequestId: requestId,
+  }).catch(() => {});
 }
 
 /**
@@ -311,6 +356,11 @@ export async function shareContactConsent(
     },
     updatedAt: serverTimestamp(),
   });
+
+  dispatchNotificationSafely({
+    event: "CONTACT_INFO_SHARED",
+    contactRequestId: requestId,
+  }).catch(() => {});
 }
 
 /**

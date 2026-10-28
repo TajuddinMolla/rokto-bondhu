@@ -8,6 +8,7 @@ export interface UserProfile {
   phoneNumber?: string;
   emailVerified: boolean;
   hasDonorProfile: boolean;
+  emailNotificationsEnabled?: boolean;
   createdAt?: string; // ISO 8601 string
   updatedAt?: string; // ISO 8601 string
 }
@@ -18,4 +19,5 @@ export interface UserProfile {
 export interface UpdateUserProfileInput {
   displayName?: string;
   phoneNumber?: string;
+  emailNotificationsEnabled?: boolean;
 }

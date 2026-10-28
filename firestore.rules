@@ -189,6 +189,54 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // -------------------------------------------------------------
+    // 6. Notifications Collection: /notifications/{notificationId}
+    // In-app notifications for blood requests and donor contact events.
+    // Private user notifications. Only the recipient can read.
+    // Only recipient can mark as read (update read/readAt).
+    // Arbitrary creation for other users is strictly prohibited.
+    // -------------------------------------------------------------
+    match /notifications/{notificationId} {
+      // Only the recipient can read their notifications
+      allow read: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
+
+      // Only the recipient can update read state; cannot alter content or recipient
+      allow update: if isAuthenticated()
+                    && resource.data.recipientId == request.auth.uid
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt', 'updatedAt']);
+
+      // Creation: strictly controlled to authenticated self-notifications
+      // or verified cross-user events linked to active contact requests.
+      allow create: if isAuthenticated() && (
+        // Self notification (e.g. requester confirming their blood or contact request)
+        request.resource.data.recipientId == request.auth.uid
+        ||
+        // Cross-user notification strictly bound to a verified contact request document
+        (
+          request.resource.data.relatedContactRequestId is string
+          && exists(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId))
+          && (
+            // Requester notifying Donor of incoming request or cancellation
+            (
+              get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.requesterId == request.auth.uid
+              && request.resource.data.recipientId == get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.donorId
+              && request.resource.data.type in ['CONTACT_REQUEST_RECEIVED', 'CONTACT_REQUEST_CANCELLED']
+            )
+            ||
+            // Donor notifying Requester of accept, decline, or consent share
+            (
+              get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.donorId == request.auth.uid
+              && request.resource.data.recipientId == get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.requesterId
+              && request.resource.data.type in ['CONTACT_REQUEST_ACCEPTED', 'CONTACT_REQUEST_DECLINED', 'CONTACT_INFO_SHARED', 'CONTACT_REQUEST_COMPLETED']
+            )
+          )
+        )
+      );
+
+      // Prohibit hard deletion to preserve historical log
+      allow delete: if false;
+    }
+
     // Default: Deny all other access
     match /{document=**} {
       allow read, write: if false;

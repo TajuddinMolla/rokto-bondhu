@@ -608,5 +608,26 @@
     "notFoundTitle": "Blood Request Not Found",
     "notFoundDesc": "The blood request you are looking for does not exist or may have been deleted.",
     "retry": "Retry"
+  },
+  "notifications": {
+    "title": "Notification Center",
+    "subtitle": "Stay updated on your blood requests, private donor inquiries, and responses.",
+    "unreadBadge": "unread",
+    "markAllRead": "Mark all as read",
+    "filterAll": "All",
+    "filterUnread": "Unread Only",
+    "loadMore": "Load More Notifications",
+    "loadingMore": "Loading more...",
+    "emptyAllTitle": "No Notifications Yet",
+    "emptyAllDesc": "When you send or receive contact requests or create blood requests, updates will appear here.",
+    "emptyUnreadTitle": "No Unread Notifications",
+    "emptyUnreadDesc": "You are all caught up! Switch to 'All' to review past notifications.",
+    "emailNotificationSent": "Sent to email",
+    "preferencesTitle": "Notification Preferences",
+    "preferencesDesc": "Control how and when you receive notification updates",
+    "emailNotificationsLabel": "Email Notifications",
+    "emailNotificationsDesc": "Receive email alerts for incoming private donor contact requests when you are offline.",
+    "enabled": "Enabled",
+    "disabled": "Disabled"
   }
 }

@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 
 import { getFirebaseDb } from "@/lib/firebase/config";
+import { dispatchNotificationSafely } from "@/services/notification.service";
 import type { BloodRequest, CreateBloodRequestInput, UpdateBloodRequestInput } from "@/types/request";
 
 const BLOOD_REQUESTS_COLLECTION = "bloodRequests";
@@ -67,6 +68,12 @@ export async function createBloodRequest(
 
   const colRef = collection(db, BLOOD_REQUESTS_COLLECTION);
   const docRef = await addDoc(colRef, payload);
+
+  // Trigger self-notification for requester
+  dispatchNotificationSafely({
+    event: "BLOOD_REQUEST_CREATED",
+    bloodRequestId: docRef.id,
+  }).catch(() => {});
 
   const now = new Date().toISOString();
   return {
@@ -223,6 +230,10 @@ export async function updateBloodRequest(
  */
 export async function cancelBloodRequest(requestId: string, userId: string): Promise<void> {
   await updateBloodRequest(requestId, userId, { status: "cancelled" });
+  dispatchNotificationSafely({
+    event: "BLOOD_REQUEST_CANCELLED",
+    bloodRequestId: requestId,
+  }).catch(() => {});
 }
 
 /**
@@ -230,4 +241,8 @@ export async function cancelBloodRequest(requestId: string, userId: string): Pro
  */
 export async function fulfillBloodRequest(requestId: string, userId: string): Promise<void> {
   await updateBloodRequest(requestId, userId, { status: "fulfilled" });
+  dispatchNotificationSafely({
+    event: "BLOOD_REQUEST_FULFILLED",
+    bloodRequestId: requestId,
+  }).catch(() => {});
 }

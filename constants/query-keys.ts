@@ -41,4 +41,16 @@ export const queryKeys = {
     active: (requesterId: string, donorId: string) =>
       [...queryKeys.contactRequests.all, "active", requesterId, donorId] as const,
   },
+
+  notifications: {
+    all: ["notifications"] as const,
+    list: (recipientId?: string, unreadOnly?: boolean) =>
+      [...queryKeys.notifications.all, "list", recipientId ?? "me", { unreadOnly: Boolean(unreadOnly) }] as const,
+    infinite: (recipientId?: string, unreadOnly?: boolean) =>
+      [...queryKeys.notifications.all, "infinite", recipientId ?? "me", { unreadOnly: Boolean(unreadOnly) }] as const,
+    unreadCount: (recipientId?: string) =>
+      [...queryKeys.notifications.all, "unread-count", recipientId ?? "me"] as const,
+    preferences: (recipientId?: string) =>
+      [...queryKeys.notifications.all, "preferences", recipientId ?? "me"] as const,
+  },
 } as const;
