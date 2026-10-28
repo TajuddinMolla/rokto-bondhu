@@ -28,6 +28,9 @@ export interface DonorProfile {
   contactMode?: DonorContactMode;
   lastDonationDate?: string; // YYYY-MM-DD
   availabilityStatus: DonorAvailabilityStatus;
+  isSuspended?: boolean;
+  suspendedAt?: string; // ISO 8601 string
+  suspendedReason?: string;
   createdAt: string; // ISO 8601 string
   updatedAt: string; // ISO 8601 string
 }
@@ -66,6 +69,7 @@ export interface PublicDonorProfile {
   contactMode?: DonorContactMode;
   phoneNumber?: string; // Strictly present ONLY when contactMode === "PUBLIC"
   lastDonationDate?: string; // YYYY-MM-DD
+  isSuspended?: boolean;
   updatedAt: string; // ISO 8601 string
 }
 

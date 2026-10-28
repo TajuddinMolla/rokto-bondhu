@@ -24,24 +24,69 @@ export interface AuthContextValue {
   loading: boolean;
   status: AuthStatus;
   isEmailVerified: boolean;
+  isAdmin: boolean;
+  isSuspended: boolean;
   isConfigured: boolean;
   login: (email: string, password: string) => Promise<User>;
-  register: (fullName: string, email: string, password: string, phoneNumber?: string) => Promise<User>;
+  register: (
+    fullName: string,
+    email: string,
+    password: string,
+    phoneNumber?: string,
+  ) => Promise<User>;
   logout: () => Promise<void>;
   sendVerification: () => Promise<void>;
   refreshUser: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
 }
 
-export const AuthContext = React.createContext<AuthContextValue | undefined>(undefined);
+export const AuthContext = React.createContext<AuthContextValue | undefined>(
+  undefined,
+);
 
-function mapFirebaseUser(firebaseUser: User): AuthUser {
+async function resolveAuthUser(firebaseUser: User): Promise<AuthUser> {
+  let isAdmin = false;
+  let isSuspended = false;
+  let role = "user";
+
+  try {
+    const tokenResult = await firebaseUser.getIdTokenResult();
+    isAdmin = Boolean(
+      tokenResult.claims.admin === true || tokenResult.claims.role === "admin",
+    );
+    isSuspended = Boolean(tokenResult.claims.suspended === true);
+    if (
+      tokenResult.claims.role &&
+      typeof tokenResult.claims.role === "string"
+    ) {
+      role = tokenResult.claims.role;
+    }
+  } catch {
+    // Non-fatal if offline
+  }
+
+  // Support local development / bootstrap via NEXT_PUBLIC_ADMIN_EMAILS
+  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  if (
+    firebaseUser.email &&
+    adminEmails.includes(firebaseUser.email.toLowerCase())
+  ) {
+    isAdmin = true;
+    role = "admin";
+  }
+
   return {
     uid: firebaseUser.uid,
     email: firebaseUser.email,
     phoneNumber: firebaseUser.phoneNumber,
     displayName: firebaseUser.displayName,
     emailVerified: firebaseUser.emailVerified,
+    isAdmin,
+    role,
+    isSuspended,
     createdAt: firebaseUser.metadata.creationTime,
   };
 }
@@ -52,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [rawUser, setRawUser] = React.useState<User | null>(null);
   const [loading, setLoading] = React.useState(() => isFirebaseConfigured());
   const [status, setStatus] = React.useState<AuthStatus>(() =>
-    isFirebaseConfigured() ? "loading" : "unauthenticated"
+    isFirebaseConfigured() ? "loading" : "unauthenticated",
   );
 
   React.useEffect(() => {
@@ -65,9 +110,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        setUser(mapFirebaseUser(firebaseUser));
+        const resolved = await resolveAuthUser(firebaseUser);
+        setUser(resolved);
         setRawUser(firebaseUser);
         setStatus("authenticated");
 
@@ -89,23 +135,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = React.useCallback(
     async (email: string, password: string): Promise<User> => {
       const loggedInUser = await signInWithEmail(email, password);
-      setUser(mapFirebaseUser(loggedInUser));
+      const resolved = await resolveAuthUser(loggedInUser);
+      setUser(resolved);
       setRawUser(loggedInUser);
       setStatus("authenticated");
       return loggedInUser;
     },
-    []
+    [],
   );
 
   const register = React.useCallback(
-    async (fullName: string, email: string, password: string, phoneNumber?: string): Promise<User> => {
-      const newUser = await signUpWithEmail(fullName, email, password, phoneNumber);
-      setUser(mapFirebaseUser(newUser));
+    async (
+      fullName: string,
+      email: string,
+      password: string,
+      phoneNumber?: string,
+    ): Promise<User> => {
+      const newUser = await signUpWithEmail(
+        fullName,
+        email,
+        password,
+        phoneNumber,
+      );
+      const resolved = await resolveAuthUser(newUser);
+      setUser(resolved);
       setRawUser(newUser);
       setStatus("authenticated");
       return newUser;
     },
-    []
+    [],
   );
 
   const logout = React.useCallback(async () => {
@@ -130,7 +188,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const auth = getFirebaseAuth();
     const updated = auth?.currentUser;
     if (updated) {
-      setUser(mapFirebaseUser(updated));
+      const resolved = await resolveAuthUser(updated);
+      setUser(resolved);
       setRawUser(updated);
     }
   }, [rawUser]);
@@ -146,6 +205,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       status,
       isEmailVerified: Boolean(user?.emailVerified),
+      isAdmin: Boolean(user?.isAdmin),
+      isSuspended: Boolean(user?.isSuspended),
       isConfigured,
       login,
       register,
@@ -166,7 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sendVerification,
       refreshUser,
       resetPassword,
-    ]
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

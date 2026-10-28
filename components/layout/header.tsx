@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Droplet, LogOut, AlertCircle } from "lucide-react";
+import { Droplet, LogOut, AlertCircle, ShieldCheck } from "lucide-react";
 
 import { getLocaleFromPathname, isAuthPathname } from "@/i18n/config";
 import { getTranslations } from "@/i18n/translations";
@@ -99,16 +99,38 @@ export function Header() {
               {/* Notification Bell Dropdown */}
               <NotificationBell locale={currentLocale} />
 
+              {/* Admin Console Link for Authorized Administrators */}
+              {user.isAdmin && (
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs border-primary/30 text-primary bg-primary/5 hover:bg-primary/10"
+                >
+                  <Link href={currentLocale === "en" ? "/en/admin" : "/admin"}>
+                    <ShieldCheck className="size-3.5 mr-1" />
+                    <span>{currentLocale === "en" ? "Admin" : "অ্যাডমিন"}</span>
+                  </Link>
+                </Button>
+              )}
+
               {/* Authenticated User Status Chip (Links to Account Dashboard) */}
               <Link
                 href={accountHref}
                 className="flex items-center gap-2 px-2.5 py-1 rounded-lg border border-border bg-background hover:bg-muted/50 text-xs font-medium transition-colors"
-                title={currentLocale === "en" ? "My Account & Profile" : "আমার অ্যাকাউন্ট ও প্রোফাইল"}
+                title={
+                  currentLocale === "en"
+                    ? "My Account & Profile"
+                    : "আমার অ্যাকাউন্ট ও প্রোফাইল"
+                }
               >
                 <div className="flex items-center justify-center size-6 rounded-full bg-primary/10 text-primary font-bold text-[11px]">
                   {userInitial}
                 </div>
-                <span className="max-w-[120px] truncate text-foreground" title={user.email || ""}>
+                <span
+                  className="max-w-[120px] truncate text-foreground"
+                  title={user.email || ""}
+                >
                   {displayName}
                 </span>
 
@@ -146,7 +168,10 @@ export function Header() {
           {!isDonor && primaryAction && (
             <Button asChild variant="default" size="sm" className="shadow-sm">
               <Link href={primaryAction.href}>
-                <Droplet className="size-4 fill-current mr-1.5" aria-hidden="true" />
+                <Droplet
+                  className="size-4 fill-current mr-1.5"
+                  aria-hidden="true"
+                />
                 {primaryAction.label}
               </Link>
             </Button>

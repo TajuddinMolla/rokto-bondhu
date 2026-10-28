@@ -3,7 +3,15 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, Droplet, LogOut, AlertCircle, Bell } from "lucide-react";
+import {
+  Menu,
+  X,
+  Droplet,
+  LogOut,
+  AlertCircle,
+  Bell,
+  ShieldCheck,
+} from "lucide-react";
 
 import { getLocaleFromPathname } from "@/i18n/config";
 import { getTranslations } from "@/i18n/translations";
@@ -85,7 +93,9 @@ export function MobileNav() {
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-controls="mobile-navigation"
-        aria-label={isOpen ? t.accessibility.closeMenu : t.accessibility.openMenu}
+        aria-label={
+          isOpen ? t.accessibility.closeMenu : t.accessibility.openMenu
+        }
         className="text-foreground hover:bg-muted"
       >
         {isOpen ? <X className="size-6" /> : <Menu className="size-6" />}
@@ -108,7 +118,10 @@ export function MobileNav() {
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3">
               {currentLocale === "bn" ? "মেনু" : "Navigation"}
             </span>
-            <nav className="flex flex-col space-y-1" aria-label="Mobile Navigation Links">
+            <nav
+              className="flex flex-col space-y-1"
+              aria-label="Mobile Navigation Links"
+            >
               {mainNavItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -121,7 +134,7 @@ export function MobileNav() {
                       "flex items-center px-3 py-2.5 rounded-lg text-base font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                       isActive
                         ? "bg-accent text-accent-foreground font-semibold"
-                        : "text-foreground hover:bg-muted"
+                        : "text-foreground hover:bg-muted",
                     )}
                   >
                     {item.label}
@@ -133,7 +146,9 @@ export function MobileNav() {
 
           <div className="border-t border-border pt-6 flex flex-col space-y-3 mt-auto">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-3">
-              {currentLocale === "bn" ? "অ্যাকাউন্ট ও পদক্ষেপ" : "Account & Actions"}
+              {currentLocale === "bn"
+                ? "অ্যাকাউন্ট ও পদক্ষেপ"
+                : "Account & Actions"}
             </span>
 
             {!loading && status === "authenticated" && user ? (
@@ -164,7 +179,10 @@ export function MobileNav() {
                       {t.auth.userMenu.verifyNow}
                     </span>
                   ) : (
-                    <Badge variant="outline" className="border-emerald-500/30 text-emerald-600 bg-emerald-500/5 text-[11px] shrink-0">
+                    <Badge
+                      variant="outline"
+                      className="border-emerald-500/30 text-emerald-600 bg-emerald-500/5 text-[11px] shrink-0"
+                    >
                       {t.auth.verifyEmail.statusVerified}
                     </Badge>
                   )}
@@ -181,15 +199,47 @@ export function MobileNav() {
                       <Bell className="size-4.5" />
                     </div>
                     <span className="font-semibold text-sm text-foreground">
-                      {currentLocale === "bn" ? "বিজ্ঞপ্তি কেন্দ্র" : "Notifications"}
+                      {currentLocale === "bn"
+                        ? "বিজ্ঞপ্তি কেন্দ্র"
+                        : "Notifications"}
                     </span>
                   </div>
                   {unreadCount > 0 && (
-                    <Badge variant="default" className="text-xs font-bold px-2 py-0.5">
+                    <Badge
+                      variant="default"
+                      className="text-xs font-bold px-2 py-0.5"
+                    >
                       {unreadCount} {currentLocale === "bn" ? "নতুন" : "new"}
                     </Badge>
                   )}
                 </Link>
+
+                {/* Admin Console Quick Link for Administrators */}
+                {user.isAdmin && (
+                  <Link
+                    href={`${prefix}/admin`}
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center justify-between p-3 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex items-center justify-center size-9 rounded-lg bg-primary text-primary-foreground shrink-0">
+                        <ShieldCheck className="size-4.5" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-sm text-foreground block">
+                          {currentLocale === "bn"
+                            ? "মডারেশন প্যানেল"
+                            : "Admin Console"}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {currentLocale === "bn"
+                            ? "প্ল্যাটফর্ম ব্যবস্থাপনা"
+                            : "Platform Management"}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                )}
 
                 {!isDonor && primaryAction && (
                   <Button
@@ -198,7 +248,10 @@ export function MobileNav() {
                     size="lg"
                     className="w-full justify-center shadow-sm"
                   >
-                    <Link href={primaryAction.href} onClick={() => setIsOpen(false)}>
+                    <Link
+                      href={primaryAction.href}
+                      onClick={() => setIsOpen(false)}
+                    >
                       <Droplet className="size-4 fill-current mr-2" />
                       {primaryAction.label}
                     </Link>
@@ -224,7 +277,10 @@ export function MobileNav() {
                     size="lg"
                     className="w-full justify-center"
                   >
-                    <Link href={secondaryAction.href} onClick={() => setIsOpen(false)}>
+                    <Link
+                      href={secondaryAction.href}
+                      onClick={() => setIsOpen(false)}
+                    >
                       {secondaryAction.label}
                     </Link>
                   </Button>
@@ -237,7 +293,10 @@ export function MobileNav() {
                     size="lg"
                     className="w-full justify-center shadow-sm"
                   >
-                    <Link href={primaryAction.href} onClick={() => setIsOpen(false)}>
+                    <Link
+                      href={primaryAction.href}
+                      onClick={() => setIsOpen(false)}
+                    >
                       <Droplet className="size-4 fill-current mr-2" />
                       {primaryAction.label}
                     </Link>

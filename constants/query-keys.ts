@@ -53,4 +53,25 @@ export const queryKeys = {
     preferences: (recipientId?: string) =>
       [...queryKeys.notifications.all, "preferences", recipientId ?? "me"] as const,
   },
+
+  admin: {
+    all: ["admin"] as const,
+    stats: () => [...queryKeys.admin.all, "stats"] as const,
+    donors: (filters?: Record<string, unknown>) =>
+      [...queryKeys.admin.all, "donors", filters ?? {}] as const,
+    requests: (filters?: Record<string, unknown>) =>
+      [...queryKeys.admin.all, "requests", filters ?? {}] as const,
+    users: (filters?: Record<string, unknown>) =>
+      [...queryKeys.admin.all, "users", filters ?? {}] as const,
+    reports: (filters?: Record<string, unknown>) =>
+      [...queryKeys.admin.all, "reports", filters ?? {}] as const,
+    auditLogs: (filters?: Record<string, unknown>) =>
+      [...queryKeys.admin.all, "audit-logs", filters ?? {}] as const,
+  },
+
+  reports: {
+    all: ["reports"] as const,
+    myReports: (userId?: string) =>
+      [...queryKeys.reports.all, "my", userId ?? "me"] as const,
+  },
 } as const;

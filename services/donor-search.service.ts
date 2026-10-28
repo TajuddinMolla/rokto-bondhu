@@ -114,7 +114,9 @@ export async function searchPublicDonors(
   const q = query(colRef, ...constraints);
   const snap = await getDocs(q);
 
-  const donors: PublicDonorProfile[] = snap.docs.map((docSnap) => {
+  const donors: PublicDonorProfile[] = snap.docs
+    .filter((docSnap) => !docSnap.data().isSuspended)
+    .map((docSnap) => {
     const data = docSnap.data();
     const contactMode = (data.contactMode ||
       (data.phoneNumber ? "PUBLIC" : "PRIVATE")) as DonorContactMode;
@@ -202,7 +204,9 @@ export async function searchMatchingDonors(
   const q = query(colRef, ...constraints);
   const snap = await getDocs(q);
 
-  const mappedDonors: MatchingDonorItem[] = snap.docs.map((docSnap) => {
+  const mappedDonors: MatchingDonorItem[] = snap.docs
+    .filter((docSnap) => !docSnap.data().isSuspended)
+    .map((docSnap) => {
     const data = docSnap.data();
     const contactMode = (data.contactMode ||
       (data.phoneNumber ? "PUBLIC" : "PRIVATE")) as DonorContactMode;

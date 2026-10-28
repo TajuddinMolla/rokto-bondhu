@@ -9,6 +9,10 @@ export interface UserProfile {
   emailVerified: boolean;
   hasDonorProfile: boolean;
   emailNotificationsEnabled?: boolean;
+  role?: "user" | "admin";
+  isSuspended?: boolean;
+  suspendedAt?: string; // ISO 8601 string
+  suspendedReason?: string;
   createdAt?: string; // ISO 8601 string
   updatedAt?: string; // ISO 8601 string
 }

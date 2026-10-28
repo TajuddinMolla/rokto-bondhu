@@ -24,6 +24,9 @@ export interface BloodRequest {
   urgency: RequestUrgency;
   status: RequestStatus;
   additionalNotes?: string;
+  hiddenReason?: string;
+  moderatedAt?: string;
+  moderatedBy?: string;
   createdAt: string; // ISO 8601 string
   updatedAt: string; // ISO 8601 string
 }

@@ -8,6 +8,7 @@ import {
   Send,
   HeartHandshake,
   Phone,
+  Flag,
 } from "lucide-react";
 
 import type { PublicDonorProfile, DonorPublicSummary } from "@/types/donor";
@@ -15,6 +16,7 @@ import { formatLocation } from "@/constants/locations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ReportModal } from "@/components/reports/report-modal";
 import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
 
@@ -26,6 +28,7 @@ interface DonorCardProps {
 
 export function DonorCard({ donor, locale, onRequestContact }: DonorCardProps) {
   const t = getTranslations(locale);
+  const [reportOpen, setReportOpen] = React.useState(false);
 
   const locationText = formatLocation(
     {
@@ -150,8 +153,29 @@ export function DonorCard({ donor, locale, onRequestContact }: DonorCardProps) {
                 </span>
               </Link>
             </Button>
+
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={() => setReportOpen(true)}
+              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              title={locale === "en" ? "Report this donor profile" : "এই রক্তদাতার বিরুদ্ধে অভিযোগ করুন"}
+              aria-label={locale === "en" ? "Report donor" : "অভিযোগ করুন"}
+            >
+              <Flag className="size-3.5" />
+            </Button>
           </div>
         </div>
+
+        <ReportModal
+          isOpen={reportOpen}
+          targetType="DONOR"
+          targetId={donor.id}
+          targetTitle={donor.displayName}
+          locale={locale}
+          onClose={() => setReportOpen(false)}
+        />
       </CardContent>
     </Card>
   );

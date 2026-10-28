@@ -1,0 +1,16 @@
+import * as React from "react";
+import type { Metadata } from "next";
+
+import { constructMetadata } from "@/lib/seo/metadata";
+import { AdminDashboardView } from "@/components/admin/admin-dashboard-view";
+
+export const metadata: Metadata = constructMetadata({
+  title: "Admin Dashboard",
+  path: "/admin",
+  locale: "en",
+});
+
+export default function EnglishAdminDashboardPage() {
+  return <AdminDashboardView locale="en" />;
+}
+

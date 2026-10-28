@@ -11,7 +11,8 @@ export type NotificationType =
   | "CONTACT_REQUEST_SUBMITTED"
   | "BLOOD_REQUEST_CREATED"
   | "BLOOD_REQUEST_FULFILLED"
-  | "BLOOD_REQUEST_CANCELLED";
+  | "BLOOD_REQUEST_CANCELLED"
+  | "MODERATION_NOTICE";
 
 export type EmailDeliveryStatus =
   | "NOT_APPLICABLE"
@@ -67,4 +68,3 @@ export interface DispatchNotificationInput {
   bloodRequestId?: string;
   customData?: Record<string, unknown>;
 }
-

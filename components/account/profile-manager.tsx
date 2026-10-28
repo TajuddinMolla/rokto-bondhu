@@ -8,6 +8,7 @@ import { zodResolver } from "@/lib/validations/zod-resolver";
 import { z } from "zod";
 import {
   ShieldCheck,
+  ShieldAlert,
   AlertCircle,
   Heart,
   Droplet,
@@ -226,6 +227,48 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
         <div className="flex items-center gap-2 p-3 text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-lg animate-in fade-in">
           <CheckCircle2 className="size-4 shrink-0" />
           <span>{locale === "en" ? "Account information updated successfully." : "অ্যাকাউন্টের তথ্য সফলভাবে আপডেট করা হয়েছে।"}</span>
+        </div>
+      )}
+
+      {/* Account Suspended Warning Banner */}
+      {(userProfile?.isSuspended || user.isSuspended) && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/10 text-xs sm:text-sm">
+          <div className="flex items-start gap-2.5">
+            <ShieldAlert className="size-5 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <strong className="text-destructive block font-semibold">
+                {locale === "en" ? "Account Suspended by Moderation" : "মডারেশন দ্বারা আপনার অ্যাকাউন্ট স্থগিত করা হয়েছে"}
+              </strong>
+              <span className="text-muted-foreground leading-relaxed">
+                {userProfile?.suspendedReason
+                  ? (locale === "en" ? `Reason: ${userProfile.suspendedReason}` : `কারণ: ${userProfile.suspendedReason}`)
+                  : (locale === "en"
+                      ? "Your account has been temporarily restricted due to policy violations."
+                      : "নিয়ম লঙ্ঘনের কারণে আপনার অ্যাকাউন্ট সাময়িকভাবে স্থগিত করা হয়েছে।")}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Donor Profile Suspended Warning Banner */}
+      {donorProfile?.isSuspended && !(userProfile?.isSuspended || user.isSuspended) && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border border-destructive/30 bg-destructive/10 text-xs sm:text-sm">
+          <div className="flex items-start gap-2.5">
+            <ShieldAlert className="size-5 text-destructive shrink-0 mt-0.5" />
+            <div>
+              <strong className="text-destructive block font-semibold">
+                {locale === "en" ? "Donor Profile Suspended" : "আপনার রক্তদাতা প্রোফাইল স্থগিত করা হয়েছে"}
+              </strong>
+              <span className="text-muted-foreground leading-relaxed">
+                {donorProfile.suspendedReason
+                  ? (locale === "en" ? `Reason: ${donorProfile.suspendedReason}` : `কারণ: ${donorProfile.suspendedReason}`)
+                  : (locale === "en"
+                      ? "Your donor listing is hidden from public search pending administrative review."
+                      : "প্রশাসনিক পর্যালোচনার অপেক্ষায় আপনার রক্তদাতা প্রোফাইল পাবলিক সার্চ থেকে লুকানো রয়েছে।")}
+              </span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -482,7 +525,11 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
                       size="sm"
                       variant={isAvailable ? "outline" : "default"}
                       onClick={handleToggleAvailability}
-                      disabled={updateAvailabilityMutation.isPending}
+                      disabled={
+                        updateAvailabilityMutation.isPending ||
+                        Boolean(donorProfile.isSuspended) ||
+                        Boolean(userProfile?.isSuspended || user.isSuspended)
+                      }
                       className="shrink-0 gap-1.5 shadow-xs"
                     >
                       {updateAvailabilityMutation.isPending ? (

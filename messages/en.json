@@ -629,5 +629,27 @@
     "emailNotificationsDesc": "Receive email alerts for incoming private donor contact requests when you are offline.",
     "enabled": "Enabled",
     "disabled": "Disabled"
+  },
+  "admin": {
+    "badge": "Moderation",
+    "dashboard": "Dashboard",
+    "donors": "Donors",
+    "bloodRequests": "Blood Requests",
+    "users": "Users",
+    "reports": "Reports",
+    "auditLogs": "Audit Logs",
+    "totalUsers": "Total Users",
+    "activeDonors": "Active Donors",
+    "publicDonors": "Public Donors",
+    "privateDonors": "Private Donors",
+    "openRequests": "Open Requests",
+    "pendingReports": "Pending Reports",
+    "recentActivity": "Recent Activity",
+    "suspend": "Suspend",
+    "restore": "Restore",
+    "makePrivate": "Make Private",
+    "hide": "Hide",
+    "resolve": "Resolve",
+    "dismiss": "Dismiss"
   }
 }

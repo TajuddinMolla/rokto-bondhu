@@ -1,12 +1,13 @@
 import * as React from "react";
 import Link from "next/link";
-import { Clock, MapPin, Building2, Search } from "lucide-react";
+import { Clock, MapPin, Building2, Search, Flag } from "lucide-react";
 
 import type { BloodRequestSummary } from "@/types/request";
 import { formatLocation } from "@/constants/locations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ReportModal } from "@/components/reports/report-modal";
 import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
 
@@ -17,6 +18,7 @@ interface RequestCardProps {
 
 export function RequestCard({ request, locale }: RequestCardProps) {
   const t = getTranslations(locale);
+  const [reportOpen, setReportOpen] = React.useState(false);
 
   const locationText = formatLocation(
     {
@@ -24,15 +26,15 @@ export function RequestCard({ request, locale }: RequestCardProps) {
       districtId: request.districtId,
       upazilaId: request.upazilaId,
     },
-    locale
+    locale,
   );
 
   const urgencyVariant =
     request.urgency === "critical"
       ? "border-destructive/40 text-destructive bg-destructive/10 animate-pulse"
       : request.urgency === "urgent"
-      ? "border-emergency/40 text-emergency bg-emergency/10"
-      : "border-border text-muted-foreground bg-muted/40";
+        ? "border-emergency/40 text-emergency bg-emergency/10"
+        : "border-border text-muted-foreground bg-muted/40";
 
   const requestHref = `${locale === "en" ? "/en" : ""}/blood-request/${request.id}`;
 
@@ -54,7 +56,10 @@ export function RequestCard({ request, locale }: RequestCardProps) {
               </h3>
               {request.hospitalName ? (
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Building2 className="size-3.5 text-primary shrink-0" aria-hidden="true" />
+                  <Building2
+                    className="size-3.5 text-primary shrink-0"
+                    aria-hidden="true"
+                  />
                   <span className="truncate">{request.hospitalName}</span>
                 </div>
               ) : null}
@@ -69,7 +74,10 @@ export function RequestCard({ request, locale }: RequestCardProps) {
         <div className="pt-3 border-t border-border flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <MapPin className="size-3.5 text-primary shrink-0" aria-hidden="true" />
+              <MapPin
+                className="size-3.5 text-primary shrink-0"
+                aria-hidden="true"
+              />
               <span className="truncate">{locationText}</span>
             </div>
 
@@ -79,18 +87,47 @@ export function RequestCard({ request, locale }: RequestCardProps) {
             </div>
           </div>
 
-          <Button
-            asChild
-            size="sm"
-            variant="outline"
-            className="gap-1.5 text-xs h-7 ml-auto hover:border-primary hover:text-primary"
-          >
-            <Link href={requestHref}>
-              <Search className="size-3" />
-              <span>{locale === "en" ? "Find Donors" : "রক্তদাতা খুঁজুন"}</span>
-            </Link>
-          </Button>
+          <div className="flex items-center gap-1.5 ml-auto">
+            <Button
+              asChild
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs h-7 hover:border-primary hover:text-primary"
+            >
+              <Link href={requestHref}>
+                <Search className="size-3" />
+                <span>
+                  {locale === "en" ? "Find Donors" : "রক্তদাতা খুঁজুন"}
+                </span>
+              </Link>
+            </Button>
+
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              onClick={() => setReportOpen(true)}
+              className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              title={
+                locale === "en"
+                  ? "Report this blood request"
+                  : "এই রক্তের অনুরোধটি রিপোর্ট করুন"
+              }
+              aria-label={locale === "en" ? "Report request" : "রিপোর্ট করুন"}
+            >
+              <Flag className="size-3" />
+            </Button>
+          </div>
         </div>
+
+        <ReportModal
+          isOpen={reportOpen}
+          targetType="BLOOD_REQUEST"
+          targetId={request.id}
+          targetTitle={`${request.bloodGroup} (${request.unitsNeeded} units)`}
+          locale={locale}
+          onClose={() => setReportOpen(false)}
+        />
       </CardContent>
     </Card>
   );

@@ -12,6 +12,21 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' ||
+        request.auth.token.admin == true
+      );
+    }
+
+    function isNotSuspended() {
+      return isAuthenticated() && (
+        request.auth.token.suspended != true
+        && (!exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isSuspended != true)
+      );
+    }
+
     function isValidBloodGroup(group) {
       return group in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
     }
@@ -22,89 +37,99 @@ service cloud.firestore {
 
     // -------------------------------------------------------------
     // 1. Users Collection: /users/{userId}
-    // Private user account documents. Only the account owner can read or write.
+    // Private user account documents. Only owner or admin can read.
+    // Suspended users cannot update their account.
     // -------------------------------------------------------------
     match /users/{userId} {
-      allow read: if isOwner(userId);
+      allow read: if isOwner(userId) || isAdmin();
 
       allow create: if isOwner(userId)
                     && request.resource.data.uid == userId
-                    && (request.resource.data.email == request.auth.token.email || request.auth.token.email == null || request.resource.data.email == '');
+                    && (request.resource.data.email == request.auth.token.email || request.auth.token.email == null || request.resource.data.email == '')
+                    && (!('isSuspended' in request.resource.data) || request.resource.data.isSuspended == false)
+                    && (!('role' in request.resource.data) || request.resource.data.role == 'user');
 
-      allow update: if isOwner(userId)
-                    && request.resource.data.uid == userId
-                    && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt);
+      allow update: if (
+                      isOwner(userId)
+                      && isNotSuspended()
+                      && request.resource.data.uid == userId
+                      && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
+                      && (!('isSuspended' in request.resource.data) || request.resource.data.isSuspended == resource.data.isSuspended)
+                      && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role)
+                    ) || isAdmin();
 
       allow delete: if false;
     }
 
     // -------------------------------------------------------------
     // 2. Donor Profiles Collection: /donorProfiles/{donorId}
-    // Private donor profile details. Only the account owner can read or write.
-    // Document ID strictly matches the user's Auth UID.
+    // Private donor profile details. Document ID matches Auth UID.
+    // Admins can read for moderation and update suspension state.
     // -------------------------------------------------------------
     match /donorProfiles/{donorId} {
-      allow read: if isOwner(donorId);
+      allow read: if isOwner(donorId) || isAdmin();
 
       allow create: if isOwner(donorId)
+                    && isNotSuspended()
                     && request.resource.data.userId == donorId
                     && isValidBloodGroup(request.resource.data.bloodGroup)
                     && isValidAvailability(request.resource.data.availabilityStatus);
 
-      allow update: if isOwner(donorId)
-                    && request.resource.data.userId == donorId
-                    && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
-                    && isValidBloodGroup(request.resource.data.bloodGroup)
-                    && isValidAvailability(request.resource.data.availabilityStatus);
+      allow update: if (
+                      isOwner(donorId)
+                      && isNotSuspended()
+                      && request.resource.data.userId == donorId
+                      && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
+                      && isValidBloodGroup(request.resource.data.bloodGroup)
+                      && isValidAvailability(request.resource.data.availabilityStatus)
+                      && (!('isSuspended' in request.resource.data) || request.resource.data.isSuspended == resource.data.isSuspended)
+                    ) || isAdmin();
 
-      allow delete: if isOwner(donorId);
+      allow delete: if isOwner(donorId) || isAdmin();
     }
 
     // -------------------------------------------------------------
     // 3. Public Donor Profiles Collection: /publicDonorProfiles/{donorId}
     // Public projection for donor search and open discovery.
-    // In PRIVATE mode, phone number is strictly forbidden / null.
-    // In PUBLIC mode, verified phone number is permitted for direct calling.
+    // Admins can moderate, update, or delist public profiles.
     // -------------------------------------------------------------
     match /publicDonorProfiles/{donorId} {
-      // Publicly readable for volunteer discovery
       allow read: if true;
 
-      // Only the profile owner can publish or update their public card
-      allow create, update: if isOwner(donorId)
-                            && (!('bloodGroup' in request.resource.data) || isValidBloodGroup(request.resource.data.bloodGroup))
-                            && (!('availabilityStatus' in request.resource.data) || isValidAvailability(request.resource.data.availabilityStatus))
-                            && (
-                              // PRIVATE mode: strictly NO phone number
-                              (!('phoneNumber' in request.resource.data) || request.resource.data.phoneNumber == null)
-                              || (
-                                // PUBLIC mode: phone number permitted
-                                request.resource.data.contactMode == 'PUBLIC'
-                                && request.resource.data.phoneNumber is string
-                                && request.resource.data.phoneNumber.size() >= 11
-                                && request.resource.data.phoneNumber.size() <= 15
+      allow create, update: if (
+                              isOwner(donorId)
+                              && isNotSuspended()
+                              && (!('bloodGroup' in request.resource.data) || isValidBloodGroup(request.resource.data.bloodGroup))
+                              && (!('availabilityStatus' in request.resource.data) || isValidAvailability(request.resource.data.availabilityStatus))
+                              && (
+                                (!('phoneNumber' in request.resource.data) || request.resource.data.phoneNumber == null)
+                                || (
+                                  request.resource.data.contactMode == 'PUBLIC'
+                                  && request.resource.data.phoneNumber is string
+                                  && request.resource.data.phoneNumber.size() >= 11
+                                  && request.resource.data.phoneNumber.size() <= 15
+                                )
                               )
-                            );
+                            ) || isAdmin();
 
-      // Only the profile owner can delete their public card
-      allow delete: if isOwner(donorId);
+      allow delete: if isOwner(donorId) || isAdmin();
     }
 
     // -------------------------------------------------------------
     // 4. Donor Contact Requests Collection: /donorContactRequests/{requestId}
     // Direct 1-to-1 donor contact requests and consent management.
+    // Admins can inspect for harassment / report resolution.
     // -------------------------------------------------------------
     match /donorContactRequests/{requestId} {
-      // Readable by recipient donor or authenticated requester (or safe existence check)
       allow read: if isAuthenticated() && (
         resource == null ||
         resource.data.donorId == request.auth.uid || 
-        resource.data.requesterId == request.auth.uid
+        resource.data.requesterId == request.auth.uid ||
+        isAdmin()
       );
 
-      // Create: Authenticated requesters only.
-      // Validates initial status and requester identity.
       allow create: if isAuthenticated()
+                    && isNotSuspended()
                     && request.resource.data.requesterId == request.auth.uid
                     && request.resource.data.status == 'PENDING'
                     && request.resource.data.donorConsentGiven == false
@@ -113,29 +138,22 @@ service cloud.firestore {
                     && request.resource.data.requesterPhone is string
                     && request.resource.data.urgency in ['normal', 'urgent', 'critical'];
 
-      // Update rules:
-      // 1. Requester can cancel their own pending request.
-      // 2. Donor can accept or decline pending request.
-      // 3. Donor can share phone number (step 2 explicit consent) when accepted.
-      // 4. Either Donor or Requester can mark an accepted request as completed.
       allow update: if isAuthenticated()
+                    && isNotSuspended()
                     && (!('donorId' in resource.data) || request.resource.data.donorId == resource.data.donorId)
                     && (!('requesterId' in resource.data) || request.resource.data.requesterId == resource.data.requesterId)
                     && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
                     && (
-                      // Requester cancellation
                       (
                         resource.data.requesterId == request.auth.uid
                         && resource.data.status == 'PENDING'
                         && request.resource.data.status == 'CANCELLED'
                       ) ||
-                      // Donor response: Accept or Decline pending request
                       (
                         resource.data.donorId == request.auth.uid
                         && resource.data.status == 'PENDING'
                         && request.resource.data.status in ['ACCEPTED', 'DECLINED']
                       ) ||
-                      // Donor explicit step-2 consent to share phone number
                       (
                         resource.data.donorId == request.auth.uid
                         && resource.data.status == 'ACCEPTED'
@@ -143,7 +161,6 @@ service cloud.firestore {
                         && request.resource.data.sharedContactDetails is map
                         && request.resource.data.sharedContactDetails.phoneNumber is string
                       ) ||
-                      // Complete accepted request (allowed for either Donor or Requester)
                       (
                         (resource.data.donorId == request.auth.uid || resource.data.requesterId == request.auth.uid)
                         && resource.data.status == 'ACCEPTED'
@@ -151,22 +168,19 @@ service cloud.firestore {
                       )
                     );
 
-      // Disallow hard deletion
       allow delete: if false;
     }
 
     // -------------------------------------------------------------
     // 5. Blood Requests Collection: /bloodRequests/{requestId}
     // Emergency blood requisitions.
-    // Publicly readable so voluntary donors and volunteers can find requests.
-    // Only the creator can create or modify their own blood request.
+    // Admins can moderate / hide abusive requests or restore them.
     // -------------------------------------------------------------
     match /bloodRequests/{requestId} {
-      // Publicly readable for emergency discovery
       allow read: if true;
 
-      // Authenticated users can create requests for themselves with status 'open'
       allow create: if isAuthenticated()
+                    && isNotSuspended()
                     && request.resource.data.requesterId == request.auth.uid
                     && request.resource.data.status == 'open'
                     && isValidBloodGroup(request.resource.data.bloodGroup)
@@ -174,67 +188,87 @@ service cloud.firestore {
                     && request.resource.data.unitsNeeded <= 20
                     && request.resource.data.urgency in ['normal', 'urgent', 'critical'];
 
-      // Only the requester can update their request.
-      // Cannot alter requesterId or createdAt.
-      // Only open requests can be modified or transitioned to fulfilled/cancelled.
-      allow update: if isAuthenticated()
-                    && resource.data.requesterId == request.auth.uid
-                    && request.resource.data.requesterId == resource.data.requesterId
-                    && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
-                    && (
-                      (resource.data.status == 'open' && request.resource.data.status in ['open', 'fulfilled', 'cancelled'])
-                    );
+      allow update: if (
+                      isAuthenticated()
+                      && isNotSuspended()
+                      && resource.data.requesterId == request.auth.uid
+                      && request.resource.data.requesterId == resource.data.requesterId
+                      && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
+                      && (resource.data.status == 'open' && request.resource.data.status in ['open', 'fulfilled', 'cancelled'])
+                    ) || isAdmin();
 
-      // Hard deletion is prohibited; soft cancellation is required.
       allow delete: if false;
     }
 
     // -------------------------------------------------------------
     // 6. Notifications Collection: /notifications/{notificationId}
-    // In-app notifications for blood requests and donor contact events.
-    // Private user notifications. Only the recipient can read.
-    // Only recipient can mark as read (update read/readAt).
-    // Arbitrary creation for other users is strictly prohibited.
+    // In-app notifications. Admins can create moderation notices.
     // -------------------------------------------------------------
     match /notifications/{notificationId} {
-      // Only the recipient can read their notifications
-      allow read: if isAuthenticated() && resource.data.recipientId == request.auth.uid;
+      allow read: if isAuthenticated() && (resource.data.recipientId == request.auth.uid || isAdmin());
 
-      // Only the recipient can update read state; cannot alter content or recipient
       allow update: if isAuthenticated()
                     && resource.data.recipientId == request.auth.uid
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt', 'updatedAt']);
 
-      // Creation: strictly controlled to authenticated self-notifications
-      // or verified cross-user events linked to active contact requests.
-      allow create: if isAuthenticated() && (
-        // Self notification (e.g. requester confirming their blood or contact request)
-        request.resource.data.recipientId == request.auth.uid
-        ||
-        // Cross-user notification strictly bound to a verified contact request document
-        (
-          request.resource.data.relatedContactRequestId is string
-          && exists(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId))
-          && (
-            // Requester notifying Donor of incoming request or cancellation
-            (
-              get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.requesterId == request.auth.uid
-              && request.resource.data.recipientId == get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.donorId
-              && request.resource.data.type in ['CONTACT_REQUEST_RECEIVED', 'CONTACT_REQUEST_CANCELLED']
-            )
-            ||
-            // Donor notifying Requester of accept, decline, or consent share
-            (
-              get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.donorId == request.auth.uid
-              && request.resource.data.recipientId == get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.requesterId
-              && request.resource.data.type in ['CONTACT_REQUEST_ACCEPTED', 'CONTACT_REQUEST_DECLINED', 'CONTACT_INFO_SHARED', 'CONTACT_REQUEST_COMPLETED']
-            )
-          )
-        )
-      );
+      allow create: if (
+                      isAuthenticated() && isNotSuspended() && (
+                        request.resource.data.recipientId == request.auth.uid
+                        ||
+                        (
+                          request.resource.data.relatedContactRequestId is string
+                          && exists(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId))
+                          && (
+                            (
+                              get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.requesterId == request.auth.uid
+                              && request.resource.data.recipientId == get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.donorId
+                              && request.resource.data.type in ['CONTACT_REQUEST_RECEIVED', 'CONTACT_REQUEST_CANCELLED']
+                            )
+                            ||
+                            (
+                              get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.donorId == request.auth.uid
+                              && request.resource.data.recipientId == get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.requesterId
+                              && request.resource.data.type in ['CONTACT_REQUEST_ACCEPTED', 'CONTACT_REQUEST_DECLINED', 'CONTACT_INFO_SHARED', 'CONTACT_REQUEST_COMPLETED']
+                            )
+                          )
+                        )
+                      )
+                    ) || isAdmin();
 
-      // Prohibit hard deletion to preserve historical log
       allow delete: if false;
+    }
+
+    // -------------------------------------------------------------
+    // 7. Reports Collection: /reports/{reportId}
+    // User-submitted flags on donors, blood requests, or accounts.
+    // Authenticated users can submit flags. Only admins can resolve.
+    // -------------------------------------------------------------
+    match /reports/{reportId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.reporterId == request.auth.uid);
+
+      allow create: if isAuthenticated()
+                    && isNotSuspended()
+                    && request.resource.data.reporterId == request.auth.uid
+                    && request.resource.data.status == 'PENDING'
+                    && request.resource.data.targetType in ['DONOR', 'BLOOD_REQUEST', 'USER']
+                    && request.resource.data.reason in ['INAPPROPRIATE_CONTENT', 'SPAM', 'FAKE_INFORMATION', 'HARASSMENT', 'OTHER'];
+
+      allow update: if isAdmin();
+
+      allow delete: if false;
+    }
+
+    // -------------------------------------------------------------
+    // 8. Audit Logs Collection: /auditLogs/{logId}
+    // Append-only audit records for all admin actions.
+    // Immutable: update and delete are strictly forbidden for everyone.
+    // -------------------------------------------------------------
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+
+      allow create: if isAdmin() && request.resource.data.adminId == request.auth.uid;
+
+      allow update, delete: if false;
     }
 
     // Default: Deny all other access

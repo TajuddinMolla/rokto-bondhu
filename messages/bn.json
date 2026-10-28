@@ -629,5 +629,27 @@
     "emailNotificationsDesc": "জরুরি যোগাযোগের অনুরোধ আসলে অফলাইনে থাকা অবস্থায়ও আপনার ইমেইলে বার্তা পাঠানো হবে।",
     "enabled": "চালু",
     "disabled": "বন্ধ"
+  },
+  "admin": {
+    "badge": "মডারেশন",
+    "dashboard": "ড্যাশবোর্ড",
+    "donors": "রক্তদাতা",
+    "bloodRequests": "রক্তের অনুরোধ",
+    "users": "ব্যবহারকারী",
+    "reports": "অভিযোগ",
+    "auditLogs": "অডিট লগ",
+    "totalUsers": "মোট ব্যবহারকারী",
+    "activeDonors": "সক্রিয় রক্তদাতা",
+    "publicDonors": "পাবলিক রক্তদাতা",
+    "privateDonors": "প্রাইভেট রক্তদাতা",
+    "openRequests": "চলমান রক্তের অনুরোধ",
+    "pendingReports": "অমীমাংসিত অভিযোগ",
+    "recentActivity": "সাম্প্রতিক কার্যক্রম",
+    "suspend": "স্থগিত করুন",
+    "restore": "পুনর্বহাল করুন",
+    "makePrivate": "প্রাইভেট করুন",
+    "hide": "লুকান",
+    "resolve": "নিষ্পত্তি করুন",
+    "dismiss": "বাতিল করুন"
   }
 }
