@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy:rules": "npx -y firebase-tools deploy --only firestore:rules"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
