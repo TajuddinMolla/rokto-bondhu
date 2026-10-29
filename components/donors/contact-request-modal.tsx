@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@/lib/validations/zod-resolver";
@@ -132,6 +133,32 @@ export function ContactRequestModal({
     }
   };
 
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll while modal is open
+  React.useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  // Handle escape key
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   const donorLocation = formatLocation(
     {
       divisionId: donor.divisionId,
@@ -141,13 +168,25 @@ export function ContactRequestModal({
     locale
   );
 
-  return (
+  if (!mounted || typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-200"
     >
-      <Card className="w-full max-w-lg border border-border/80 bg-surface shadow-2xl my-8 overflow-hidden rounded-2xl">
+      <Card
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg border border-border/80 bg-surface shadow-2xl my-8 overflow-hidden rounded-2xl"
+      >
         <CardHeader className="border-b border-border/80 pb-4 flex flex-row items-start justify-between gap-4">
           <div>
             <CardTitle className="text-lg font-black text-foreground">
@@ -434,6 +473,7 @@ export function ContactRequestModal({
           )}
         </CardContent>
       </Card>
-    </div>
+    </div>,
+    document.body
   );
 }

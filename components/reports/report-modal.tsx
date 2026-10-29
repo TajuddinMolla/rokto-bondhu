@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@/lib/validations/zod-resolver";
-import { AlertTriangle, CheckCircle2, Loader2, Flag } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, Flag, X } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useSubmitReport } from "@/hooks/mutations/use-report-mutations";
@@ -89,7 +90,35 @@ export function ReportModal({
     onClose();
   }, [reset, onClose]);
 
-  if (!isOpen) return null;
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll while modal is active
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
+  // Handle escape key
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, handleClose]);
+
+  if (!isOpen || !mounted || typeof document === "undefined") return null;
 
   const isAuthenticated = status === "authenticated" && Boolean(user);
 
@@ -146,18 +175,34 @@ export function ReportModal({
     }
   };
 
-  return (
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs animate-in fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs animate-in fade-in duration-200"
     >
-      <div className="w-full max-w-lg">
+      <div
+        className="w-full max-w-lg max-h-[92vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <Card className="border-border shadow-xl">
           {/* Header */}
-          <CardHeader className="space-y-2">
+          <CardHeader className="space-y-2 relative pr-12">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground size-11 flex items-center justify-center rounded-xl hover:bg-muted transition-colors cursor-pointer"
+              aria-label={locale === "en" ? "Close dialog" : "ডায়ালগ বন্ধ করুন"}
+            >
+              <X className="size-5" />
+            </button>
             <div className="flex items-center gap-2.5 text-foreground">
-              <div className="flex size-9 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+              <div className="flex size-9 items-center justify-center rounded-lg bg-destructive/10 text-destructive shrink-0">
                 <Flag className="size-5" />
               </div>
               <CardTitle className="text-lg sm:text-xl font-bold">
@@ -315,6 +360,7 @@ export function ReportModal({
           )}
         </Card>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
