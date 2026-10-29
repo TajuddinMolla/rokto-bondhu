@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
+import { Slot } from "@radix-ui/react-slot";
 import { X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -65,15 +66,16 @@ interface DrawerTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 }
 
 const DrawerTrigger = React.forwardRef<HTMLButtonElement, DrawerTriggerProps>(
-  ({ className, onClick, children, ...props }, ref) => {
+  ({ className, onClick, asChild = false, children, ...props }, ref) => {
     const { setOpen } = useDrawerContext();
+    const Comp = asChild ? Slot : "button";
 
     return (
-      <button
+      <Comp
         ref={ref}
-        type="button"
+        type={asChild ? undefined : "button"}
         aria-haspopup="dialog"
-        onClick={(e) => {
+        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
           onClick?.(e);
           if (!e.defaultPrevented) {
             setOpen(true);
@@ -83,7 +85,7 @@ const DrawerTrigger = React.forwardRef<HTMLButtonElement, DrawerTriggerProps>(
         {...props}
       >
         {children}
-      </button>
+      </Comp>
     );
   }
 );
@@ -261,22 +263,32 @@ const DrawerDescription = React.forwardRef<
 });
 DrawerDescription.displayName = "DrawerDescription";
 
+interface DrawerCloseProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  asChild?: boolean;
+}
+
 const DrawerClose = React.forwardRef<
   HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement>
->(({ className, onClick, ...props }, ref) => {
+  DrawerCloseProps
+>(({ className, onClick, asChild = false, children, ...props }, ref) => {
   const { setOpen } = useDrawerContext();
+  const Comp = asChild ? Slot : "button";
+
   return (
-    <button
+    <Comp
       ref={ref}
-      type="button"
-      onClick={(e) => {
+      type={asChild ? undefined : "button"}
+      onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
         onClick?.(e);
-        setOpen(false);
+        if (!e.defaultPrevented) {
+          setOpen(false);
+        }
       }}
       className={className}
       {...props}
-    />
+    >
+      {children}
+    </Comp>
   );
 });
 DrawerClose.displayName = "DrawerClose";

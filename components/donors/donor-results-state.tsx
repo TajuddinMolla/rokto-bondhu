@@ -3,13 +3,24 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { UserPlus, X, Search, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import {
+  UserPlus,
+  X,
+  Search,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
+  RotateCcw,
+  CheckCircle,
+} from "lucide-react";
 
 import { getDivisionById, getDistrictById, getUpazilaById } from "@/constants/locations";
 import { normalizeBloodGroup } from "@/constants/blood-groups";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { DonorCard } from "@/components/donors/donor-card";
 import { ContactRequestModal } from "@/components/donors/contact-request-modal";
 import { useDonorSearch } from "@/hooks/queries/use-donor-search";
@@ -28,20 +39,28 @@ interface DonorResultsStateProps {
 
 function DonorCardSkeleton() {
   return (
-    <Card className="border border-border bg-surface p-5 sm:p-6 space-y-4 animate-pulse">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="size-12 rounded-xl bg-muted/60 shrink-0" />
-          <div className="space-y-2">
-            <div className="h-4 w-32 bg-muted/60 rounded" />
-            <div className="h-3 w-44 bg-muted/40 rounded" />
+    <Card className="border border-border/80 bg-surface rounded-2xl p-5 sm:p-6 space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <Skeleton className="size-13 sm:size-14 rounded-2xl shrink-0" />
+          <div className="space-y-2 pt-1">
+            <Skeleton className="h-5 w-36 sm:w-48 rounded-md" />
+            <Skeleton className="h-3.5 w-28 sm:w-36 rounded-md" />
           </div>
         </div>
-        <div className="h-5 w-20 bg-muted/50 rounded-full" />
+        <Skeleton className="h-7 w-24 rounded-full self-start sm:self-auto" />
       </div>
-      <div className="pt-3 border-t border-border flex items-center justify-between gap-3">
-        <div className="h-4 w-28 bg-muted/40 rounded" />
-        <div className="h-7 w-28 bg-muted/50 rounded-md" />
+
+      <div className="pt-3 border-t border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-6 w-28 rounded-lg" />
+          <Skeleton className="h-6 w-32 rounded-lg" />
+        </div>
+        <div className="flex items-center gap-2 pt-1 sm:pt-0">
+          <Skeleton className="h-10 w-28 rounded-xl" />
+          <Skeleton className="h-10 w-28 rounded-xl" />
+          <Skeleton className="size-10 rounded-xl" />
+        </div>
       </div>
     </Card>
   );
@@ -126,6 +145,10 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
 
+  const clearAllFilters = () => {
+    router.replace(pathname, { scroll: false });
+  };
+
   const filters = React.useMemo<DonorSearchFilterParams>(
     () => ({
       bloodGroup,
@@ -157,29 +180,42 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
     <div className="space-y-6">
       {/* Active Filter Pills Bar */}
       {activeFilters.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 p-3 rounded-lg border border-border bg-surface text-xs">
-          <span className="font-semibold text-muted-foreground">
-            {t.donorsPage.results.activeFiltersLabel}
-          </span>
-          {activeFilters.map((filter) => (
-            <Badge
-              key={filter.key}
-              variant="outline"
-              className="gap-1 border-primary/20 bg-primary/5 text-primary py-1 px-2.5 rounded-md text-xs font-medium"
-            >
-              <span>
-                {filter.label}: <strong>{filter.value}</strong>
-              </span>
-              <button
-                type="button"
-                onClick={() => removeFilter(filter.key)}
-                className="hover:text-foreground cursor-pointer focus:outline-none"
-                aria-label={`Remove ${filter.label} filter`}
+        <div className="flex flex-wrap items-center justify-between gap-2 p-3 sm:p-3.5 rounded-2xl border border-border/80 bg-surface shadow-2xs">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold text-muted-foreground mr-1">
+              {t.donorsPage.results.activeFiltersLabel}
+            </span>
+            {activeFilters.map((filter) => (
+              <Badge
+                key={filter.key}
+                variant="subtle"
+                className="gap-1.5 border-primary-border bg-primary-subtle text-primary py-1 px-2.5 rounded-xl text-xs font-bold shadow-2xs"
               >
-                <X className="size-3" aria-hidden="true" />
-              </button>
-            </Badge>
-          ))}
+                <span>
+                  {filter.label}: <strong>{filter.value}</strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeFilter(filter.key)}
+                  className="hover:text-primary-hover cursor-pointer p-0.5 rounded-full hover:bg-primary/10 transition-colors"
+                  aria-label={`Remove ${filter.label} filter`}
+                >
+                  <X className="size-3" aria-hidden="true" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={clearAllFilters}
+            className="text-xs text-muted-foreground hover:text-foreground h-8 px-2 gap-1.5"
+          >
+            <RotateCcw className="size-3" aria-hidden="true" />
+            <span>{locale === "en" ? "Clear all" : "সব মুছুন"}</span>
+          </Button>
         </div>
       ) : null}
 
@@ -194,15 +230,15 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
 
       {/* State 2: Error Banner */}
       {!isLoading && isError ? (
-        <Card className="border border-destructive/20 bg-destructive/5 p-6 sm:p-8 text-center space-y-4">
-          <div className="inline-flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive border border-destructive/20">
-            <AlertCircle className="size-6" aria-hidden="true" />
+        <Card className="border border-destructive/20 bg-destructive/5 p-6 sm:p-8 text-center space-y-4 rounded-2xl">
+          <div className="inline-flex size-14 items-center justify-center rounded-2xl bg-destructive/10 text-destructive border border-destructive/20 shadow-xs">
+            <AlertCircle className="size-7" aria-hidden="true" />
           </div>
-          <div className="space-y-1">
-            <h3 className="font-bold text-base sm:text-lg text-foreground">
+          <div className="space-y-1.5">
+            <h3 className="font-extrabold text-base sm:text-lg text-foreground">
               {t.donorsPage.results.errorTitle}
             </h3>
-            <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+            <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
               {t.donorsPage.results.errorDesc}
             </p>
           </div>
@@ -210,9 +246,9 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
             type="button"
             variant="outline"
             onClick={() => refetch()}
-            className="gap-2 text-xs"
+            className="gap-2 text-sm font-bold min-h-[44px] px-6 border-destructive/30 hover:bg-destructive/10 text-destructive"
           >
-            <RefreshCw className="size-3.5" aria-hidden="true" />
+            <RefreshCw className="size-4" aria-hidden="true" />
             <span>{t.donorsPage.results.retryButton}</span>
           </Button>
         </Card>
@@ -220,57 +256,72 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
 
       {/* State 3: Empty State (0 Donors Found) */}
       {!isLoading && !isError && allDonors.length === 0 ? (
-        <Card className="border border-border bg-surface text-center p-8 sm:p-12 space-y-6">
-          <div className="flex size-14 items-center justify-center rounded-2xl bg-muted/40 text-muted-foreground mx-auto border border-border shadow-xs">
-            <Search className="size-7" aria-hidden="true" />
-          </div>
+        <div className="space-y-6">
+          <EmptyState
+            icon={Search}
+            title={t.donorsPage.results.noDonorsFound}
+            description={t.donorsPage.results.noDonorsFoundDesc}
+            action={
+              activeFilters.length > 0 ? (
+                <Button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="min-h-[44px] px-6 font-bold shadow-xs bg-primary hover:bg-primary-hover text-white gap-2"
+                >
+                  <RotateCcw className="size-4" aria-hidden="true" />
+                  <span>{t.donorsPage.filters.resetButton}</span>
+                </Button>
+              ) : undefined
+            }
+          />
 
-          <div className="max-w-xl mx-auto space-y-2">
-            <h3 className="text-lg sm:text-xl font-bold text-foreground">
-              {t.donorsPage.results.noDonorsFound}
-            </h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {t.donorsPage.results.noDonorsFoundDesc}
-            </p>
-          </div>
-
-          {activeFilters.length > 0 && (
-            <div className="text-xs text-muted-foreground bg-muted/20 p-3 rounded-md max-w-md mx-auto border border-border/50">
-              {t.donorsPage.results.emptyStateSuggestion}
-            </div>
-          )}
-
-          {/* Become a Donor Callout - Hidden if user is already a donor */}
+          {/* Become a Donor Callout - Hidden if user is already a registered donor */}
           {!isDonor && (
-            <div className="pt-6 border-t border-border max-w-lg mx-auto space-y-4">
-              <div className="space-y-1">
-                <h4 className="text-sm sm:text-base font-bold text-foreground">
+            <Card className="border border-border/80 bg-surface rounded-2xl p-6 sm:p-8 text-center space-y-4 shadow-sm">
+              <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-primary-subtle text-primary border border-primary-border shadow-2xs">
+                <UserPlus className="size-6" aria-hidden="true" />
+              </div>
+
+              <div className="space-y-1.5 max-w-md mx-auto">
+                <h4 className="text-base sm:text-lg font-bold text-foreground">
                   {t.donorsPage.results.becomeDonorTitle}
                 </h4>
-                <p className="text-xs sm:text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
                   {t.donorsPage.results.becomeDonorDesc}
                 </p>
               </div>
 
-              <Button asChild className="font-semibold shadow-xs">
+              <Button
+                asChild
+                size="lg"
+                className="min-h-[48px] px-7 font-bold shadow-xs bg-primary hover:bg-primary-hover text-white gap-2"
+              >
                 <Link href={registerHref}>
-                  <UserPlus className="size-4 mr-2" aria-hidden="true" />
-                  {t.donorsPage.results.becomeDonorCta}
+                  <UserPlus className="size-4.5" aria-hidden="true" />
+                  <span>{t.donorsPage.results.becomeDonorCta}</span>
                 </Link>
               </Button>
-            </div>
+            </Card>
           )}
-        </Card>
+        </div>
       ) : null}
 
       {/* State 4: Donors List with Cursor-Based Pagination */}
       {!isLoading && !isError && allDonors.length > 0 ? (
         <div className="space-y-4">
           {/* Result Count Indicator */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-            <span>
-              {t.donorsPage.results.resultsCount.replace("{count}", String(allDonors.length))}
-            </span>
+          <div className="flex items-center justify-between text-xs text-muted-foreground px-1 pb-1">
+            <div className="flex items-center gap-2">
+              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
+              <span className="font-semibold text-foreground">
+                {t.donorsPage.results.resultsCount.replace("{count}", String(allDonors.length))}
+              </span>
+            </div>
+            {hasNextPage && (
+              <span className="text-[11px] text-muted-foreground">
+                {locale === "en" ? "More donors available" : "আরও রক্তদাতা রয়েছে"}
+              </span>
+            )}
           </div>
 
           {/* Donor Cards Grid */}
@@ -293,11 +344,11 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
                 variant="outline"
                 disabled={isFetchingNextPage}
                 onClick={() => fetchNextPage()}
-                className="w-full sm:w-auto min-w-[200px] gap-2 border-primary/30 text-primary hover:bg-primary/5 font-semibold"
+                className="w-full sm:w-auto min-w-[220px] min-h-[48px] gap-2 border-primary/30 text-primary hover:bg-primary/5 font-bold shadow-xs text-sm"
               >
                 {isFetchingNextPage ? (
                   <>
-                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+                    <Loader2 className="size-4.5 animate-spin" aria-hidden="true" />
                     <span>{t.donorsPage.results.loadingMore}</span>
                   </>
                 ) : (
@@ -305,7 +356,16 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
                 )}
               </Button>
             </div>
-          ) : null}
+          ) : (
+            <div className="pt-6 pb-2 text-center text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+              <CheckCircle className="size-3.5 text-available shrink-0" aria-hidden="true" />
+              <span>
+                {locale === "en"
+                  ? "All available donors displayed"
+                  : "সকল উপলব্ধ রক্তদাতা প্রদর্শিত হয়েছে"}
+              </span>
+            </div>
+          )}
         </div>
       ) : null}
 

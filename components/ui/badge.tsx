@@ -20,6 +20,8 @@ const badgeVariants = cva(
           "border-border text-foreground hover:bg-muted",
         available:
           "border-status-available-border bg-status-available-bg text-status-available-text",
+        pending:
+          "border-status-pending-border bg-status-pending-bg text-status-pending-text",
         urgent:
           "border-status-pending-border bg-status-pending-bg text-status-pending-text",
         emergency:

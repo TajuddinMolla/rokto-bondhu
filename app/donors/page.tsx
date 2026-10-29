@@ -5,6 +5,7 @@ import { Droplet } from "lucide-react";
 import { constructMetadata } from "@/lib/seo/metadata";
 import { getTranslations } from "@/i18n/translations";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { DonorSearchFilters } from "@/components/donors/donor-search-filters";
 import { DonorResultsState } from "@/components/donors/donor-results-state";
 
@@ -16,7 +17,7 @@ export const metadata: Metadata = constructMetadata({
 
 function LoadingSkeleton() {
   return (
-    <div className="h-64 rounded-xl border border-border bg-surface/50 animate-pulse" />
+    <Skeleton className="h-64 rounded-2xl border border-border/80 bg-surface/50" />
   );
 }
 
@@ -29,13 +30,13 @@ export default function DonorsPage() {
         {/* Page Header */}
         <div className="space-y-3">
           <Badge
-            variant="outline"
-            className="border-primary/20 text-primary bg-primary/5 px-3 py-1 text-xs font-semibold rounded-full"
+            variant="subtle"
+            className="border-primary-border text-primary bg-primary-subtle px-3.5 py-1 text-xs font-bold rounded-full shadow-2xs"
           >
-            <Droplet className="size-3.5 mr-1 fill-primary text-primary" aria-hidden="true" />
+            <Droplet className="size-3.5 mr-1 fill-current text-primary" aria-hidden="true" />
             {t.donorsPage.badge}
           </Badge>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground tracking-tight">
             {t.donorsPage.title}
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground max-w-2xl leading-relaxed">
@@ -45,7 +46,7 @@ export default function DonorsPage() {
 
         {/* Content Layout Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Filters Sidebar */}
+          {/* Filters Column */}
           <aside className="lg:col-span-4 lg:sticky lg:top-24">
             <React.Suspense fallback={<LoadingSkeleton />}>
               <DonorSearchFilters locale="bn" />

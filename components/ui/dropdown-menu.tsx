@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
 
 import { cn } from "@/lib/utils";
 
@@ -64,20 +65,21 @@ interface DropdownMenuTriggerProps
 const DropdownMenuTrigger = React.forwardRef<
   HTMLButtonElement,
   DropdownMenuTriggerProps
->(({ className, onClick, children, ...props }, ref) => {
+>(({ className, onClick, asChild = false, children, ...props }, ref) => {
   const { open, setOpen, triggerRef } = useDropdownMenuContext();
+  const Comp = asChild ? Slot : "button";
 
   return (
-    <button
-      ref={(node) => {
+    <Comp
+      ref={(node: HTMLButtonElement | null) => {
         triggerRef.current = node;
         if (typeof ref === "function") ref(node);
         else if (ref) (ref as React.MutableRefObject<HTMLButtonElement | null>).current = node;
       }}
-      type="button"
+      type={asChild ? undefined : "button"}
       aria-haspopup="menu"
       aria-expanded={open}
-      onClick={(e) => {
+      onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
         onClick?.(e);
         if (!e.defaultPrevented) {
           setOpen((prev) => !prev);
@@ -87,7 +89,7 @@ const DropdownMenuTrigger = React.forwardRef<
       {...props}
     >
       {children}
-    </button>
+    </Comp>
   );
 });
 DropdownMenuTrigger.displayName = "DropdownMenuTrigger";

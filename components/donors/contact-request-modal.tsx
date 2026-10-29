@@ -147,10 +147,10 @@ export function ContactRequestModal({
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-200"
     >
-      <Card className="w-full max-w-lg border border-border bg-surface shadow-2xl my-8 overflow-hidden">
-        <CardHeader className="border-b border-border pb-4 flex flex-row items-start justify-between gap-4">
+      <Card className="w-full max-w-lg border border-border/80 bg-surface shadow-2xl my-8 overflow-hidden rounded-2xl">
+        <CardHeader className="border-b border-border/80 pb-4 flex flex-row items-start justify-between gap-4">
           <div>
-            <CardTitle className="text-lg font-bold text-foreground">
+            <CardTitle className="text-lg font-black text-foreground">
               {t.contactRequests.modalTitle}
             </CardTitle>
             <CardDescription className="text-xs text-muted-foreground mt-1">
@@ -160,7 +160,7 @@ export function ContactRequestModal({
           <button
             type="button"
             onClick={onClose}
-            className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
+            className="text-muted-foreground hover:text-foreground size-11 flex items-center justify-center rounded-xl hover:bg-muted transition-colors cursor-pointer shrink-0"
             aria-label="Close dialog"
           >
             <X className="size-5" />
@@ -400,30 +400,31 @@ export function ContactRequestModal({
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border/80">
                 <Button
                   type="button"
                   variant="outline"
-                  size="sm"
+                  size="default"
                   onClick={onClose}
                   disabled={isSubmitting || createMutation.isPending}
+                  className="min-h-[44px] px-5 font-semibold text-xs sm:text-sm border-border hover:bg-muted"
                 >
                   {locale === "en" ? "Cancel" : "বাতিল"}
                 </Button>
                 <Button
                   type="submit"
-                  size="sm"
+                  size="default"
                   disabled={isSubmitting || createMutation.isPending || isCheckingActive}
-                  className="gap-2 shadow-xs"
+                  className="min-h-[44px] px-6 font-bold text-xs sm:text-sm gap-2 shadow-xs bg-primary hover:bg-primary-hover text-white"
                 >
                   {isSubmitting || createMutation.isPending ? (
                     <>
-                      <Loader2 className="size-3.5 animate-spin" />
+                      <Loader2 className="size-4 animate-spin" />
                       <span>{t.contactRequests.submitting}</span>
                     </>
                   ) : (
                     <>
-                      <Send className="size-3.5" />
+                      <Send className="size-4" />
                       <span>{t.contactRequests.submitBtn}</span>
                     </>
                   )}
