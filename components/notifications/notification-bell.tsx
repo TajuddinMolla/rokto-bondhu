@@ -107,7 +107,7 @@ export function NotificationBell({ locale }: NotificationBellProps) {
             ? `Notifications (${unreadCount} unread)`
             : `বিজ্ঞপ্তি (${unreadCount}টি নতুন)`
         }
-        className="relative size-9 p-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+        className="relative size-10 sm:size-9 p-0 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted touch-manipulation cursor-pointer"
       >
         <Bell className="size-4.5" aria-hidden="true" />
         {badgeText && (

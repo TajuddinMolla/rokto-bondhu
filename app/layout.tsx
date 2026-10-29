@@ -5,6 +5,7 @@ import "./globals.css";
 import { constructMetadata } from "@/lib/seo/metadata";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import { SkipLink } from "@/components/layout/skip-link";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
@@ -36,15 +37,19 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <Header />
 
             {/* Stable target ID for skip link without creating nested <main> tags */}
+            {/* pb-24 ensures mobile floating dock never overlaps page content */}
             <div
               id="main-content"
-              className="flex-1 flex flex-col focus:outline-none"
+              className="flex-1 flex flex-col focus:outline-none pb-24 md:pb-0"
               tabIndex={-1}
             >
               {children}
             </div>
 
             <Footer />
+
+            {/* Mobile bottom navigation bar (hidden on md+ viewports) */}
+            <BottomNav />
           </AuthProvider>
         </QueryProvider>
       </body>

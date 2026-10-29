@@ -33,22 +33,24 @@ export function LanguageSwitcher({
     return (
       <div
         className={cn(
-          "flex items-center justify-between p-3 rounded-lg border border-border bg-surface",
+          "flex items-center justify-between p-3.5 rounded-2xl border border-border bg-surface shadow-2xs",
           className
         )}
       >
-        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <Languages className="size-4 text-primary" aria-hidden="true" />
+        <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <div className="flex size-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Languages className="size-4" aria-hidden="true" />
+          </div>
           <span>{t.languageSwitcher.label}</span>
         </div>
-        <div className="flex items-center gap-1 bg-muted p-0.5 rounded-md text-xs font-medium">
+        <div className="flex items-center gap-1 bg-muted p-1 rounded-xl text-xs font-semibold">
           <Link
             href={getLocalizedPath(pathname, "bn")}
             aria-current={currentLocale === "bn" ? "true" : undefined}
             className={cn(
-              "px-2.5 py-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "px-3 py-1.5 rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation",
               currentLocale === "bn"
-                ? "bg-surface text-foreground font-semibold shadow-xs"
+                ? "bg-surface text-foreground font-bold shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -58,9 +60,9 @@ export function LanguageSwitcher({
             href={getLocalizedPath(pathname, "en")}
             aria-current={currentLocale === "en" ? "true" : undefined}
             className={cn(
-              "px-2.5 py-1 rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "px-3 py-1.5 rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring touch-manipulation",
               currentLocale === "en"
-                ? "bg-surface text-foreground font-semibold shadow-xs"
+                ? "bg-surface text-foreground font-bold shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -80,7 +82,7 @@ export function LanguageSwitcher({
       <Link
         href={targetHref}
         aria-label={`${t.languageSwitcher.label}: ${targetLocale === "bn" ? "বাংলা" : "English"}`}
-        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border border-border bg-surface hover:bg-muted text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background shadow-xs select-none"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-border bg-surface hover:bg-muted text-foreground transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background shadow-2xs select-none touch-manipulation cursor-pointer"
       >
         <Languages className="size-3.5 text-primary" aria-hidden="true" />
         <span>{targetLocale === "bn" ? "বাংলা" : "English"}</span>
