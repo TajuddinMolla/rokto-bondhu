@@ -1,9 +1,8 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, RotateCcw, AlertCircle, AlertTriangle, ArrowRight, Droplet, MapPin } from "lucide-react";
+import { Search, RotateCcw, AlertCircle, ArrowRight, Droplet, MapPin } from "lucide-react";
 
 import { BLOOD_GROUPS, type BloodGroup } from "@/constants/blood-groups";
 import {
@@ -16,7 +15,7 @@ import type { Locale } from "@/i18n/config";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { EmergencyBanner } from "@/components/shared/emergency-banner";
 
 interface DonorSearchPanelProps {
   locale: Locale;
@@ -120,53 +119,14 @@ export function DonorSearchPanel({
     router.push(destination);
   };
 
-  const prefix = locale === "en" ? "/en" : "";
-  const requestCreateHref = `${prefix}/blood-request/create`;
-
   return (
     <section
       id="search-panel"
       aria-labelledby="search-heading"
       className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 sm:-mt-12 relative z-20 space-y-4"
     >
-      {/* Emergency Requisition Top Notice */}
-      <div className="rounded-2xl border border-emergency-border bg-gradient-to-r from-emergency-subtle via-surface to-emergency-subtle/30 p-4 sm:p-5 shadow-sm transition-all duration-200">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emergency/10 text-emergency border border-emergency/20">
-              <AlertTriangle className="size-5" aria-hidden="true" />
-            </div>
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-foreground text-sm sm:text-base">
-                  {locale === "en"
-                    ? "Need Blood Urgently for a Patient?"
-                    : "রোগীর জন্য জরুরি রক্তের প্রয়োজন?"}
-                </span>
-                <Badge variant="emergency" className="text-[10px] font-bold py-0.5 px-2">
-                  {locale === "en" ? "Emergency" : "জরুরি"}
-                </Badge>
-              </div>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                {locale === "en"
-                  ? "Post a verified blood request to reach nearby donors and volunteers instantly."
-                  : "নিকটস্থ রক্তদাতা ও ভলান্টিয়ারদের তাৎক্ষণিক সাড়া পেতে রক্তের অনুরোধ পোস্ট করুন।"}
-              </p>
-            </div>
-          </div>
-
-          <Button
-            asChild
-            size="sm"
-            className="self-start sm:self-auto min-h-[44px] bg-emergency hover:bg-emergency/90 text-white font-semibold shadow-xs shrink-0"
-          >
-            <Link href={requestCreateHref}>
-              <span>{locale === "en" ? "Post Blood Request" : "রক্তের আবেদন করুন"}</span>
-              <ArrowRight className="size-4 ml-1.5" aria-hidden="true" />
-            </Link>
-          </Button>
-        </div>
-      </div>
+      {/* Modern Emergency Requisition Assistance Banner */}
+      <EmergencyBanner locale={locale} />
 
       {/* Main Donor Search Card */}
       <Card className="border border-border/80 shadow-xl bg-surface">
