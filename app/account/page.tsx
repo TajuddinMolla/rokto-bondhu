@@ -1,9 +1,9 @@
 import * as React from "react";
 import type { Metadata } from "next";
-import { User, ShieldCheck } from "lucide-react";
+import { User } from "lucide-react";
 
 import { constructMetadata } from "@/lib/seo/metadata";
-import { Badge } from "@/components/ui/badge";
+import { InnerPageHero } from "@/components/shared/inner-page-hero";
 import { AccountNavTabs } from "@/components/account/account-nav-tabs";
 import { ProfileManager } from "@/components/account/profile-manager";
 
@@ -15,46 +15,26 @@ export const metadata: Metadata = constructMetadata({
 
 export default function AccountPage() {
   return (
-    <main className="flex-1 bg-background py-6 sm:py-10 lg:py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
-        {/* Page Ambient Hero Header */}
-        <div className="relative overflow-hidden rounded-2xl border border-border/80 bg-gradient-to-br from-surface via-surface to-primary/5 p-6 sm:p-8 shadow-xs">
-          <div className="absolute -right-16 -top-16 size-64 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
-          <div className="relative z-10 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge
-                variant="outline"
-                className="border-primary/30 text-primary bg-primary/10 px-3 py-1 text-xs font-semibold rounded-full gap-1.5"
-              >
-                <User className="size-3.5" aria-hidden="true" />
-                <span>অ্যাকাউন্ট ড্যাশবোর্ড</span>
-              </Badge>
-              <Badge
-                variant="secondary"
-                className="text-[11px] font-medium text-muted-foreground bg-muted/60"
-              >
-                <ShieldCheck className="size-3 mr-1 text-emerald-600" />
-                নিরাপদ ও সুরক্ষিত
-              </Badge>
-            </div>
-
-            <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight">
-                আমার অ্যাকাউন্ট ও রক্তদাতা প্রোফাইল
-              </h1>
-              <p className="text-sm sm:text-base text-muted-foreground max-w-2xl leading-relaxed">
-                আপনার ব্যক্তিগত প্রোফাইল, রক্তদানের প্রাপ্যতা স্ট্যাটাস, জরুরি রক্তের অনুরোধ ও সরাসরি যোগাযোগের তথ্য এক স্থানে পরিচালনা করুন।
-              </p>
-            </div>
-          </div>
+    <main className="flex-1 bg-background">
+      {/* Unified Modern Hero & Context Header */}
+      <InnerPageHero
+        badge="অ্যাকাউন্ট ড্যাশবোর্ড"
+        badgeIcon={User}
+        title="আমার অ্যাকাউন্ট ও রক্তদাতা প্রোফাইল"
+        description="আপনার ব্যক্তিগত প্রোফাইল, রক্তদানের প্রাপ্যতা স্ট্যাটাস, জরুরি রক্তের অনুরোধ ও সরাসরি যোগাযোগের তথ্য পরিচালনা করুন।"
+      >
+        {/* Navigation Tabs */}
+        <div className="pt-2">
+          <AccountNavTabs locale="bn" />
         </div>
+      </InnerPageHero>
 
-        {/* Unified Account Navigation Tabs */}
-        <AccountNavTabs locale="bn" />
-
-        {/* Main Dashboard / Profile Content */}
-        <ProfileManager locale="bn" />
-      </div>
+      {/* Main Account Content */}
+      <section className="py-8 sm:py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <ProfileManager locale="bn" />
+        </div>
+      </section>
     </main>
   );
 }

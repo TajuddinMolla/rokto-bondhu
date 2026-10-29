@@ -9,8 +9,8 @@ import {
 
 import { constructMetadata } from "@/lib/seo/metadata";
 import { getTranslations } from "@/i18n/translations";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { InnerPageHero } from "@/components/shared/inner-page-hero";
 import { DonorSearchFilters } from "@/components/donors/donor-search-filters";
 import { DonorResultsState } from "@/components/donors/donor-results-state";
 import { EmergencyBanner } from "@/components/shared/emergency-banner";
@@ -37,64 +37,35 @@ export default function EnglishDonorsPage() {
   return (
     <main className="flex-1 bg-background">
       {/* Modern Hero & Search Context Header */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-primary/8 via-surface to-background pt-10 sm:pt-14 pb-8 sm:pb-12 border-b border-border/70">
-        {/* Soft ambient lighting */}
-        <div
-          className="pointer-events-none absolute -top-24 right-0 -z-10 size-96 rounded-full bg-primary/10 blur-3xl"
-          aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute bottom-0 left-0 -z-10 size-80 rounded-full bg-rose-500/5 blur-3xl"
-          aria-hidden="true"
-        />
+      <InnerPageHero
+        badge="24/7 Verified Voluntary Blood Donor Network"
+        badgePulse={true}
+        title={t.donorsPage.title}
+        description={t.donorsPage.description}
+      >
+        {/* Dedicated Modern Emergency Callout Banner */}
+        <EmergencyBanner locale="en" />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-          {/* Title & Headline */}
-          <div className="space-y-3.5 max-w-3xl">
-            <Badge
-              variant="subtle"
-              className="gap-2 px-3.5 py-1 text-xs font-bold rounded-full border border-primary-border shadow-2xs"
-            >
-              <span className="relative flex size-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-                <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
-              </span>
-              <span>24/7 Verified Voluntary Donor Registry</span>
-            </Badge>
-
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-foreground tracking-tight leading-[1.15]">
-              {t.donorsPage.title}
-            </h1>
-
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl">
-              {t.donorsPage.description}
-            </p>
+        {/* Platform Trust & Safety Guarantees Bar */}
+        <div className="pt-2 flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
+            <span>Maximum Privacy for Mobile Numbers</span>
           </div>
-
-          {/* Dedicated Modern Emergency Callout Banner */}
-          <EmergencyBanner locale="en" />
-
-          {/* Platform Trust & Safety Guarantees Bar */}
-          <div className="pt-2 flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
-              <span>Full Phone & Privacy Protection</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Heart className="size-4 text-primary shrink-0" aria-hidden="true" />
-              <span>100% Free & Voluntary Mission</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="size-4 text-primary shrink-0" aria-hidden="true" />
-              <span>Nationwide 64-District Network</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Droplet className="size-4 text-primary shrink-0" aria-hidden="true" />
-              <span>All 8 Blood Groups</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <Heart className="size-4 text-primary shrink-0" aria-hidden="true" />
+            <span>100% Free Non-commercial Service</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin className="size-4 text-primary shrink-0" aria-hidden="true" />
+            <span>Connected Across 64 Districts</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Droplet className="size-4 text-primary shrink-0" aria-hidden="true" />
+            <span>Donors for All 8 Blood Groups</span>
           </div>
         </div>
-      </section>
+      </InnerPageHero>
 
       {/* Directory Grid Section */}
       <section className="py-8 sm:py-12">
@@ -108,14 +79,14 @@ export default function EnglishDonorsPage() {
             </aside>
 
             {/* Results State Column */}
-            <div
+            <section
               aria-label={t.donorsPage.results.title}
               className="lg:col-span-8"
             >
               <React.Suspense fallback={<LoadingSkeleton />}>
                 <DonorResultsState locale="en" />
               </React.Suspense>
-            </div>
+            </section>
           </div>
         </div>
       </section>
