@@ -36,14 +36,14 @@ export function EmergencyBanner({ locale, className }: EmergencyBannerProps) {
         aria-hidden="true"
       />
 
-      <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
+      <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
         {/* Left Side: Pulse Glyph & Context */}
-        <div className="flex items-start sm:items-center gap-3.5 sm:gap-4 min-w-0">
-          <div className="flex size-11 sm:size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-primary to-rose-700 text-white shadow-sm ring-4 ring-primary/10">
+        <div className="flex items-start gap-3.5 sm:gap-4 min-w-0">
+          <div className="flex size-11 sm:size-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-primary to-rose-700 text-white shadow-sm ring-4 ring-primary/10 mt-0.5">
             <HeartPulse className="size-6 animate-pulse" aria-hidden="true" />
           </div>
 
-          <div className="space-y-1 min-w-0">
+          <div className="space-y-1.5 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 shadow-2xs">
                 <span className="relative flex size-2">
@@ -71,11 +71,11 @@ export function EmergencyBanner({ locale, className }: EmergencyBannerProps) {
         </div>
 
         {/* Right Side: CTA Button */}
-        <div className="shrink-0 self-start sm:self-auto w-full sm:w-auto pt-1 sm:pt-0">
+        <div className="shrink-0 self-start md:self-auto w-full md:w-auto pt-1 md:pt-0">
           <Button
             asChild
             size="default"
-            className="w-full sm:w-auto min-h-[46px] px-6 rounded-xl font-black text-sm shadow-sm bg-gradient-to-r from-primary to-rose-700 hover:from-primary-hover hover:to-rose-800 text-white gap-2 active:scale-95 transition-all"
+            className="w-full md:w-auto min-h-[46px] px-6 rounded-xl font-black text-sm shadow-sm bg-gradient-to-r from-primary to-rose-700 hover:from-primary-hover hover:to-rose-800 text-white gap-2 active:scale-95 transition-all"
           >
             <Link href={requestCreateHref}>
               <span>{locale === "en" ? "Post Blood Request" : "রক্তের আবেদন করুন"}</span>

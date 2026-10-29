@@ -328,6 +328,30 @@
       "title": "Emergency Medical Alert",
       "desc": "If the patient is in critical or life-threatening condition, immediately contact National Emergency Service (999) or the nearest hospital blood bank directly."
     },
+    "steps": {
+      "stepOf": "Step {current} of {total}",
+      "nextButton": "Next Step",
+      "prevButton": "Previous Step",
+      "step1": {
+        "title": "Blood Need",
+        "shortTitle": "Need",
+        "description": "Blood group, units needed, and urgency level"
+      },
+      "step2": {
+        "title": "Hospital & Location",
+        "shortTitle": "Location",
+        "description": "Hospital address and transfusion location"
+      },
+      "step3": {
+        "title": "Contact & Confirm",
+        "shortTitle": "Confirm",
+        "description": "Attendant contact info and final verification"
+      },
+      "summary": {
+        "title": "Requisition Summary",
+        "reviewNotice": "Carefully review all information before broadcasting to donors."
+      }
+    },
     "form": {
       "patientInfoTitle": "Patient & Contact Information",
       "patientInfoSubtitle": "Donors will use this contact number to coordinate their arrival at the hospital",
