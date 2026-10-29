@@ -168,7 +168,14 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
     return (
       <DialogPortal>
         <DialogOverlay />
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto pointer-events-none">
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setOpen(false);
+            }
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-200"
+        >
           <div
             ref={(node) => {
               contentRef.current = node;
@@ -180,8 +187,9 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
             aria-labelledby={titleId}
             aria-describedby={descriptionId}
             tabIndex={-1}
+            onClick={(e) => e.stopPropagation()}
             className={cn(
-              "relative w-full max-w-lg pointer-events-auto rounded-2xl border border-border bg-surface p-6 sm:p-7 text-foreground shadow-2xl transition-all duration-200 animate-in fade-in zoom-in-95 focus:outline-none my-8",
+              "relative w-full max-w-lg rounded-3xl border border-border/80 bg-surface p-6 sm:p-8 text-foreground shadow-2xl transition-all duration-200 animate-in fade-in zoom-in-95 focus:outline-none my-8",
               className
             )}
             {...props}
@@ -192,10 +200,10 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="absolute right-4 top-4 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer touch-manipulation"
+                className="absolute right-4 top-4 rounded-xl size-11 flex items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer touch-manipulation z-10"
                 aria-label="Close dialog"
               >
-                <X className="size-4" aria-hidden="true" />
+                <X className="size-5" aria-hidden="true" />
               </button>
             )}
           </div>
@@ -211,11 +219,28 @@ const DialogHeader = ({
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
-    className={cn("flex flex-col space-y-1.5 text-left pb-4 border-b border-border/80", className)}
+    className={cn(
+      "flex flex-col space-y-1.5 text-left pb-4 border-b border-border/80 pr-10",
+      className
+    )}
     {...props}
   />
 );
 DialogHeader.displayName = "DialogHeader";
+
+const DialogBody = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn(
+      "space-y-4 py-4 text-sm text-foreground overflow-y-auto max-h-[72vh]",
+      className
+    )}
+    {...props}
+  />
+);
+DialogBody.displayName = "DialogBody";
 
 const DialogFooter = ({
   className,
@@ -223,7 +248,7 @@ const DialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4 border-t border-border/80 gap-2 sm:gap-0",
+      "flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 pt-4 border-t border-border/80",
       className
     )}
     {...props}
@@ -240,7 +265,10 @@ const DialogTitle = React.forwardRef<
     <h2
       ref={ref}
       id={titleId}
-      className={cn("text-lg sm:text-xl font-bold tracking-tight text-foreground leading-snug", className)}
+      className={cn(
+        "text-lg sm:text-xl font-black tracking-tight text-foreground leading-snug",
+        className
+      )}
       {...props}
     />
   );
@@ -256,7 +284,10 @@ const DialogDescription = React.forwardRef<
     <p
       ref={ref}
       id={descriptionId}
-      className={cn("text-xs sm:text-sm text-muted-foreground leading-relaxed", className)}
+      className={cn(
+        "text-xs sm:text-sm text-muted-foreground leading-relaxed",
+        className
+      )}
       {...props}
     />
   );
@@ -293,6 +324,48 @@ const DialogClose = React.forwardRef<
 });
 DialogClose.displayName = "DialogClose";
 
+interface ModalProps {
+  open: boolean;
+  onClose: () => void;
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+  className?: string;
+  hideCloseButton?: boolean;
+}
+
+function Modal({
+  open,
+  onClose,
+  title,
+  description,
+  icon,
+  children,
+  footer,
+  className,
+  hideCloseButton = false,
+}: ModalProps) {
+  return (
+    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+      <DialogContent className={className} hideCloseButton={hideCloseButton}>
+        {(title || description || icon) && (
+          <DialogHeader>
+            <div className="flex items-center gap-2.5">
+              {icon}
+              {title && <DialogTitle>{title}</DialogTitle>}
+            </div>
+            {description && <DialogDescription>{description}</DialogDescription>}
+          </DialogHeader>
+        )}
+        <DialogBody>{children}</DialogBody>
+        {footer && <DialogFooter>{footer}</DialogFooter>}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export {
   Dialog,
   DialogTrigger,
@@ -300,9 +373,11 @@ export {
   DialogOverlay,
   DialogContent,
   DialogHeader,
+  DialogBody,
   DialogFooter,
   DialogTitle,
   DialogDescription,
   DialogClose,
+  Modal,
 };
 

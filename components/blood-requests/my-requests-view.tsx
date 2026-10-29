@@ -44,7 +44,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogBody,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { FormField } from "@/components/forms/form-field";
 
@@ -276,108 +285,123 @@ export function MyRequestsView({ locale }: MyRequestsViewProps) {
       )}
 
       {/* Cancellation Confirmation Dialog */}
-      {cancellingRequest ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in duration-150">
-          <Card className="w-full max-w-md border border-border bg-surface shadow-xl space-y-4 p-6">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-full bg-destructive/10 text-destructive shrink-0">
-                <AlertCircle className="size-6" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-foreground">
-                  {locale === "en" ? "Cancel Blood Request?" : "রক্তের অনুরোধ বাতিল করবেন?"}
-                </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
+      <Dialog
+        open={Boolean(cancellingRequest)}
+        onOpenChange={(open) => !open && setCancellingRequest(null)}
+      >
+        <DialogContent className="max-w-md">
+          {cancellingRequest && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-2.5 text-foreground">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-destructive/10 text-destructive shrink-0">
+                    <AlertCircle className="size-5" />
+                  </div>
+                  <DialogTitle>
+                    {locale === "en" ? "Cancel Blood Request?" : "রক্তের অনুরোধ বাতিল করবেন?"}
+                  </DialogTitle>
+                </div>
+                <DialogDescription>
                   {locale === "en"
                     ? "This request will be marked as cancelled. Blood donors will no longer be contacted for this patient requirement."
                     : "এই রক্তের অনুরোধটি বাতিল হিসেবে চিহ্নিত হবে। রক্তদাতারা এই রোগীর চাহিদার জন্য আর যোগাযোগ করবেন না।"}
-                </p>
-              </div>
-            </div>
+                </DialogDescription>
+              </DialogHeader>
 
-            <div className="p-3 rounded-lg bg-muted/40 border border-border text-xs space-y-1">
-              <span className="font-semibold text-foreground">
-                {cancellingRequest.bloodGroup} • {cancellingRequest.unitsNeeded}{" "}
-                {locale === "en" ? "Bags" : "ব্যাগ"}
-              </span>
-              <p className="text-muted-foreground">
-                {cancellingRequest.hospitalName || cancellingRequest.locationAddress || "—"}
-              </p>
-            </div>
+              <DialogBody>
+                <div className="p-3.5 rounded-2xl bg-muted/40 border border-border text-xs space-y-1">
+                  <span className="font-bold text-foreground">
+                    {cancellingRequest.bloodGroup} • {cancellingRequest.unitsNeeded}{" "}
+                    {locale === "en" ? "Bags" : "ব্যাগ"}
+                  </span>
+                  <p className="text-muted-foreground">
+                    {cancellingRequest.hospitalName || cancellingRequest.locationAddress || "—"}
+                  </p>
+                </div>
+              </DialogBody>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCancellingRequest(null)}
-                disabled={cancelMutation.isPending}
-              >
-                {locale === "en" ? "Keep Active" : "সক্রিয় রাখুন"}
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleConfirmCancel}
-                disabled={cancelMutation.isPending}
-              >
-                {cancelMutation.isPending ? (
-                  <Loader2 className="size-4 animate-spin mr-1.5" />
-                ) : (
-                  <XCircle className="size-4 mr-1.5" />
-                )}
-                <span>{locale === "en" ? "Confirm Cancel" : "হ্যাঁ, বাতিল করুন"}</span>
-              </Button>
-            </div>
-          </Card>
-        </div>
-      ) : null}
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => setCancellingRequest(null)}
+                  disabled={cancelMutation.isPending}
+                  className="min-h-[44px] rounded-xl px-5"
+                >
+                  {locale === "en" ? "Keep Active" : "সক্রিয় রাখুন"}
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="default"
+                  onClick={handleConfirmCancel}
+                  disabled={cancelMutation.isPending}
+                  className="min-h-[44px] rounded-xl px-5 gap-2"
+                >
+                  {cancelMutation.isPending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <XCircle className="size-4" />
+                  )}
+                  <span>{locale === "en" ? "Confirm Cancel" : "হ্যাঁ, বাতিল করুন"}</span>
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Fulfill Confirmation Dialog */}
-      {fulfillingRequest ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in duration-150">
-          <Card className="w-full max-w-md border border-border bg-surface shadow-xl space-y-4 p-6">
-            <div className="flex items-start gap-3">
-              <div className="p-2 rounded-full bg-emerald-500/10 text-emerald-600 shrink-0">
-                <CheckCircle2 className="size-6" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-foreground">
-                  {locale === "en" ? "Mark Request as Fulfilled?" : "অনুরোধটি সম্পন্ন হিসেবে চিহ্নিত করবেন?"}
-                </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
+      <Dialog
+        open={Boolean(fulfillingRequest)}
+        onOpenChange={(open) => !open && setFulfillingRequest(null)}
+      >
+        <DialogContent className="max-w-md">
+          {fulfillingRequest && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-2.5 text-foreground">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 shrink-0">
+                    <CheckCircle2 className="size-5" />
+                  </div>
+                  <DialogTitle>
+                    {locale === "en" ? "Mark Request as Fulfilled?" : "অনুরোধটি সম্পন্ন হিসেবে চিহ্নিত করবেন?"}
+                  </DialogTitle>
+                </div>
+                <DialogDescription>
                   {locale === "en"
                     ? "Confirm that the required blood has been arranged. This will celebrate donor efforts and update the status."
                     : "নিশ্চিত করুন যে প্রয়োজনীয় রক্ত সংগ্রহ সম্পন্ন হয়েছে। এটি অনুরোধটি সফলভাবে বন্ধ করবে।"}
-                </p>
-              </div>
-            </div>
+                </DialogDescription>
+              </DialogHeader>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setFulfillingRequest(null)}
-                disabled={fulfillMutation.isPending}
-              >
-                {locale === "en" ? "Cancel" : "বাতিল"}
-              </Button>
-              <Button
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={handleConfirmFulfill}
-                disabled={fulfillMutation.isPending}
-              >
-                {fulfillMutation.isPending ? (
-                  <Loader2 className="size-4 animate-spin mr-1.5" />
-                ) : (
-                  <CheckCircle2 className="size-4 mr-1.5" />
-                )}
-                <span>{locale === "en" ? "Mark as Fulfilled" : "সম্পন্ন করুন"}</span>
-              </Button>
-            </div>
-          </Card>
-        </div>
-      ) : null}
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => setFulfillingRequest(null)}
+                  disabled={fulfillMutation.isPending}
+                  className="min-h-[44px] rounded-xl px-5"
+                >
+                  {locale === "en" ? "Cancel" : "বাতিল"}
+                </Button>
+                <Button
+                  size="default"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white min-h-[44px] rounded-xl px-5 gap-2"
+                  onClick={handleConfirmFulfill}
+                  disabled={fulfillMutation.isPending}
+                >
+                  {fulfillMutation.isPending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="size-4" />
+                  )}
+                  <span>{locale === "en" ? "Mark as Fulfilled" : "সম্পন্ন করুন"}</span>
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Request Modal */}
       {editingRequest ? (
@@ -673,34 +697,24 @@ function EditRequestModal({ request, locale, onClose, onSuccess }: EditRequestMo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 overflow-y-auto animate-in fade-in duration-150">
-      <Card className="w-full max-w-2xl border border-border bg-surface shadow-2xl my-8 overflow-hidden">
-        <CardHeader className="border-b border-border pb-4 flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-lg font-bold text-foreground">
-              {locale === "en" ? "Edit Blood Request" : "রক্তের অনুরোধ সম্পাদনা"}
-            </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground">
-              {locale === "en" ? "Update requisition details" : "অনুরোধের তথ্য সংশোধন করুন"}
-            </CardDescription>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground text-sm font-semibold cursor-pointer"
-          >
-            ✕
-          </button>
-        </CardHeader>
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {locale === "en" ? "Edit Blood Request" : "রক্তের অনুরোধ সম্পাদনা"}
+          </DialogTitle>
+          <DialogDescription>
+            {locale === "en" ? "Update requisition details" : "অনুরোধের তথ্য সংশোধন করুন"}
+          </DialogDescription>
+        </DialogHeader>
 
-        <CardContent className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
-          {errorMsg ? (
-            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs">
-              {errorMsg}
-            </div>
-          ) : null}
-
-          <form onSubmit={handleSubmit(onUpdateSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onUpdateSubmit)} className="space-y-4">
+          <DialogBody className="max-h-[65vh]">
+            {errorMsg ? (
+              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs">
+                {errorMsg}
+              </div>
+            ) : null}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Requester Name */}
               <FormField
@@ -867,22 +881,34 @@ function EditRequestModal({ request, locale, onClose, onSuccess }: EditRequestMo
               <Textarea id={`${formId}-additionalNotes`} {...register("additionalNotes")} />
             </FormField>
 
-            <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
-              <Button type="button" variant="outline" size="sm" onClick={onClose}>
-                {locale === "en" ? "Cancel" : "বাতিল"}
-              </Button>
-              <Button type="submit" size="sm" disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? (
-                  <Loader2 className="size-4 animate-spin mr-1.5" />
-                ) : (
-                  <CheckCircle2 className="size-4 mr-1.5" />
-                )}
-                <span>{locale === "en" ? "Save Changes" : "সংরক্ষণ করুন"}</span>
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          </DialogBody>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              size="default"
+              onClick={onClose}
+              className="min-h-[44px] rounded-xl px-5"
+            >
+              {locale === "en" ? "Cancel" : "বাতিল"}
+            </Button>
+            <Button
+              type="submit"
+              size="default"
+              disabled={updateMutation.isPending}
+              className="min-h-[44px] rounded-xl px-5 gap-2"
+            >
+              {updateMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="size-4" />
+              )}
+              <span>{locale === "en" ? "Save Changes" : "সংরক্ষণ করুন"}</span>
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

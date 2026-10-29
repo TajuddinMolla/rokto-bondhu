@@ -19,14 +19,16 @@ import {
   createResolveReportSchema,
   type ResolveReportFormData,
 } from "@/lib/validations/admin";
+import { Card } from "@/components/ui/card";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/card";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogBody,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
@@ -365,148 +367,149 @@ export function AdminReportsView({ locale }: AdminReportsViewProps) {
       )}
 
       {/* Resolution Dialog */}
-      {activeReport && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs animate-in fade-in"
-        >
-          <div className="w-full max-w-lg">
-            <Card className="border-border shadow-xl">
-              <form onSubmit={handleSubmit(onSubmitResolve)}>
-                <CardHeader className="space-y-2">
-                  <div className="flex items-center gap-2.5 text-foreground">
-                    <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <FileText className="size-5" />
-                    </div>
-                    <CardTitle className="text-lg sm:text-xl font-bold">
-                      {locale === "en"
-                        ? "Resolve Safety Report"
-                        : "অভিযোগ নিষ্পত্তি করুন"}
-                    </CardTitle>
+      <Dialog
+        open={Boolean(activeReport)}
+        onOpenChange={(open) => !open && setActiveReport(null)}
+      >
+        <DialogContent className="max-w-lg">
+          {activeReport && (
+            <form onSubmit={handleSubmit(onSubmitResolve)}>
+              <DialogHeader>
+                <div className="flex items-center gap-2.5 text-foreground">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+                    <FileText className="size-5" />
                   </div>
-                  <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                  <DialogTitle>
                     {locale === "en"
-                      ? "Record the administrative resolution and rationale. An audit entry will be generated automatically."
-                      : "প্রশাসনিক সিদ্ধান্ত ও কারণ লিপিবদ্ধ করুন। একটি অডিট রেকর্ড স্বয়ংক্রিয়ভাবে তৈরি হবে।"}
-                  </CardDescription>
+                      ? "Resolve Safety Report"
+                      : "অভিযোগ নিষ্পত্তি করুন"}
+                  </DialogTitle>
+                </div>
+                <DialogDescription>
+                  {locale === "en"
+                    ? "Record the administrative resolution and rationale. An audit entry will be generated automatically."
+                    : "প্রশাসনিক সিদ্ধান্ত ও কারণ লিপিবদ্ধ করুন। একটি অডিট রেকর্ড স্বয়ংক্রিয়ভাবে তৈরি হবে।"}
+                </DialogDescription>
 
-                  <div className="mt-2 p-2.5 rounded-md bg-muted/60 text-xs font-medium text-foreground space-y-1">
-                    <div>
-                      <span className="text-muted-foreground">
-                        {locale === "en" ? "Target: " : "বিষয়: "}
-                      </span>
-                      <span className="font-semibold">
-                        {activeReport.targetTitle || activeReport.targetId} (
-                        {activeReport.targetType})
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">
-                        {locale === "en" ? "Flag: " : "কারণ: "}
-                      </span>
-                      <span className="font-semibold text-destructive">
-                        {activeReport.reason}
-                      </span>
-                    </div>
-                    {activeReport.description && (
-                      <div className="text-muted-foreground pt-1 border-t border-border">
-                        &quot;{activeReport.description}&quot;
-                      </div>
-                    )}
+                <div className="mt-2 p-2.5 rounded-xl bg-muted/60 text-xs font-medium text-foreground space-y-1">
+                  <div>
+                    <span className="text-muted-foreground">
+                      {locale === "en" ? "Target: " : "বিষয়: "}
+                    </span>
+                    <span className="font-semibold">
+                      {activeReport.targetTitle || activeReport.targetId} (
+                      {activeReport.targetType})
+                    </span>
                   </div>
-                </CardHeader>
+                  <div>
+                    <span className="text-muted-foreground">
+                      {locale === "en" ? "Flag: " : "কারণ: "}
+                    </span>
+                    <span className="font-semibold text-destructive">
+                      {activeReport.reason}
+                    </span>
+                  </div>
+                  {activeReport.description && (
+                    <div className="text-muted-foreground pt-1 border-t border-border">
+                      &quot;{activeReport.description}&quot;
+                    </div>
+                  )}
+                </div>
+              </DialogHeader>
 
-                <CardContent className="space-y-4 pt-2">
-                  {/* Status Selection */}
-                  <FormField
+              <DialogBody>
+                {/* Status Selection */}
+                <FormField
+                  id="resolve-status"
+                  label={
+                    locale === "en"
+                      ? "Resolution Status"
+                      : "সমাধানের সিদ্ধান্ত"
+                  }
+                  error={errors.status?.message}
+                  required
+                >
+                  <Select
                     id="resolve-status"
-                    label={
-                      locale === "en"
-                        ? "Resolution Status"
-                        : "সমাধানের সিদ্ধান্ত"
-                    }
-                    error={errors.status?.message}
-                    required
+                    {...register("status")}
+                    className="text-xs"
                   >
-                    <Select
-                      id="resolve-status"
-                      {...register("status")}
-                      className="text-xs"
-                    >
-                      <option value="RESOLVED">
-                        {locale === "en"
-                          ? "Mark as Resolved (Action Taken / Handled)"
-                          : "মীমাংসিত হিসেবে চিহ্নিত করুন (পদক্ষেপ গৃহীত)"}
-                      </option>
-                      <option value="DISMISSED">
-                        {locale === "en"
-                          ? "Dismiss Report (Invalid / False Positive)"
-                          : "অভিযোগ বাতিল করুন (ভিত্তিহীন / অনিচ্ছাকৃত ভুল)"}
-                      </option>
-                    </Select>
-                  </FormField>
+                    <option value="RESOLVED">
+                      {locale === "en"
+                        ? "Mark as Resolved (Action Taken / Handled)"
+                        : "মীমাংসিত হিসেবে চিহ্নিত করুন (পদক্ষেপ গৃহীত)"}
+                    </option>
+                    <option value="DISMISSED">
+                      {locale === "en"
+                        ? "Dismiss Report (Invalid / False Positive)"
+                        : "অভিযোগ বাতিল করুন (ভিত্তিহীন / অনিচ্ছাকৃত ভুল)"}
+                    </option>
+                  </Select>
+                </FormField>
 
-                  {/* Resolution Notes */}
-                  <FormField
+                {/* Resolution Notes */}
+                <FormField
+                  id="resolution-notes"
+                  label={
+                    locale === "en"
+                      ? "Resolution Notes"
+                      : "নিষ্পত্তির বিবরণ (বাধ্যতামূলক)"
+                  }
+                  error={errors.resolutionNotes?.message}
+                  required
+                  helperText={
+                    locale === "en"
+                      ? "Detail what action was taken or why this report was dismissed."
+                      : "কী পদক্ষেপ নেওয়া হয়েছে বা কেন বাতিল করা হলো তা বিস্তারিত লিখুন।"
+                  }
+                >
+                  <Textarea
                     id="resolution-notes"
-                    label={
+                    placeholder={
                       locale === "en"
-                        ? "Resolution Notes"
-                        : "নিষ্পত্তির বিবরণ (বাধ্যতামূলক)"
+                        ? "Explain resolution details..."
+                        : "নিষ্পত্তির বিস্তারিত তথ্য লিখুন..."
                     }
-                    error={errors.resolutionNotes?.message}
-                    required
-                    helperText={
-                      locale === "en"
-                        ? "Detail what action was taken or why this report was dismissed."
-                        : "কী পদক্ষেপ নেওয়া হয়েছে বা কেন বাতিল করা হলো তা বিস্তারিত লিখুন।"
-                    }
-                  >
-                    <Textarea
-                      id="resolution-notes"
-                      placeholder={
-                        locale === "en"
-                          ? "Explain resolution details..."
-                          : "নিষ্পত্তির বিস্তারিত তথ্য লিখুন..."
-                      }
-                      rows={3}
-                      className="resize-none"
-                      {...register("resolutionNotes")}
-                    />
-                  </FormField>
-                </CardContent>
+                    rows={3}
+                    className="resize-none"
+                    {...register("resolutionNotes")}
+                  />
+                </FormField>
+              </DialogBody>
 
-                <CardFooter className="flex justify-end gap-2.5 border-t border-border pt-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setActiveReport(null)}
-                    disabled={resolveReport.isPending}
-                  >
-                    {locale === "en" ? "Cancel" : "বাতিল"}
-                  </Button>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="default"
+                  onClick={() => setActiveReport(null)}
+                  disabled={resolveReport.isPending}
+                  className="min-h-[44px] rounded-xl px-5"
+                >
+                  {locale === "en" ? "Cancel" : "বাতিল"}
+                </Button>
 
-                  <Button
-                    type="submit"
-                    variant="default"
-                    size="sm"
-                    disabled={resolveReport.isPending}
-                  >
-                    {resolveReport.isPending && (
-                      <Loader2 className="size-3.5 mr-1.5 animate-spin" />
-                    )}
+                <Button
+                  type="submit"
+                  variant="default"
+                  size="default"
+                  disabled={resolveReport.isPending}
+                  className="min-h-[44px] rounded-xl px-5 gap-2"
+                >
+                  {resolveReport.isPending && (
+                    <Loader2 className="size-4 animate-spin" />
+                  )}
+                  <span>
                     {locale === "en"
                       ? "Confirm Resolution"
                       : "নিষ্পত্তি সম্পন্ন করুন"}
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          </div>
-        </div>
-      )}
+                  </span>
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

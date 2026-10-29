@@ -1,12 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@/lib/validations/zod-resolver";
 import {
-  X,
   Send,
   Loader2,
   CheckCircle2,
@@ -29,7 +27,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogBody,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { FormField } from "@/components/forms/form-field";
 import { getTranslations } from "@/i18n/translations";
@@ -133,32 +139,6 @@ export function ContactRequestModal({
     }
   };
 
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Lock body scroll while modal is open
-  React.useEffect(() => {
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, []);
-
-  // Handle escape key
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
   const donorLocation = formatLocation(
     {
       divisionId: donor.divisionId,
@@ -168,53 +148,23 @@ export function ContactRequestModal({
     locale
   );
 
-  if (!mounted || typeof document === "undefined") {
-    return null;
-  }
+  return (
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{t.contactRequests.modalTitle}</DialogTitle>
+          <DialogDescription>{t.contactRequests.modalDesc}</DialogDescription>
+        </DialogHeader>
 
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-200"
-    >
-      <Card
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg border border-border/80 bg-surface shadow-2xl my-8 overflow-hidden rounded-2xl"
-      >
-        <CardHeader className="border-b border-border/80 pb-4 flex flex-row items-start justify-between gap-4">
-          <div>
-            <CardTitle className="text-lg font-black text-foreground">
-              {t.contactRequests.modalTitle}
-            </CardTitle>
-            <CardDescription className="text-xs text-muted-foreground mt-1">
-              {t.contactRequests.modalDesc}
-            </CardDescription>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground size-11 flex items-center justify-center rounded-xl hover:bg-muted transition-colors cursor-pointer shrink-0"
-            aria-label="Close dialog"
-          >
-            <X className="size-5" />
-          </button>
-        </CardHeader>
-
-        <CardContent className="pt-5 space-y-5">
+        <DialogBody className="space-y-5">
           {/* Recipient Donor Header Chip */}
-          <div className="flex items-center justify-between p-3 rounded-xl border border-primary/20 bg-primary/5 text-xs">
+          <div className="flex items-center justify-between p-3.5 rounded-2xl border border-primary/20 bg-primary/5 text-xs">
             <div className="flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-black text-sm select-none">
+              <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black text-sm select-none shadow-xs">
                 {donor.bloodGroup}
               </div>
               <div>
-                <strong className="text-foreground block font-semibold text-sm">
+                <strong className="text-foreground block font-bold text-sm">
                   {donor.displayName}
                 </strong>
                 <span className="text-muted-foreground">{donorLocation}</span>
@@ -227,7 +177,7 @@ export function ContactRequestModal({
 
           {/* Unauthenticated Guard */}
           {status === "unauthenticated" ? (
-            <div className="py-6 px-4 text-center space-y-4 rounded-xl border border-dashed border-border bg-muted/10">
+            <div className="py-6 px-4 text-center space-y-4 rounded-2xl border border-dashed border-border bg-muted/10">
               <div className="inline-flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary mx-auto">
                 <LogIn className="size-6" />
               </div>
@@ -241,7 +191,7 @@ export function ContactRequestModal({
                     : "স্বেচ্ছাসেবী রক্তদাতাদের নিরাপত্তা রক্ষায় সরাসরি যোগাযোগের অনুরোধ পাঠাতে লগইন করা আবশ্যক।"}
                 </p>
               </div>
-              <Button asChild size="default" className="shadow-xs gap-2">
+              <Button asChild size="default" className="shadow-xs gap-2 min-h-[44px] rounded-xl px-6">
                 <Link href={loginHref}>
                   <LogIn className="size-4" />
                   <span>{locale === "en" ? "Sign In to Proceed" : "লগইন করুন"}</span>
@@ -250,7 +200,7 @@ export function ContactRequestModal({
             </div>
           ) : isSelf ? (
             /* Self-Request Prevention Guard */
-            <div className="py-6 px-4 text-center space-y-3 rounded-xl border border-destructive/20 bg-destructive/5 text-destructive text-xs sm:text-sm">
+            <div className="py-6 px-4 text-center space-y-3 rounded-2xl border border-destructive/20 bg-destructive/5 text-destructive text-xs sm:text-sm">
               <AlertCircle className="size-8 mx-auto text-destructive" />
               <div className="space-y-1">
                 <strong className="block font-semibold">
@@ -258,39 +208,41 @@ export function ContactRequestModal({
                 </strong>
                 <p className="text-muted-foreground text-xs">
                   {locale === "en"
-                    ? "You are logged in as this donor. You cannot send contact requests to your own profile."
-                    : "আপনি এই রক্তদাতার অ্যাকাউন্টে লগইন আছেন। আপনি নিজের কাছে অনুরোধ পাঠাতে পারবেন না।"}
+                    ? "You cannot send a blood contact request to your own profile."
+                    : "আপনি নিজের প্রোফাইলে রক্তের জন্য অনুরোধ পাঠাতে পারবেন না।"}
                 </p>
               </div>
-              <Button variant="outline" size="sm" onClick={onClose} className="mt-2 text-xs">
-                {locale === "en" ? "Close" : "বন্ধ করুন"}
-              </Button>
             </div>
           ) : hasActiveRequest ? (
-            /* Duplicate Active Request Guard */
-            <div className="py-6 px-4 text-center space-y-3 rounded-xl border border-amber-500/20 bg-amber-500/10 text-foreground text-xs sm:text-sm">
+            /* Active Duplicate Request Guard */
+            <div className="py-6 px-4 text-center space-y-4 rounded-2xl border border-amber-500/25 bg-amber-500/5 text-xs sm:text-sm">
               <Clock className="size-8 mx-auto text-amber-600 dark:text-amber-400" />
-              <div className="space-y-1">
-                <strong className="block font-semibold text-foreground">
+              <div className="space-y-1 max-w-sm mx-auto">
+                <strong className="block font-bold text-foreground">
                   {t.donorsPage.results.duplicateRequestWarning}
                 </strong>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   {locale === "en"
                     ? "You already have a pending or accepted request with this donor. Please check your request status."
                     : "এই রক্তদাতার কাছে আপনার একটি সক্রিয় অনুরোধ ইতিমধ্যেই রয়েছে। অনুগ্রহ করে অনুরোধের অবস্থা দেখুন।"}
                 </p>
               </div>
-              <Button asChild variant="default" size="sm" className="mt-2 gap-1.5 shadow-xs">
-                <Link href={outgoingRequestsHref}>
-                  <span>{t.donorsPage.results.viewOutgoingRequests}</span>
-                  <ExternalLink className="size-3.5" />
-                </Link>
-              </Button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-1">
+                <Button asChild size="sm" variant="default" className="min-h-[44px] rounded-xl px-4 gap-1.5 w-full sm:w-auto shadow-xs">
+                  <Link href={outgoingRequestsHref}>
+                    <span>{t.donorsPage.results.viewOutgoingRequests}</span>
+                    <ExternalLink className="size-3.5" />
+                  </Link>
+                </Button>
+                <Button size="sm" variant="ghost" onClick={onClose} className="min-h-[44px] rounded-xl px-4 w-full sm:w-auto">
+                  {locale === "en" ? "Close" : "বন্ধ করুন"}
+                </Button>
+              </div>
             </div>
           ) : isSuccess ? (
             /* Success State */
-            <div className="py-6 px-4 text-center space-y-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5">
-              <div className="inline-flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+            <div className="py-6 px-4 text-center space-y-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
+              <div className="inline-flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 mx-auto">
                 <CheckCircle2 className="size-6" />
               </div>
               <div className="space-y-1 max-w-sm mx-auto">
@@ -302,33 +254,28 @@ export function ContactRequestModal({
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
-                <Button asChild size="sm" className="w-full sm:w-auto shadow-xs gap-1.5">
+                <Button asChild size="default" className="min-h-[44px] rounded-xl px-6 w-full sm:w-auto gap-1.5">
                   <Link href={outgoingRequestsHref}>
                     <span>{t.contactRequests.trackAction}</span>
                     <ExternalLink className="size-3.5" />
                   </Link>
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={onClose}
-                  className="w-full sm:w-auto text-xs"
-                >
+                <Button size="default" variant="outline" onClick={onClose} className="min-h-[44px] rounded-xl px-6 w-full sm:w-auto">
                   {locale === "en" ? "Done" : "ঠিক আছে"}
                 </Button>
               </div>
             </div>
           ) : (
-            /* Request Submission Form */
+            /* Contact Form */
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {errorMessage && (
-                <div className="p-3 rounded-lg border border-destructive/20 bg-destructive/10 text-destructive text-xs flex items-center gap-2">
+                <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
                   <AlertCircle className="size-4 shrink-0" />
                   <span>{errorMessage}</span>
                 </div>
               )}
 
+              {/* Requester Details */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormField
                   id="req-name"
@@ -358,6 +305,7 @@ export function ContactRequestModal({
                 </FormField>
               </div>
 
+              {/* Patient & Hospital (Optional Context) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <FormField
                   id="req-patient"
@@ -439,14 +387,14 @@ export function ContactRequestModal({
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-border/80">
+              <DialogFooter className="pt-3">
                 <Button
                   type="button"
                   variant="outline"
                   size="default"
                   onClick={onClose}
                   disabled={isSubmitting || createMutation.isPending}
-                  className="min-h-[44px] px-5 font-semibold text-xs sm:text-sm border-border hover:bg-muted"
+                  className="min-h-[44px] px-5 font-semibold text-xs sm:text-sm border-border hover:bg-muted rounded-xl"
                 >
                   {locale === "en" ? "Cancel" : "বাতিল"}
                 </Button>
@@ -454,7 +402,7 @@ export function ContactRequestModal({
                   type="submit"
                   size="default"
                   disabled={isSubmitting || createMutation.isPending || isCheckingActive}
-                  className="min-h-[44px] px-6 font-bold text-xs sm:text-sm gap-2 shadow-xs bg-primary hover:bg-primary-hover text-white"
+                  className="min-h-[44px] px-6 font-bold text-xs sm:text-sm gap-2 shadow-xs bg-primary hover:bg-primary-hover text-white rounded-xl"
                 >
                   {isSubmitting || createMutation.isPending ? (
                     <>
@@ -468,12 +416,11 @@ export function ContactRequestModal({
                     </>
                   )}
                 </Button>
-              </div>
+              </DialogFooter>
             </form>
           )}
-        </CardContent>
-      </Card>
-    </div>,
-    document.body
+        </DialogBody>
+      </DialogContent>
+    </Dialog>
   );
 }

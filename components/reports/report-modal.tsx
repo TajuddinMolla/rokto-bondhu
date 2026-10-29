@@ -1,11 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@/lib/validations/zod-resolver";
-import { AlertTriangle, CheckCircle2, Loader2, Flag, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, Flag } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useSubmitReport } from "@/hooks/mutations/use-report-mutations";
@@ -15,13 +14,14 @@ import {
   REPORT_REASONS,
 } from "@/lib/validations/admin";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/card";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogBody,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -64,7 +64,7 @@ export function ReportModal({
 
   const reportSchema = React.useMemo(
     () => createReportSchema(locale),
-    [locale],
+    [locale]
   );
 
   const {
@@ -89,36 +89,6 @@ export function ReportModal({
     reset();
     onClose();
   }, [reset, onClose]);
-
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Lock body scroll while modal is active
-  React.useEffect(() => {
-    if (!isOpen) return;
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, [isOpen]);
-
-  // Handle escape key
-  React.useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        handleClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, handleClose]);
-
-  if (!isOpen || !mounted || typeof document === "undefined") return null;
 
   const isAuthenticated = status === "authenticated" && Boolean(user);
 
@@ -175,192 +145,173 @@ export function ReportModal({
     }
   };
 
-  return createPortal(
-    <div
-      role="dialog"
-      aria-modal="true"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          handleClose();
-        }
-      }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-xs animate-in fade-in duration-200"
-    >
-      <div
-        className="w-full max-w-lg max-h-[92vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Card className="border-border shadow-xl">
-          {/* Header */}
-          <CardHeader className="space-y-2 relative pr-12">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground size-11 flex items-center justify-center rounded-xl hover:bg-muted transition-colors cursor-pointer"
-              aria-label={locale === "en" ? "Close dialog" : "ডায়ালগ বন্ধ করুন"}
-            >
-              <X className="size-5" />
-            </button>
-            <div className="flex items-center gap-2.5 text-foreground">
-              <div className="flex size-9 items-center justify-center rounded-lg bg-destructive/10 text-destructive shrink-0">
-                <Flag className="size-5" />
-              </div>
-              <CardTitle className="text-lg sm:text-xl font-bold">
-                {locale === "en"
-                  ? "Report Safety Concern"
-                  : "নিরাপত্তা সংক্রান্ত অভিযোগ"}
-              </CardTitle>
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-lg">
+        {/* Header */}
+        <DialogHeader>
+          <div className="flex items-center gap-2.5 text-foreground">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-destructive/10 text-destructive shrink-0">
+              <Flag className="size-5" />
             </div>
-            <CardDescription className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            <DialogTitle>
               {locale === "en"
-                ? "Help us keep RoktoBondhu safe and accurate. Reports are confidential and reviewed by authorized moderators."
-                : "রক্তবন্ধুকে নিরাপদ ও নির্ভরযোগ্য রাখতে সহায়তা করুন। আপনার অভিযোগটি গোপন রাখা হবে এবং মডারেটর দ্বারা যাচাই করা হবে।"}
-            </CardDescription>
+                ? "Report Safety Concern"
+                : "নিরাপত্তা সংক্রান্ত অভিযোগ"}
+            </DialogTitle>
+          </div>
+          <DialogDescription>
+            {locale === "en"
+              ? "Help us keep RoktoBondhu safe and accurate. Reports are confidential and reviewed by authorized moderators."
+              : "রক্তবন্ধুকে নিরাপদ ও নির্ভরযোগ্য রাখতে সহায়তা করুন। আপনার অভিযোগটি গোপন রাখা হবে এবং মডারেটর দ্বারা যাচাই করা হবে।"}
+          </DialogDescription>
 
-            {targetTitle && (
-              <div className="p-2.5 rounded-md bg-muted/60 text-xs text-foreground">
-                <span className="text-muted-foreground">
-                  {locale === "en" ? "Target: " : "বিষয়: "}
-                </span>
-                <span className="font-semibold">{targetTitle}</span>
-              </div>
-            )}
-          </CardHeader>
+          {targetTitle && (
+            <div className="mt-2 p-2.5 rounded-xl bg-muted/60 text-xs text-foreground">
+              <span className="text-muted-foreground">
+                {locale === "en" ? "Target: " : "বিষয়: "}
+              </span>
+              <span className="font-semibold">{targetTitle}</span>
+            </div>
+          )}
+        </DialogHeader>
 
-          {/* Success State */}
-          {isSuccess ? (
-            <CardContent className="space-y-4 py-6 text-center">
-              <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
-                <CheckCircle2 className="size-6" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-foreground">
-                  {locale === "en"
-                    ? "Report Submitted"
-                    : "অভিযোগ সফলভাবে জমা হয়েছে"}
-                </h3>
-                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-                  {locale === "en"
-                    ? "Thank you for helping protect our community. A moderator will review this item shortly."
-                    : "আমাদের কমিউনিটি সুরক্ষিত রাখতে সহায়তার জন্য ধন্যবাদ। মডারেটর দল দ্রুত এটি পর্যালোচনা করবে।"}
-                </p>
-              </div>
+        {/* Success State */}
+        {isSuccess ? (
+          <div className="space-y-4 py-6 text-center">
+            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">
+              <CheckCircle2 className="size-6" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-bold text-foreground">
+                {locale === "en"
+                  ? "Report Submitted"
+                  : "অভিযোগ সফলভাবে জমা হয়েছে"}
+              </h3>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                {locale === "en"
+                  ? "Thank you for helping protect our community. A moderator will review this item shortly."
+                  : "আমাদের কমিউনিটি সুরক্ষিত রাখতে সহায়তার জন্য ধন্যবাদ। মডারেটর দল দ্রুত এটি পর্যালোচনা করবে।"}
+              </p>
+            </div>
+            <DialogFooter className="justify-center border-t-0 pt-2 sm:justify-center">
               <Button
-                size="sm"
+                size="default"
                 variant="outline"
                 onClick={handleClose}
-                className="mt-2"
+                className="min-h-[44px] px-6 rounded-xl"
               >
                 {locale === "en" ? "Close" : "বন্ধ করুন"}
               </Button>
-            </CardContent>
-          ) : !isAuthenticated ? (
-            /* Unauthenticated Prompt */
-            <CardContent className="space-y-4 py-4 text-center">
-              <p className="text-xs text-muted-foreground">
-                {locale === "en"
-                  ? "You must be signed in to submit a safety report."
-                  : "অভিযোগ জমা দেওয়ার জন্য আপনাকে লগইন করতে হবে।"}
-              </p>
-              <div className="flex justify-center gap-3">
-                <Button asChild size="sm" variant="default">
-                  <Link href={locale === "en" ? "/en/login" : "/login"}>
-                    {locale === "en" ? "Sign In" : "লগইন করুন"}
-                  </Link>
-                </Button>
-                <Button size="sm" variant="outline" onClick={handleClose}>
-                  {locale === "en" ? "Cancel" : "বাতিল"}
-                </Button>
-              </div>
-            </CardContent>
-          ) : (
-            /* Report Form */
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <CardContent className="space-y-4 pt-1">
-                {errorMessage && (
-                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-xs text-destructive flex items-center gap-2">
-                    <AlertTriangle className="size-4 shrink-0" />
-                    <span>{errorMessage}</span>
-                  </div>
-                )}
+            </DialogFooter>
+          </div>
+        ) : !isAuthenticated ? (
+          /* Unauthenticated Prompt */
+          <div className="space-y-4 py-4 text-center">
+            <p className="text-xs text-muted-foreground">
+              {locale === "en"
+                ? "You must be signed in to submit a safety report."
+                : "অভিযোগ জমা দেওয়ার জন্য আপনাকে লগইন করতে হবে।"}
+            </p>
+            <DialogFooter className="justify-center border-t-0 pt-2 sm:justify-center gap-3">
+              <Button asChild size="default" variant="default" className="min-h-[44px] rounded-xl px-6">
+                <Link href={locale === "en" ? "/en/login" : "/login"}>
+                  {locale === "en" ? "Sign In" : "লগইন করুন"}
+                </Link>
+              </Button>
+              <Button size="default" variant="outline" onClick={handleClose} className="min-h-[44px] rounded-xl px-6">
+                {locale === "en" ? "Cancel" : "বাতিল"}
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          /* Report Form */
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-1">
+            <DialogBody>
+              {errorMessage && (
+                <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive flex items-center gap-2">
+                  <AlertTriangle className="size-4 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
 
-                <FormField
+              <FormField
+                id="report-reason"
+                label={
+                  locale === "en" ? "Reason for Report" : "অভিযোগের কারণ"
+                }
+                error={errors.reason?.message}
+                required
+              >
+                <Select
                   id="report-reason"
-                  label={
-                    locale === "en" ? "Reason for Report" : "অভিযোগের কারণ"
-                  }
-                  error={errors.reason?.message}
-                  required
+                  {...register("reason")}
+                  className="text-xs"
                 >
-                  <Select
-                    id="report-reason"
-                    {...register("reason")}
-                    className="text-xs"
-                  >
-                    {REPORT_REASONS.map((reason) => (
-                      <option key={reason} value={reason}>
-                        {getReasonLabel(reason)}
-                      </option>
-                    ))}
-                  </Select>
-                </FormField>
+                  {REPORT_REASONS.map((reason) => (
+                    <option key={reason} value={reason}>
+                      {getReasonLabel(reason)}
+                    </option>
+                  ))}
+                </Select>
+              </FormField>
 
-                <FormField
+              <FormField
+                id="report-description"
+                label={
+                  locale === "en"
+                    ? "Additional Details (Optional)"
+                    : "অতিরিক্ত বিবরণ (ঐচ্ছিক)"
+                }
+                error={errors.description?.message}
+                helperText={
+                  locale === "en"
+                    ? "Describe why this profile or request is misleading, fraudulent, or harmful."
+                    : "কেন এই তথ্যটি বিভ্রান্তিকর, ভুয়া বা ক্ষতিকর তা বিস্তারিত জানাতে পারেন।"
+                }
+              >
+                <Textarea
                   id="report-description"
-                  label={
+                  placeholder={
                     locale === "en"
-                      ? "Additional Details (Optional)"
-                      : "অতিরিক্ত বিবরণ (ঐচ্ছিক)"
+                      ? "Provide any relevant context for the moderator..."
+                      : "মডারেটরের বিবেচনার জন্য প্রাসঙ্গিক তথ্য লিখুন..."
                   }
-                  error={errors.description?.message}
-                  helperText={
-                    locale === "en"
-                      ? "Describe why this profile or request is misleading, fraudulent, or harmful."
-                      : "কেন এই তথ্যটি বিভ্রান্তিকর, ভুয়া বা ক্ষতিকর তা বিস্তারিত জানাতে পারেন।"
-                  }
-                >
-                  <Textarea
-                    id="report-description"
-                    placeholder={
-                      locale === "en"
-                        ? "Provide any relevant context for the moderator..."
-                        : "মডারেটরের বিবেচনার জন্য প্রাসঙ্গিক তথ্য লিখুন..."
-                    }
-                    rows={3}
-                    className="resize-none"
-                    {...register("description")}
-                  />
-                </FormField>
-              </CardContent>
+                  rows={3}
+                  className="resize-none"
+                  {...register("description")}
+                />
+              </FormField>
+            </DialogBody>
 
-              <CardFooter className="flex justify-end gap-2.5 border-t border-border pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleClose}
-                  disabled={submitReportMutation.isPending}
-                >
-                  {locale === "en" ? "Cancel" : "বাতিল"}
-                </Button>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                size="default"
+                onClick={handleClose}
+                disabled={submitReportMutation.isPending}
+                className="min-h-[44px] rounded-xl px-5"
+              >
+                {locale === "en" ? "Cancel" : "বাতিল"}
+              </Button>
 
-                <Button
-                  type="submit"
-                  variant="destructive"
-                  size="sm"
-                  disabled={submitReportMutation.isPending}
-                >
-                  {submitReportMutation.isPending && (
-                    <Loader2 className="size-3.5 mr-1.5 animate-spin" />
-                  )}
-                  {locale === "en" ? "Submit Report" : "অভিযোগ জমা দিন"}
-                </Button>
-              </CardFooter>
-            </form>
-          )}
-        </Card>
-      </div>
-    </div>,
-    document.body
+              <Button
+                type="submit"
+                variant="destructive"
+                size="default"
+                disabled={submitReportMutation.isPending}
+                className="min-h-[44px] rounded-xl px-5 gap-2"
+              >
+                {submitReportMutation.isPending && (
+                  <Loader2 className="size-4 animate-spin" />
+                )}
+                <span>{locale === "en" ? "Submit Report" : "অভিযোগ জমা দিন"}</span>
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -37,6 +37,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogBody,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
 import type {
@@ -410,83 +419,85 @@ export function ContactRequestsView({ locale }: ContactRequestsViewProps) {
       )}
 
       {/* Explicit Second-Step Contact Disclosure Consent Modal */}
-      {consentingRequest && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200"
-        >
-          <Card className="w-full max-w-md border border-border bg-surface shadow-2xl p-6 space-y-5">
-            <div className="flex items-start gap-3">
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 shrink-0">
-                <Phone className="size-6" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-base font-bold text-foreground">
-                  {t.contactRequests.consentDialogTitle}
-                </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
+      <Dialog
+        open={Boolean(consentingRequest)}
+        onOpenChange={(open) => !open && setConsentingRequest(null)}
+      >
+        <DialogContent className="max-w-md">
+          {consentingRequest && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-2.5 text-foreground">
+                  <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 shrink-0">
+                    <Phone className="size-5" />
+                  </div>
+                  <DialogTitle>{t.contactRequests.consentDialogTitle}</DialogTitle>
+                </div>
+                <DialogDescription>
                   {t.contactRequests.consentDialogDesc}
-                </p>
-              </div>
-            </div>
+                </DialogDescription>
+              </DialogHeader>
 
-            <div className="p-3.5 rounded-xl bg-muted/30 border border-border space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">
-                  {locale === "en" ? "Authorized Requester:" : "অনুমোদিত রক্তপ্রার্থী:"}
-                </span>
-                <strong className="text-foreground">{consentingRequest.requesterName}</strong>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">
-                  {locale === "en" ? "Requester Contact:" : "রক্তপ্রার্থীর নম্বর:"}
-                </span>
-                <span className="font-mono text-foreground font-semibold">
-                  {consentingRequest.requesterPhone}
-                </span>
-              </div>
-              <div className="flex items-center justify-between border-t border-border/80 pt-2">
-                <span className="text-muted-foreground">
-                  {locale === "en" ? "Your Phone Number:" : "আপনার ফোন নম্বর:"}
-                </span>
-                <span className="font-mono text-primary font-bold">
-                  {donorProfile?.phoneNumber || userProfile?.phoneNumber || "—"}
-                </span>
-              </div>
-            </div>
+              <DialogBody className="space-y-4">
+                <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">
+                      {locale === "en" ? "Authorized Requester:" : "অনুমোদিত রক্তপ্রার্থী:"}
+                    </span>
+                    <strong className="text-foreground">{consentingRequest.requesterName}</strong>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">
+                      {locale === "en" ? "Requester Contact:" : "রক্তপ্রার্থীর নম্বর:"}
+                    </span>
+                    <span className="font-mono text-foreground font-semibold">
+                      {consentingRequest.requesterPhone}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between border-t border-border/80 pt-2.5">
+                    <span className="text-muted-foreground">
+                      {locale === "en" ? "Your Phone Number:" : "আপনার ফোন নম্বর:"}
+                    </span>
+                    <span className="font-mono text-primary font-bold">
+                      {donorProfile?.phoneNumber || userProfile?.phoneNumber || "—"}
+                    </span>
+                  </div>
+                </div>
+              </DialogBody>
 
-            <div className="flex items-center justify-end gap-2 pt-1 border-t border-border">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setConsentingRequest(null)}
-                disabled={consentMutation.isPending}
-              >
-                {locale === "en" ? "Cancel" : "বাতিল"}
-              </Button>
-              <Button
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs gap-1.5"
-                onClick={handleConfirmConsent}
-                disabled={consentMutation.isPending}
-              >
-                {consentMutation.isPending ? (
-                  <>
-                    <Loader2 className="size-3.5 animate-spin" />
-                    <span>{locale === "en" ? "Sharing..." : "শেয়ার হচ্ছে..."}</span>
-                  </>
-                ) : (
-                  <>
-                    <Check className="size-3.5" />
-                    <span>{t.contactRequests.consentConfirmBtn}</span>
-                  </>
-                )}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  size="default"
+                  onClick={() => setConsentingRequest(null)}
+                  disabled={consentMutation.isPending}
+                  className="min-h-[44px] rounded-xl px-5"
+                >
+                  {locale === "en" ? "Cancel" : "বাতিল"}
+                </Button>
+                <Button
+                  size="default"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs gap-1.5 min-h-[44px] rounded-xl px-5"
+                  onClick={handleConfirmConsent}
+                  disabled={consentMutation.isPending}
+                >
+                  {consentMutation.isPending ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      <span>{locale === "en" ? "Sharing..." : "শেয়ার হচ্ছে..."}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="size-4" />
+                      <span>{t.contactRequests.consentConfirmBtn}</span>
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
