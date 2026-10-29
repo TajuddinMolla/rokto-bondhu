@@ -1,55 +1,79 @@
 @import "tailwindcss";
 
 :root {
-  /* Platform Base Palette */
+  /* Platform Canvas & Surfaces */
   --background: #f8fafc;
-  --foreground: #0f172a;
+  --foreground: #090d16;
 
-  /* Surfaces & Cards */
   --surface: #ffffff;
-  --surface-foreground: #0f172a;
+  --surface-foreground: #090d16;
+  --surface-raised: #f1f5f9;
+  --surface-overlay: #ffffff;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #090d16;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover-foreground: #090d16;
 
-  /* Brand / Primary Red */
-  --primary: #b91c1c;
+  /* Primary Brand: Deep Authoritative Blood Crimson */
+  --primary: #be123c;
+  --primary-hover: #9f1239;
+  --primary-active: #881337;
+  --primary-subtle: #fff1f2;
+  --primary-border: #fecdd3;
   --primary-foreground: #ffffff;
 
-  /* Dark Navy / Secondary */
+  /* Secondary / Dark Slate */
   --secondary: #0f172a;
   --secondary-foreground: #ffffff;
 
-  /* Muted Text & Backgrounds */
+  /* Muted Text & Neutral Backgrounds */
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
 
-  /* Subtle Accent / Red Tint */
-  --accent: #fef2f2;
-  --accent-foreground: #b91c1c;
+  /* Subtle Accent / Rose Wash */
+  --accent: #fff1f2;
+  --accent-foreground: #be123c;
 
-  /* Destructive / Emergency Red */
+  /* Destructive / Alert Red */
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
 
-  /* Borders & Inputs */
+  /* Borders, Inputs, Focus Rings */
   --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #b91c1c;
+  --input: #cbd5e1;
+  --ring: #be123c;
+  --ring-offset: #ffffff;
 
-  /* Status Tokens */
-  --status-available: #16a34a;
+  /* Status Tokens: Available (Emerald) */
+  --status-available: #10b981;
   --status-available-foreground: #ffffff;
-  --status-emergency: #dc2626;
-  --status-emergency-foreground: #ffffff;
-  --status-pending: #d97706;
+  --status-available-bg: #ecfdf5;
+  --status-available-border: #a7f3d0;
+  --status-available-text: #047857;
+
+  /* Status Tokens: Urgent / Pending (Amber) */
+  --status-pending: #f59e0b;
   --status-pending-foreground: #ffffff;
+  --status-pending-bg: #fffbeb;
+  --status-pending-border: #fde68a;
+  --status-pending-text: #b45309;
+
+  /* Status Tokens: Emergency / Critical (Rose/Red) */
+  --status-emergency: #e11d48;
+  --status-emergency-foreground: #ffffff;
+  --status-emergency-bg: #fff1f2;
+  --status-emergency-border: #fecdd3;
+  --status-emergency-text: #be123c;
+
+  /* Status Tokens: Unavailable / Neutral (Slate) */
   --status-unavailable: #64748b;
   --status-unavailable-foreground: #ffffff;
+  --status-unavailable-bg: #f8fafc;
+  --status-unavailable-border: #e2e8f0;
+  --status-unavailable-text: #475569;
 
-  /* Border Radii */
-  --radius: 0.5rem;
+  /* Base Radii */
+  --radius: 0.625rem;
 }
 
 @theme inline {
@@ -57,12 +81,22 @@
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
   --color-surface-foreground: var(--surface-foreground);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-overlay: var(--surface-overlay);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+
+  /* Primary Brand */
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-primary-border: var(--primary-border);
   --color-primary-foreground: var(--primary-foreground);
+
+  /* Neutrals */
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -74,22 +108,40 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-ring-offset: var(--ring-offset);
 
   /* Status Colors */
   --color-status-available: var(--status-available);
   --color-status-available-foreground: var(--status-available-foreground);
+  --color-status-available-bg: var(--status-available-bg);
+  --color-status-available-border: var(--status-available-border);
+  --color-status-available-text: var(--status-available-text);
+
   --color-status-emergency: var(--status-emergency);
   --color-status-emergency-foreground: var(--status-emergency-foreground);
+  --color-status-emergency-bg: var(--status-emergency-bg);
+  --color-status-emergency-border: var(--status-emergency-border);
+  --color-status-emergency-text: var(--status-emergency-text);
+
   --color-status-pending: var(--status-pending);
   --color-status-pending-foreground: var(--status-pending-foreground);
+  --color-status-pending-bg: var(--status-pending-bg);
+  --color-status-pending-border: var(--status-pending-border);
+  --color-status-pending-text: var(--status-pending-text);
+
   --color-status-unavailable: var(--status-unavailable);
   --color-status-unavailable-foreground: var(--status-unavailable-foreground);
+  --color-status-unavailable-bg: var(--status-unavailable-bg);
+  --color-status-unavailable-border: var(--status-unavailable-border);
+  --color-status-unavailable-text: var(--status-unavailable-text);
 
   /* Radii */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 10px);
+  --radius-full: 9999px;
 
   /* Typography */
   --font-sans: var(--font-noto-sans-bengali), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -97,17 +149,23 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b0f17;
+    --background: #090d16;
     --foreground: #f8fafc;
 
-    --surface: #131c2e;
+    --surface: #111827;
     --surface-foreground: #f8fafc;
-    --card: #131c2e;
+    --surface-raised: #1f2937;
+    --surface-overlay: #111827;
+    --card: #111827;
     --card-foreground: #f8fafc;
-    --popover: #131c2e;
+    --popover: #111827;
     --popover-foreground: #f8fafc;
 
-    --primary: #dc2626;
+    --primary: #e11d48;
+    --primary-hover: #be123c;
+    --primary-active: #9f1239;
+    --primary-subtle: #4c05194d;
+    --primary-border: #881337;
     --primary-foreground: #ffffff;
 
     --secondary: #1e293b;
@@ -116,24 +174,40 @@
     --muted: #1e293b;
     --muted-foreground: #94a3b8;
 
-    --accent: #1e293b;
-    --accent-foreground: #f87171;
+    --accent: #2e101b;
+    --accent-foreground: #fb7185;
 
     --destructive: #ef4444;
     --destructive-foreground: #ffffff;
 
     --border: #1e293b;
-    --input: #1e293b;
-    --ring: #dc2626;
+    --input: #334155;
+    --ring: #e11d48;
+    --ring-offset: #090d16;
 
     --status-available: #22c55e;
     --status-available-foreground: #ffffff;
-    --status-emergency: #ef4444;
+    --status-available-bg: #064e3b4d;
+    --status-available-border: #065f46;
+    --status-available-text: #34d399;
+
+    --status-emergency: #f43f5e;
     --status-emergency-foreground: #ffffff;
-    --status-pending: #f59e0b;
+    --status-emergency-bg: #4c05194d;
+    --status-emergency-border: #881337;
+    --status-emergency-text: #fda4af;
+
+    --status-pending: #fbbf24;
     --status-pending-foreground: #ffffff;
+    --status-pending-bg: #451a034d;
+    --status-pending-border: #78350f;
+    --status-pending-text: #fcd34d;
+
     --status-unavailable: #94a3b8;
-    --status-unavailable-foreground: #0f172a;
+    --status-unavailable-foreground: #090d16;
+    --status-unavailable-bg: #1e293b66;
+    --status-unavailable-border: #334155;
+    --status-unavailable-text: #cbd5e1;
   }
 }
 
@@ -144,4 +218,23 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+
+/* Accessible conjuncts rendering for Bengali script */
+:lang(bn) {
+  font-feature-settings: "kern", "liga", "clig";
+  line-height: 1.65;
+}
+
+/* Accessibility: Honor reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
