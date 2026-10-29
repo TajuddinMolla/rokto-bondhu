@@ -264,8 +264,13 @@ export function Header() {
           )}
         </div>
 
-        {/* Mobile Navigation Trigger */}
-        <MobileNav />
+        {/* Mobile Navigation Trigger & Bell */}
+        <div className="flex md:hidden items-center gap-1.5">
+          {!loading && status === "authenticated" && user ? (
+            <NotificationBell locale={currentLocale} />
+          ) : null}
+          <MobileNav />
+        </div>
       </div>
     </header>
   );
