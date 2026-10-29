@@ -17,7 +17,7 @@ import {
   type QueryConstraint,
 } from "firebase/firestore";
 
-import { getFirebaseDb } from "@/lib/firebase/config";
+import { getFirebaseDb, getFirebaseAuth } from "@/lib/firebase/config";
 import type {
   AppNotification,
   NotificationType,
@@ -329,11 +329,20 @@ export async function dispatchNotificationSafely(input: {
   bloodRequestId?: string;
 }): Promise<void> {
   try {
+    const auth = getFirebaseAuth();
+    const currentUser = auth?.currentUser;
+    const token = currentUser ? await currentUser.getIdToken() : null;
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const res = await fetch("/api/notifications/dispatch", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify(input),
     });
 

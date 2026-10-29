@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Droplet, ArrowRight } from "lucide-react";
+import { Droplet, ArrowRight, ShieldAlert } from "lucide-react";
 
 import {
   BLOOD_GROUPS,
@@ -218,9 +218,20 @@ export function BloodGroupsSection({
               </div>
             </div>
 
-            {/* Scientific Notice */}
-            <div className="text-xs text-muted-foreground pt-2 text-center sm:text-left leading-normal">
-              * {t.home.bloodGroups.donorCountNotice}
+            {/* Authoritative Clinical Disclaimer */}
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 sm:p-5 text-left flex items-start gap-3 mt-4">
+              <ShieldAlert className="size-5 text-destructive shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="space-y-1">
+                <h4 className="text-xs sm:text-sm font-bold text-destructive">
+                  {t.home.bloodGroups.clinicalDisclaimerTitle}
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {t.home.bloodGroups.clinicalDisclaimerDesc}
+                </p>
+                <p className="text-[11px] text-muted-foreground/80 pt-1">
+                  * {t.home.bloodGroups.donorCountNotice}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>

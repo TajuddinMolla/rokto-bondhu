@@ -172,7 +172,7 @@ service cloud.firestore {
                         && resource.data.status == 'ACCEPTED'
                         && request.resource.data.status == 'COMPLETED'
                       )
-                    );
+                    ) || isAdmin();
 
       allow delete: if false;
     }
@@ -202,7 +202,7 @@ service cloud.firestore {
                       && request.resource.data.requesterId == resource.data.requesterId
                       && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
                       && (!('scope' in request.resource.data) || request.resource.data.scope in ['LOCAL', 'GLOBAL'])
-                      && (resource.data.status == 'open' && request.resource.data.status in ['open', 'fulfilled', 'cancelled'])
+                      && (resource.data.status == 'open' && request.resource.data.status in ['open', 'fulfilled', 'cancelled', 'expired'])
                     ) || isAdmin();
 
       allow delete: if false;

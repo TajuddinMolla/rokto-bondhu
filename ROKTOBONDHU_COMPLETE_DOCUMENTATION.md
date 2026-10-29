@@ -742,9 +742,8 @@ RoktoBondhu establishes **seven discrete user roles and security tiers**. Author
    - `lib/firebase/auth.ts` (`requestPasswordReset`)
 7. **Data Flow:** Client $\rightarrow$ Firebase Auth $\rightarrow$ Email delivery.
 8. **Authentication & Permissions:** Public.
-9. **Current Limitations:**
-   - **Confirmed Implementation Defect in Reset Password:** While `forgot-password-form.tsx` connects to Firebase, `components/auth/reset-password-form.tsx` uses local `useState` and simulates password reset via a `setTimeout` rather than calling Firebase `confirmPasswordReset(auth, oobCode, newPassword)`. It also does not extract the `oobCode` query parameter from the URL.
-10. **Status:** `PARTIALLY IMPLEMENTED` / `BROKEN` on `/reset-password` (Forgot password works; reset confirmation is simulated).
+9. **Current Limitations:** None. Full end-to-end flow handles action-code (`oobCode`) verification, password strength validation, confirm-password matching, and error states (expired/invalid action codes).
+10. **Status:** `IMPLEMENTED` (Verified in `components/auth/reset-password-form.tsx` and `lib/firebase/auth.ts`).
 
 ### 9.5 Account Dashboard & Profile Management
 
@@ -1878,40 +1877,30 @@ This matrix provides a comprehensive, rigorous inventory of every capability in 
 
 This section documents every concrete implementation defect, security vulnerability risk, and architectural limitation identified during comprehensive code inspection.
 
-### 26.1 Confirmed Defects & Broken Implementations
+### 26.1 Resolved Implementation Defects & Hardened Systems
 
-#### 1. Password Reset Confirmation (`/reset-password`) is Simulated
-- **Severity:** High
-- **Files Involved:** `components/auth/reset-password-form.tsx`
-- **Code Evidence:**
-  Lines 60-80 of `reset-password-form.tsx` execute:
-  ```ts
-  // Input is valid: simulate latency for demo
-  setIsSubmitting(true);
-  setTimeout(() => {
-    setIsSubmitting(false);
-    setIsSuccess(true);
-  }, 1200);
-  ```
-  The component never extracts the password reset action code (`oobCode`) from the URL query parameters and never invokes Firebase `confirmPasswordReset(auth, oobCode, newPassword)`.
-- **User Impact:** Users attempting to reset their password via email links believe their password was changed, but their actual Firebase Auth credentials remain unchanged, locking them out of their accounts.
-- **Rule Violation:** Violates project rule requiring React Hook Form (uses manual `useState` and local state).
+#### 1. Password Reset Confirmation (`/reset-password`) — RESOLVED
+- **Status:** Fully Resolved & Production-Ready.
+- **Files Involved:** `components/auth/reset-password-form.tsx`, `lib/firebase/auth.ts`, `lib/validations/auth.ts`, `lib/firebase/errors.ts`.
+- **Implementation:** Rebuilt with React Hook Form + Zod (`createResetPasswordSchema`). Validates action codes (`oobCode`) using Firebase `verifyPasswordResetCode()`, displays clear error states for expired/invalid links, and updates credentials securely with `confirmPasswordReset()`.
 
-#### 2. Server-Side Firestore Access Without Firebase Admin Credentials
-- **Severity:** High
-- **Files Involved:** `lib/firebase/server.ts`, `app/api/notifications/dispatch/route.ts`
-- **Code Evidence:**
-  `lib/firebase/server.ts` initializes Firestore on the server using the Web Client SDK:
-  ```ts
-  serverApp = getApps().find((a) => a.name === "server-app") || initializeApp(firebaseConfig, "server-app");
-  serverDb = getFirestore(serverApp);
-  ```
-  Because this client runs unauthenticated on the Next.js server, `firestore.rules` will enforce `isAuthenticated()` on `/donorContactRequests`, `/notifications`, and `/users`.
-- **User Impact:** When `/api/notifications/dispatch` attempts to read the contact request document or write the notification document, Firestore rejects the operation with `permission-denied` in production.
-- **Recommended Remedy:** Migrate `lib/firebase/server.ts` to use `firebase-admin` with a service account or Firebase Application Default Credentials (ADC).
+#### 2. Server-Side Firestore Access & Route Authentication — RESOLVED
+- **Status:** Fully Resolved & Production-Ready.
+- **Files Involved:** `lib/firebase/server.ts`, `app/api/notifications/dispatch/route.ts`, `lib/validations/notification-dispatch.ts`.
+- **Implementation:** Backed by Firebase Admin SDK (`firebase-admin`). The `/api/notifications/dispatch` route strictly verifies Firebase Admin ID Tokens (`Authorization: Bearer <idToken>`), validates caller ownership of blood requests and contact requests, uses Zod payload schemas, applies rate limiting, and protects donor privacy.
 
-#### 3. Phone Login Validated in Schema but Blocked at Submission
-- **Severity:** Medium
+#### 3. Public Blood Requests Feed Connected to Live Firestore — RESOLVED
+- **Status:** Fully Resolved & Production-Ready.
+- **Files Involved:** `app/blood-request/page.tsx`, `components/blood-requests/request-results-state.tsx`, `hooks/queries/use-blood-requests-feed.ts`, `services/blood-request.service.ts`, `firestore.indexes.json`.
+- **Implementation:** Connected to Firestore query with server-side `orderBy("createdAt", "desc")` and TanStack React Query (`useInfiniteQuery`). Seamlessly receives real-time updates via `onSnapshot` listener with cache synchronization, cursor pagination, and composite indexes.
+
+#### 4. Automated Request Expiration (TTL Cron) — RESOLVED
+- **Status:** Fully Resolved & Production-Ready.
+- **Files Involved:** `app/api/cron/expire-requests/route.ts`, `types/contact-request.ts`, `firestore.rules`, `vercel.json`.
+- **Implementation:** Automated background cron job transitions open blood requests older than 7 days to `expired` and pending contact requests older than 48 hours to `EXPIRED`. Operates via idempotent batch writes and creates audit notifications for requesters.
+
+#### 5. Phone Login Validated in Schema but Blocked at Submission
+- **Severity:** Medium (Informational backlog)
 - **Files Involved:** `lib/validations/auth.ts`, `components/auth/login-form.tsx`
 - **Code Evidence:**
   `createLoginSchema` in `lib/validations/auth.ts` explicitly allows Bangladeshi telephone numbers (`BD_PHONE_REGEX`). However, `login-form.tsx` checks:
@@ -1924,14 +1913,7 @@ This section documents every concrete implementation defect, security vulnerabil
     return;
   }
   ```
-- **User Impact:** Confusing user experience; the form passes client schema validation, but immediately errors out upon submission.
-
-#### 4. Public Blood Requests Feed Shows Informational Empty Notice Instead of Live Data
-- **Severity:** Medium
-- **Files Involved:** `app/blood-request/page.tsx`, `components/blood-requests/request-results-state.tsx`
-- **Code Evidence:**
-  While blood requisitions are successfully persisted in Firestore and listed in `/account/requests` and `/admin/requests`, `components/blood-requests/request-results-state.tsx` does not execute a Firestore query. It displays active filter pills paired with an educational empty notice card.
-- **User Impact:** Citizens browsing `/blood-request` cannot browse live emergency requisitions across Bangladesh from the main listing page.
+- **User Impact:** Phone login is reserved for a future SMS OTP gateway phase.
 
 ### 26.2 Security and Production Configuration Risks
 

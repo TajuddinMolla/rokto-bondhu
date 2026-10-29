@@ -30,6 +30,10 @@ export function getFirebaseErrorMessage(errorCode: string, locale: Locale = "bn"
       return errors.requiresRecentLogin;
     case "auth/not-configured":
       return errors.notConfigured;
+    case "auth/expired-action-code":
+      return (errors as Record<string, string>).expiredActionCode || errors.genericError;
+    case "auth/invalid-action-code":
+      return (errors as Record<string, string>).invalidActionCode || errors.genericError;
     default:
       return errors.genericError;
   }

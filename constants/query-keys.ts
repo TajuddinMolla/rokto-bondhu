@@ -21,6 +21,8 @@ export const queryKeys = {
     lists: () => [...queryKeys.bloodRequests.all, "list"] as const,
     list: (filters?: Record<string, unknown>) =>
       [...queryKeys.bloodRequests.lists(), filters ?? {}] as const,
+    feed: (filters?: Record<string, unknown>) =>
+      [...queryKeys.bloodRequests.all, "feed", filters ?? {}] as const,
     details: () => [...queryKeys.bloodRequests.all, "detail"] as const,
     detail: (id: string) => [...queryKeys.bloodRequests.details(), id] as const,
     my: (userId?: string) => [...queryKeys.bloodRequests.all, "my", userId ?? "me"] as const,

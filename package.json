@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "deploy:rules": "npx -y firebase-tools deploy --only firestore:rules",
+    "deploy:indexes": "npx -y firebase-tools deploy --only firestore:indexes",
+    "test": "node scripts/verify-production-readiness.mjs",
     "admin:set": "node scripts/set-admin.mjs"
   },
   "dependencies": {

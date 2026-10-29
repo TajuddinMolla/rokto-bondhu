@@ -3,18 +3,17 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { PlusCircle, X, ShieldAlert, HeartHandshake, Radio } from "lucide-react";
 import {
-  collection,
-  query,
-  where,
-  limit,
-  onSnapshot,
-  Timestamp,
-  type QueryConstraint,
-} from "firebase/firestore";
+  PlusCircle,
+  X,
+  ShieldAlert,
+  HeartHandshake,
+  Radio,
+  RefreshCw,
+  Loader2,
+} from "lucide-react";
 
-import { getFirebaseDb } from "@/lib/firebase/config";
+import { useBloodRequestsFeed } from "@/hooks/queries/use-blood-requests-feed";
 import { getDivisionById, getDistrictById, getUpazilaById } from "@/constants/locations";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,25 +21,9 @@ import { Card } from "@/components/ui/card";
 import { RequestCard } from "@/components/blood-requests/request-card";
 import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
-import type { BloodRequestSummary } from "@/types/request";
-import type { BloodGroup, RequestStatus, RequestUrgency } from "@/types/blood";
 
 interface RequestResultsStateProps {
   locale: Locale;
-}
-
-function timestampToIso(value: unknown): string {
-  if (!value) return new Date().toISOString();
-  if (value instanceof Timestamp) {
-    return value.toDate().toISOString();
-  }
-  if (typeof value === "string") {
-    return value;
-  }
-  if (value instanceof Date) {
-    return value.toISOString();
-  }
-  return new Date().toISOString();
 }
 
 export function RequestResultsState({ locale }: RequestResultsStateProps) {
@@ -59,9 +42,36 @@ export function RequestResultsState({ locale }: RequestResultsStateProps) {
   const district = districtId ? getDistrictById(districtId) : undefined;
   const upazila = upazilaId ? getUpazilaById(upazilaId) : undefined;
 
-  const [requests, setRequests] = React.useState<BloodRequestSummary[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [isLiveConnected, setIsLiveConnected] = React.useState(false);
+  const filters = React.useMemo(
+    () => ({
+      bloodGroup: bloodGroup || null,
+      divisionId: divisionId || null,
+      districtId: districtId || null,
+      upazilaId: upazilaId || null,
+      urgency: urgency || null,
+    }),
+    [bloodGroup, divisionId, districtId, upazilaId, urgency]
+  );
+
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
+    isLiveConnected,
+  } = useBloodRequestsFeed({
+    filters,
+    pageSize: 20,
+  });
+
+  const requests = React.useMemo(
+    () => data?.pages.flatMap((page) => page.requests) ?? [],
+    [data]
+  );
 
   // Active filter pills list
   const activeFilters = React.useMemo(() => {
@@ -105,74 +115,6 @@ export function RequestResultsState({ locale }: RequestResultsStateProps) {
 
     return list;
   }, [bloodGroup, division, district, upazila, urgency, locale, t]);
-
-  // Real-time Firestore subscription to open blood requests
-  React.useEffect(() => {
-    const db = getFirebaseDb();
-    if (!db) return;
-
-    const colRef = collection(db, "bloodRequests");
-    const constraints: QueryConstraint[] = [where("status", "==", "open")];
-
-    if (bloodGroup) {
-      constraints.push(where("bloodGroup", "==", bloodGroup));
-    }
-    if (districtId) {
-      constraints.push(where("districtId", "==", districtId));
-    }
-    if (divisionId && !districtId) {
-      constraints.push(where("divisionId", "==", divisionId));
-    }
-
-    constraints.push(limit(40));
-
-    const q = query(colRef, ...constraints);
-
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const items: BloodRequestSummary[] = [];
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-
-          // Client-side sub-filtering for upazila and urgency if needed
-          if (upazilaId && data.upazilaId !== upazilaId) return;
-          if (urgency && data.urgency !== urgency) return;
-
-          items.push({
-            id: docSnap.id,
-            bloodGroup: data.bloodGroup as BloodGroup,
-            unitsNeeded: Number(data.unitsNeeded || 1),
-            hospitalName: data.hospitalName || undefined,
-            divisionId: data.divisionId || "",
-            districtId: data.districtId || "",
-            upazilaId: data.upazilaId || "",
-            neededAt: data.neededAt || "",
-            urgency: (data.urgency || "urgent") as RequestUrgency,
-            status: (data.status || "open") as RequestStatus,
-            scope: data.scope || "LOCAL",
-            createdAt: timestampToIso(data.createdAt),
-          });
-        });
-
-        // Sort descending by creation date
-        items.sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-
-        setRequests(items);
-        setIsLoading(false);
-        setIsLiveConnected(true);
-      },
-      (err) => {
-        console.warn("[Realtime Blood Requests Listener Error]:", err);
-        setIsLoading(false);
-        setIsLiveConnected(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [bloodGroup, divisionId, districtId, upazilaId, urgency]);
 
   const removeFilter = (key: string) => {
     const nextParams = new URLSearchParams(searchParams.toString());
@@ -236,6 +178,20 @@ export function RequestResultsState({ locale }: RequestResultsStateProps) {
           <div className="h-28 rounded-xl border border-border bg-surface/50 animate-pulse" />
           <div className="h-28 rounded-xl border border-border bg-surface/50 animate-pulse" />
         </div>
+      ) : isError ? (
+        <Card className="border border-destructive/20 bg-destructive/5 text-center p-8 space-y-4">
+          <ShieldAlert className="size-8 text-destructive mx-auto" />
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-foreground">
+              {locale === "en" ? "Failed to load blood requests" : "রক্তের অনুরোধ লোড করতে ব্যর্থ হয়েছে"}
+            </h3>
+            <p className="text-xs text-muted-foreground">{error?.message}</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-2">
+            <RefreshCw className="size-3.5" />
+            <span>{locale === "en" ? "Retry" : "পুনরায় চেষ্টা করুন"}</span>
+          </Button>
+        </Card>
       ) : requests.length > 0 ? (
         /* Dynamic Real-Time Requisitions Feed */
         <div className="space-y-4">
@@ -252,6 +208,28 @@ export function RequestResultsState({ locale }: RequestResultsStateProps) {
               <RequestCard key={req.id} request={req} locale={locale} />
             ))}
           </div>
+
+          {/* Load More Button */}
+          {hasNextPage && (
+            <div className="pt-4 text-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="gap-2"
+              >
+                {isFetchingNextPage ? (
+                  <>
+                    <Loader2 className="size-3.5 animate-spin" />
+                    <span>{locale === "en" ? "Loading more..." : "আরও লোড করা হচ্ছে..."}</span>
+                  </>
+                ) : (
+                  <span>{locale === "en" ? "Load More Requests" : "আরও অনুরোধ দেখুন"}</span>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       ) : (
         /* Empty State Box (Truthful Medical Notice) */

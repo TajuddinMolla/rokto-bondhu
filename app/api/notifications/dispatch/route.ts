@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 
-import { getServerFirestore } from "@/lib/firebase/server";
+import { getServerFirestore, getServerAuth } from "@/lib/firebase/server";
 import {
   sendTransactionalEmail,
   buildContactRequestReceivedEmail,
@@ -12,25 +12,89 @@ import {
 } from "@/services/email.service";
 import { sendPushNotification } from "@/services/push.service";
 import { getDistrictById, getDivisionById } from "@/constants/locations";
-import type { NotificationType, EmailDeliveryStatus } from "@/types/notification";
+import { dispatchNotificationSchema } from "@/lib/validations/notification-dispatch";
+import type { EmailDeliveryStatus } from "@/types/notification";
+
+// In-memory sliding window rate limiter: max 20 dispatch calls per user per minute
+const rateLimitMap = new Map<string, number[]>();
+function checkRateLimit(uid: string, limit = 20, windowMs = 60_000): boolean {
+  const now = Date.now();
+  const timestamps = rateLimitMap.get(uid) || [];
+  const recent = timestamps.filter((t) => now - t < windowMs);
+  if (recent.length >= limit) {
+    return false;
+  }
+  recent.push(now);
+  rateLimitMap.set(uid, recent);
+  return true;
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null);
-    if (!body || !body.event) {
+    // -------------------------------------------------------------
+    // 1. Authenticate the caller via Firebase Admin ID Token
+    // -------------------------------------------------------------
+    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return NextResponse.json(
-        { error: "Invalid payload: 'event' is required" },
+        { error: "Unauthorized: Missing or invalid Authorization header" },
+        { status: 401 }
+      );
+    }
+
+    const idToken = authHeader.slice(7).trim();
+    const adminAuth = getServerAuth();
+    if (!adminAuth) {
+      console.warn("[Dispatch] Server Firebase Auth not configured");
+      return NextResponse.json(
+        { error: "Server authentication service unavailable" },
+        { status: 503 }
+      );
+    }
+
+    let decodedToken;
+    try {
+      decodedToken = await adminAuth.verifyIdToken(idToken);
+    } catch (tokenErr) {
+      console.warn("[Dispatch] ID Token verification failed:", (tokenErr as Error)?.message);
+      return NextResponse.json(
+        { error: "Unauthorized: Invalid or expired token" },
+        { status: 401 }
+      );
+    }
+
+    const callerUid = decodedToken.uid;
+    const isAdmin = Boolean(
+      decodedToken.admin === true ||
+      decodedToken.role === "ADMIN" ||
+      decodedToken.role === "admin"
+    );
+
+    // Rate Limiting Check
+    if (!checkRateLimit(callerUid)) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Please wait a moment before sending more notifications." },
+        { status: 429 }
+      );
+    }
+
+    // -------------------------------------------------------------
+    // 2. Validate Request Payload Schema with Zod
+    // -------------------------------------------------------------
+    const body = await req.json().catch(() => null);
+    const parsed = dispatchNotificationSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid payload", details: parsed.error.format() },
         { status: 400 }
       );
     }
 
-    const event = body.event as NotificationType;
-    const contactRequestId = body.contactRequestId as string | undefined;
-    const bloodRequestId = body.bloodRequestId as string | undefined;
+    const { event, contactRequestId, bloodRequestId } = parsed.data;
 
     const db = getServerFirestore();
     if (!db) {
-      console.warn("Server Firestore not configured, skipping notification dispatch");
+      console.warn("[Dispatch] Server Firestore not configured");
       return NextResponse.json({
         success: true,
         skipped: true,
@@ -60,13 +124,48 @@ export async function POST(req: NextRequest) {
       const urgency = String(contactData.urgency || "normal");
       const hospitalName = contactData.hospitalName ? String(contactData.hospitalName) : undefined;
 
+      // Ownership authorization check: Caller must be a participant or an admin
+      const isParticipant = callerUid === requesterId || callerUid === donorId;
+      if (!isParticipant && !isAdmin) {
+        return NextResponse.json(
+          { error: "Forbidden: You are not authorized to trigger notifications for this contact request" },
+          { status: 403 }
+        );
+      }
+
+      // Role-to-event alignment
+      if (
+        (event === "CONTACT_REQUEST_RECEIVED" || event === "CONTACT_REQUEST_CANCELLED") &&
+        callerUid !== requesterId &&
+        !isAdmin
+      ) {
+        return NextResponse.json(
+          { error: "Forbidden: Only the requester can dispatch this contact event" },
+          { status: 403 }
+        );
+      }
+
+      if (
+        (event === "CONTACT_REQUEST_ACCEPTED" ||
+          event === "CONTACT_REQUEST_DECLINED" ||
+          event === "CONTACT_INFO_SHARED" ||
+          event === "CONTACT_REQUEST_COMPLETED") &&
+        callerUid !== donorId &&
+        !isAdmin
+      ) {
+        return NextResponse.json(
+          { error: "Forbidden: Only the donor can dispatch this response event" },
+          { status: 403 }
+        );
+      }
+
       let recipientId = "";
       let senderId: string | undefined = undefined;
       let titleBn = "";
       let titleEn = "";
       let messageBn = "";
       let messageEn = "";
-      let actionUrl = "/account/contact-requests";
+      const actionUrl = "/account/contact-requests";
       let shouldSendEmail = false;
       let emailSubject = "";
       let emailHtml = "";
@@ -80,7 +179,6 @@ export async function POST(req: NextRequest) {
           titleEn = "New Private Contact Request";
           messageBn = `${requesterName} জরুরি রক্তদানের উদ্দেশ্যে আপনার সাথে যোগাযোগের অনুরোধ জানিয়েছেন (${donorBloodGroup})।`;
           messageEn = `${requesterName} requested to contact you for ${donorBloodGroup} blood donation.`;
-          actionUrl = "/account/contact-requests";
           shouldSendEmail = true;
 
           const emailTemplate = buildContactRequestReceivedEmail({
@@ -104,7 +202,6 @@ export async function POST(req: NextRequest) {
           titleEn = "Contact Request Accepted";
           messageBn = `রক্তদাতা ${donorName} (${donorBloodGroup}) আপনার যোগাযোগের অনুরোধ গ্রহণ করেছেন।`;
           messageEn = `Donor ${donorName} (${donorBloodGroup}) has accepted your contact request.`;
-          actionUrl = "/account/contact-requests";
           shouldSendEmail = true;
 
           const emailTemplate = buildContactRequestAcceptedEmail({
@@ -124,9 +221,8 @@ export async function POST(req: NextRequest) {
           senderId = donorId;
           titleBn = "রক্তদাতার যোগাযোগের নম্বর প্রকাশিত হয়েছে";
           titleEn = "Donor Shared Contact Details";
-          messageBn = `রক্তদাতা ${donorName} সরাসরি কথা বলার সম্মতি দিয়েছেন। ড্যাশবোর্ডে ফোন নম্বর দেখতে পাবেন।`;
+          messageBn = `রক্তদাতা ${donorName} সরাসরি কথা বলার সম্মতি দিয়েছেন। ড্যাশবোর্ডে যোগাযোগের বিবরণ দেখতে পাবেন।`;
           messageEn = `Donor ${donorName} consented to direct calling. The phone number is now visible in your dashboard.`;
-          actionUrl = "/account/contact-requests";
           shouldSendEmail = true;
 
           const emailTemplate = buildContactInfoSharedEmail({
@@ -147,7 +243,6 @@ export async function POST(req: NextRequest) {
           titleEn = "Contact Request Declined";
           messageBn = `রক্তদাতা ${donorName} বর্তমানে এই অনুরোধটি গ্রহণ করতে অপারগ। অন্য রক্তদাতাদের সন্ধান করুন।`;
           messageEn = `Donor ${donorName} is currently unable to accept this request. Please search for other matching donors.`;
-          actionUrl = "/account/contact-requests";
           shouldSendEmail = false;
           break;
         }
@@ -159,13 +254,12 @@ export async function POST(req: NextRequest) {
           titleEn = "Contact Request Cancelled";
           messageBn = `${requesterName} তাদের যোগাযোগের অনুরোধ প্রত্যাহার করেছেন।`;
           messageEn = `${requesterName} cancelled their pending contact request.`;
-          actionUrl = "/account/contact-requests";
           shouldSendEmail = false;
           break;
         }
 
         default:
-          return NextResponse.json({ skipped: true, message: "Unhandled event" });
+          return NextResponse.json({ skipped: true, message: "Unhandled contact event" });
       }
 
       // Check recipient's email & notification preferences
@@ -192,7 +286,7 @@ export async function POST(req: NextRequest) {
               });
 
               if (emailResult.success) {
-                emailStatus = "SENT";
+                emailStatus = "ACCEPTED_BY_PROVIDER";
                 emailSentAt = new Date().toISOString();
               } else {
                 emailStatus = "FAILED";
@@ -209,7 +303,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Dispatch Web Push Notification
+      // Dispatch Web Push Notification safely
       if (recipientId) {
         sendPushNotification({
           recipientUserIds: [recipientId],
@@ -277,13 +371,21 @@ export async function POST(req: NextRequest) {
       const scope = String(bloodData.scope || "LOCAL");
       const isGlobal = scope === "GLOBAL";
 
+      // Ownership authorization check: Caller must be the requester or an admin
+      if (callerUid !== requesterId && !isAdmin) {
+        return NextResponse.json(
+          { error: "Forbidden: Only the blood request creator or admin can dispatch notifications" },
+          { status: 403 }
+        );
+      }
+
       const districtObj = districtId ? getDistrictById(districtId) : undefined;
       const divisionObj = divisionId ? getDivisionById(divisionId) : undefined;
       const locationText = districtObj
         ? `${districtObj.nameBn}, ${divisionObj?.nameBn || ""}`
         : "বাংলাদেশ";
 
-      // Self-notification for requester on status events
+      // Self-notification for requester on status events (fulfilled / cancelled)
       if (event === "BLOOD_REQUEST_FULFILLED" || event === "BLOOD_REQUEST_CANCELLED") {
         const isFulfilled = event === "BLOOD_REQUEST_FULFILLED";
         const titleBn = isFulfilled ? "রক্তের অনুরোধ সম্পন্ন হয়েছে" : "রক্তের অনুরোধ বাতিল করা হয়েছে";
@@ -315,7 +417,7 @@ export async function POST(req: NextRequest) {
           { merge: true }
         );
 
-        // Optionally send transactional email to requester
+        // Transactional email to requester
         const requesterUserSnap = await db.collection("users").doc(requesterId).get();
         if (requesterUserSnap.exists) {
           const reqEmail = requesterUserSnap.data()?.email as string | undefined;
@@ -335,7 +437,7 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Send push notification to requester
+        // Push notification to requester
         sendPushNotification({
           recipientUserIds: [requesterId],
           title: titleBn,
@@ -379,7 +481,7 @@ export async function POST(req: NextRequest) {
 
         // 2. Identify eligible matching voluntary donors
         // Match: exact bloodGroup, available, not suspended, matching district (if local)
-        const recipientLimit = isGlobal ? 150 : 50;
+        const recipientLimit = isGlobal ? 100 : 50;
         let donorsQuery = db
           .collection("publicDonorProfiles")
           .where("bloodGroup", "==", bloodGroup)
@@ -398,6 +500,7 @@ export async function POST(req: NextRequest) {
         matchingDonorsSnap.forEach((docSnap) => {
           const donorId = docSnap.id;
           const dData = docSnap.data();
+
           // Filter out requester themselves and suspended accounts
           if (donorId !== requesterId && dData.isSuspended !== true) {
             matchingDonorIds.push(donorId);
@@ -445,18 +548,35 @@ export async function POST(req: NextRequest) {
 
         await batch.commit();
 
-        // 4. Send Transactional Emails to matching donors (asynchronous & bounded)
-        // Look up donor emails in chunks of 50
-        const emailDonors = matchingDonorsData.slice(0, 50);
+        // 4. Send Transactional Emails with Dedup & Status Verification
+        // Send to at most 30 donors to protect provider quotas and prevent timeouts
+        const emailDonors = matchingDonorsData.slice(0, 30);
         for (const donor of emailDonors) {
           try {
+            const notifId = `notif_blood_req_${bloodRequestId}_${donor.id}`;
+            const existingNotifSnap = await db.collection("notifications").doc(notifId).get();
+            const existingStatus = existingNotifSnap.data()?.emailStatus;
+
+            // Idempotency: skip if already successfully sent or accepted
+            if (existingStatus === "ACCEPTED_BY_PROVIDER" || existingStatus === "SENT") {
+              continue;
+            }
+
             const userSnap = await db.collection("users").doc(donor.id).get();
             if (userSnap.exists) {
               const uData = userSnap.data() || {};
               const email = uData.email as string | undefined;
               const emailEnabled = uData.emailNotificationsEnabled !== false;
 
-              if (emailEnabled && email && email.includes("@")) {
+              if (!emailEnabled) {
+                await db.collection("notifications").doc(notifId).update({
+                  emailStatus: "SKIPPED_PREFERENCE",
+                  updatedAt: FieldValue.serverTimestamp(),
+                }).catch(() => {});
+                continue;
+              }
+
+              if (email && email.includes("@")) {
                 const emailTpl = buildBloodRequestCreatedEmail({
                   donorName: donor.displayName,
                   bloodGroup,
@@ -468,12 +588,27 @@ export async function POST(req: NextRequest) {
                   actionUrl,
                 });
 
-                sendTransactionalEmail({
+                const emailResult = await sendTransactionalEmail({
                   to: email,
                   subject: emailTpl.subject,
                   html: emailTpl.html,
                   text: emailTpl.text,
-                }).catch(() => {});
+                });
+
+                if (emailResult.success) {
+                  await db.collection("notifications").doc(notifId).update({
+                    emailStatus: "ACCEPTED_BY_PROVIDER",
+                    emailSentAt: new Date().toISOString(),
+                    emailError: null,
+                    updatedAt: FieldValue.serverTimestamp(),
+                  }).catch(() => {});
+                } else {
+                  await db.collection("notifications").doc(notifId).update({
+                    emailStatus: "FAILED",
+                    emailError: emailResult.error || "Email delivery failed",
+                    updatedAt: FieldValue.serverTimestamp(),
+                  }).catch(() => {});
+                }
               }
             }
           } catch (emailErr) {
@@ -481,7 +616,7 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // 5. Send FCM Web Push Notifications to all matching donors with registered devices
+        // 5. Send FCM Web Push Notifications
         if (matchingDonorIds.length > 0) {
           sendPushNotification({
             recipientUserIds: matchingDonorIds,
@@ -495,9 +630,23 @@ export async function POST(req: NextRequest) {
               urgency,
             },
           }).catch((pushErr) => {
-            console.warn("[Dispatch] Multicast push error for matching donors:", pushErr);
+            console.warn("[Dispatch] Push error for matching donors:", pushErr);
           });
         }
+
+        // 6. Record Audit State in broadcastJobs
+        await db.collection("broadcastJobs").doc(bloodRequestId).set(
+          {
+            bloodRequestId,
+            requesterId,
+            bloodGroup,
+            isGlobal,
+            matchedDonorsCount: matchingDonorIds.length,
+            status: "COMPLETED",
+            executedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        ).catch(() => {});
 
         return NextResponse.json({
           success: true,

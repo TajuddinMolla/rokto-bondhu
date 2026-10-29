@@ -5,6 +5,8 @@ import {
   updateProfile,
   sendEmailVerification,
   sendPasswordResetEmail,
+  verifyPasswordResetCode,
+  confirmPasswordReset,
   type User,
 } from "firebase/auth";
 
@@ -114,3 +116,33 @@ export async function resendVerificationEmail(user: User): Promise<void> {
 export async function reloadUser(user: User): Promise<void> {
   await user.reload();
 }
+
+/**
+ * Validates a Firebase password reset action code (oobCode) and returns the user's email.
+ * Throws Firebase error if the code is invalid, expired, or already used.
+ */
+export async function verifyResetCode(code: string): Promise<string> {
+  const auth = getFirebaseAuth();
+  if (!auth) {
+    throw new Error("auth/not-configured");
+  }
+
+  return await verifyPasswordResetCode(auth, code);
+}
+
+/**
+ * Confirms a new password using a validated Firebase action code (oobCode).
+ * Never stores or logs passwords.
+ */
+export async function confirmNewPassword(
+  code: string,
+  newPassword: string
+): Promise<void> {
+  const auth = getFirebaseAuth();
+  if (!auth) {
+    throw new Error("auth/not-configured");
+  }
+
+  await confirmPasswordReset(auth, code, newPassword);
+}
+

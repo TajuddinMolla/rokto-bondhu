@@ -62,23 +62,32 @@ export async function sendPushNotification(
     // 1. Gather push tokens for all recipients
     const storedTokens: StoredToken[] = [];
 
-    // Query tokens from users/{uid}/pushTokens subcollection
-    for (const uid of recipientUserIds) {
-      if (!uid) continue;
-      try {
-        const tokensSnap = await db.collection("users").doc(uid).collection("pushTokens").get();
-        tokensSnap.forEach((docSnap) => {
-          const t = docSnap.data().token;
-          if (t && typeof t === "string") {
-            storedTokens.push({
-              token: t,
-              docPath: docSnap.ref.path,
+    // Query tokens from users/{uid}/pushTokens subcollection in parallel chunks of 20
+    const recipientChunks: string[][] = [];
+    for (let i = 0; i < recipientUserIds.length; i += 20) {
+      recipientChunks.push(recipientUserIds.slice(i, i + 20));
+    }
+
+    for (const chunk of recipientChunks) {
+      await Promise.all(
+        chunk.map(async (uid) => {
+          if (!uid) return;
+          try {
+            const tokensSnap = await db.collection("users").doc(uid).collection("pushTokens").get();
+            tokensSnap.forEach((docSnap) => {
+              const t = docSnap.data().token;
+              if (t && typeof t === "string") {
+                storedTokens.push({
+                  token: t,
+                  docPath: docSnap.ref.path,
+                });
+              }
             });
+          } catch (err) {
+            console.warn(`[Push Service] Failed to retrieve tokens for user ${uid}:`, err);
           }
-        });
-      } catch (err) {
-        console.warn(`[Push Service] Failed to retrieve tokens for user ${uid}:`, err);
-      }
+        })
+      );
     }
 
     if (storedTokens.length === 0) {

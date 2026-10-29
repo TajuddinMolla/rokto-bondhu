@@ -744,6 +744,14 @@ function StatusPill({
       </Badge>
     );
   }
+  if (status === "EXPIRED") {
+    return (
+      <Badge variant="outline" className="border-border text-muted-foreground bg-muted/30 text-xs font-semibold">
+        <Clock className="size-3 mr-1" />
+        <span>{t.contactRequests.statusExpired}</span>
+      </Badge>
+    );
+  }
   return (
     <Badge variant="outline" className="text-muted-foreground text-xs font-semibold">
       <XCircle className="size-3 mr-1" />

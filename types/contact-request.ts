@@ -5,7 +5,8 @@ export type ContactRequestStatus =
   | "ACCEPTED"
   | "DECLINED"
   | "CANCELLED"
-  | "COMPLETED";
+  | "COMPLETED"
+  | "EXPIRED";
 
 export interface SharedContactDetails {
   phoneNumber: string;

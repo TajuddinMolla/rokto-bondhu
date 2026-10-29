@@ -7,13 +7,25 @@ import {
   updateDoc,
   query,
   where,
+  orderBy,
+  limit,
+  startAfter,
   serverTimestamp,
   Timestamp,
+  type QueryConstraint,
+  type QueryDocumentSnapshot,
+  type DocumentData,
 } from "firebase/firestore";
 
 import { getFirebaseDb } from "@/lib/firebase/config";
 import { dispatchNotificationSafely } from "@/services/notification.service";
-import type { BloodRequest, CreateBloodRequestInput, UpdateBloodRequestInput } from "@/types/request";
+import type {
+  BloodRequest,
+  BloodRequestSummary,
+  CreateBloodRequestInput,
+  UpdateBloodRequestInput,
+} from "@/types/request";
+import type { BloodGroup, RequestStatus, RequestUrgency } from "@/types/blood";
 
 const BLOOD_REQUESTS_COLLECTION = "bloodRequests";
 
@@ -251,3 +263,156 @@ export async function fulfillBloodRequest(requestId: string, userId: string): Pr
     bloodRequestId: requestId,
   }).catch(() => {});
 }
+
+export interface BloodRequestsFeedFilters {
+  bloodGroup?: string | null;
+  divisionId?: string | null;
+  districtId?: string | null;
+  upazilaId?: string | null;
+  urgency?: string | null;
+}
+
+export interface PaginatedBloodRequestsFeedResult {
+  requests: BloodRequestSummary[];
+  nextCursor: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
+}
+
+/**
+ * Retrieves paginated open blood requests for the live feed.
+ * Orders by createdAt desc and supports cursor pagination.
+ */
+export async function getBloodRequestsFeed(
+  filters: BloodRequestsFeedFilters = {},
+  options?: {
+    pageSize?: number;
+    cursor?: QueryDocumentSnapshot<DocumentData> | null;
+  }
+): Promise<PaginatedBloodRequestsFeedResult> {
+  const db = getFirebaseDb();
+  if (!db) {
+    return {
+      requests: [],
+      nextCursor: null,
+      hasMore: false,
+    };
+  }
+
+  const requestedSize = Math.min(Math.max(options?.pageSize || 20, 1), 50);
+  const colRef = collection(db, BLOOD_REQUESTS_COLLECTION);
+
+  const constraints: QueryConstraint[] = [
+    where("status", "==", "open"),
+  ];
+
+  if (filters.bloodGroup) {
+    constraints.push(where("bloodGroup", "==", filters.bloodGroup));
+  }
+  if (filters.districtId) {
+    constraints.push(where("districtId", "==", filters.districtId));
+  } else if (filters.divisionId) {
+    constraints.push(where("divisionId", "==", filters.divisionId));
+  }
+
+  // Primary ordered query
+  try {
+    const orderedConstraints = [
+      ...constraints,
+      orderBy("createdAt", "desc"),
+      limit(requestedSize + 1),
+    ];
+
+    if (options?.cursor) {
+      orderedConstraints.push(startAfter(options.cursor));
+    }
+
+    const q = query(colRef, ...orderedConstraints);
+    const snap = await getDocs(q);
+
+    let docs = snap.docs;
+
+    // In-memory filter for sub-fields (upazila and urgency)
+    if (filters.upazilaId) {
+      docs = docs.filter((d) => d.data().upazilaId === filters.upazilaId);
+    }
+    if (filters.urgency) {
+      docs = docs.filter((d) => d.data().urgency === filters.urgency);
+    }
+
+    const hasMore = snap.docs.length > requestedSize;
+    const resultDocs = hasMore ? docs.slice(0, requestedSize) : docs;
+    const nextCursor =
+      hasMore && snap.docs.length > 0 ? snap.docs[requestedSize - 1] : null;
+
+    const requests: BloodRequestSummary[] = resultDocs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        bloodGroup: data.bloodGroup as BloodGroup,
+        unitsNeeded: Number(data.unitsNeeded || 1),
+        hospitalName: data.hospitalName || undefined,
+        divisionId: data.divisionId || "",
+        districtId: data.districtId || "",
+        upazilaId: data.upazilaId || "",
+        neededAt: data.neededAt || "",
+        urgency: (data.urgency || "urgent") as RequestUrgency,
+        status: (data.status || "open") as RequestStatus,
+        scope: data.scope || "LOCAL",
+        createdAt: timestampToIso(data.createdAt),
+      };
+    });
+
+    return {
+      requests,
+      nextCursor,
+      hasMore,
+    };
+  } catch (err: unknown) {
+    console.warn(
+      "[Blood Requests Feed] Ordered query failed (fallback to equality query):",
+      err
+    );
+
+    const fallbackConstraints = [...constraints, limit(requestedSize * 2)];
+    const fallbackQ = query(colRef, ...fallbackConstraints);
+    const snap = await getDocs(fallbackQ);
+
+    let docs = snap.docs;
+    if (filters.upazilaId) {
+      docs = docs.filter((d) => d.data().upazilaId === filters.upazilaId);
+    }
+    if (filters.urgency) {
+      docs = docs.filter((d) => d.data().urgency === filters.urgency);
+    }
+
+    const requests: BloodRequestSummary[] = docs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        bloodGroup: data.bloodGroup as BloodGroup,
+        unitsNeeded: Number(data.unitsNeeded || 1),
+        hospitalName: data.hospitalName || undefined,
+        divisionId: data.divisionId || "",
+        districtId: data.districtId || "",
+        upazilaId: data.upazilaId || "",
+        neededAt: data.neededAt || "",
+        urgency: (data.urgency || "urgent") as RequestUrgency,
+        status: (data.status || "open") as RequestStatus,
+        scope: data.scope || "LOCAL",
+        createdAt: timestampToIso(data.createdAt),
+      };
+    });
+
+    requests.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    const hasMore = requests.length > requestedSize;
+    return {
+      requests: hasMore ? requests.slice(0, requestedSize) : requests,
+      nextCursor: null,
+      hasMore,
+    };
+  }
+}
+

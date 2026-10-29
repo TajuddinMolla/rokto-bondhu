@@ -147,7 +147,9 @@
       "universalDonor": "Universal Donor",
       "universalRecipient": "Universal Recipient",
       "searchGroupButton": "Find Donors for This Group",
-      "donorCountNotice": "Blood group compatibility is displayed according to established international transfusion guidelines."
+      "donorCountNotice": "Blood group compatibility is displayed according to established international transfusion guidelines.",
+      "clinicalDisclaimerTitle": "Clinical Notice & Medical Disclaimer",
+      "clinicalDisclaimerDesc": "Blood compatibility charts are provided strictly for educational reference. Laboratory cross-matching (major and minor crossmatch tests) and clinical screening at an authorized hospital or certified blood bank are legally and medically mandatory before any transfusion. RoktoBondhu does not provide medical clearance or clinical safety guarantees."
     },
     "becomeDonor": {
       "badge": "Join the Cause",
@@ -433,18 +435,21 @@
       "title": "Set New Password",
       "subtitle": "Set a secure new password for your account",
       "badge": "Password Reset",
-      "tokenNoticeTitle": "Reset Token Preview Mode",
-      "tokenNoticeDesc": "In production, this page will be protected with a secure token sent to your email. You can preview and test form validation now.",
+      "verifyingCode": "Verifying reset link...",
+      "invalidCodeTitle": "Invalid or Expired Reset Link",
+      "invalidCodeDesc": "This password reset link is invalid, has expired, or has already been used. Please request a new password recovery link.",
+      "requestNewLink": "Request New Link",
+      "accountEmail": "Account email",
       "passwordLabel": "New Password",
       "passwordPlaceholder": "Minimum 8 characters new password",
       "passwordHint": "Minimum 8 characters, at least one letter and one number",
       "confirmPasswordLabel": "Confirm New Password",
       "confirmPasswordPlaceholder": "Re-type your new password",
       "submitButton": "Update Password",
-      "submittingButton": "Updating...",
+      "submittingButton": "Updating Password...",
       "backToLogin": "Back to Login",
-      "demoSuccessTitle": "Password Reset Validated (Demo Mode)",
-      "demoSuccessDesc": "New password validation completed successfully. No backend database was modified and no password was stored."
+      "successTitle": "Password Reset Successful",
+      "successDesc": "Your account password has been securely updated. You can now log in using your new password."
     },
     "common": {
       "showPassword": "Show password",
@@ -476,6 +481,8 @@
       "networkError": "Network connection failed. Please check your internet connection.",
       "requiresRecentLogin": "Please log in again to perform this sensitive action.",
       "notConfigured": "Firebase configuration is missing. Please check your .env.local file.",
+      "expiredActionCode": "This password reset link has expired. Please request a new recovery link.",
+      "invalidActionCode": "This password reset link is invalid or has already been used.",
       "genericError": "An unexpected error occurred. Please try again."
     },
     "verifyEmail": {
@@ -526,6 +533,7 @@
     "statusDeclined": "Declined",
     "statusCancelled": "Cancelled",
     "statusCompleted": "Completed",
+    "statusExpired": "Expired",
     "acceptAction": "Accept",
     "declineAction": "Decline",
     "cancelAction": "Cancel Request",

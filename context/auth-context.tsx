@@ -15,6 +15,7 @@ import {
 import type { AuthUser } from "@/types/auth";
 
 import { ensureUserProfile } from "@/services/user.service";
+import { unregisterPushNotificationToken } from "@/lib/firebase/messaging";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
@@ -190,11 +191,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = React.useCallback(async () => {
+    if (user?.uid) {
+      try {
+        await unregisterPushNotificationToken(user.uid);
+      } catch (err) {
+        console.warn("[AuthContext] Push token cleanup error on logout:", err);
+      }
+    }
     await signOutUser();
     setUser(null);
     setRawUser(null);
     setStatus("unauthenticated");
-  }, []);
+  }, [user?.uid]);
 
   const sendVerification = React.useCallback(async () => {
     if (!rawUser) {

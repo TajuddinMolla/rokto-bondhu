@@ -19,8 +19,10 @@ export type EmailDeliveryStatus =
   | "NOT_APPLICABLE"
   | "PENDING"
   | "SENT"
+  | "ACCEPTED_BY_PROVIDER"
   | "FAILED"
-  | "SKIPPED_PREFERENCE";
+  | "SKIPPED_PREFERENCE"
+  | "SKIPPED_QUOTA";
 
 export interface LocalizedContent {
   bn: string;

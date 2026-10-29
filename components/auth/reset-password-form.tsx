@@ -3,17 +3,25 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@/lib/validations/zod-resolver";
 import {
   Loader2,
   CheckCircle2,
   AlertCircle,
   ArrowLeft,
   KeyRound,
-  RotateCcw,
-  Info,
+  ShieldAlert,
+  Send,
+  Mail,
 } from "lucide-react";
 
-import { createResetPasswordSchema } from "@/lib/validations/auth";
+import {
+  createResetPasswordSchema,
+  type ResetPasswordInput,
+} from "@/lib/validations/auth";
+import { verifyResetCode, confirmNewPassword } from "@/lib/firebase/auth";
+import { getFirebaseErrorMessage } from "@/lib/firebase/errors";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/forms/form-field";
 import { PasswordInput } from "@/components/auth/password-input";
@@ -24,91 +32,171 @@ export interface ResetPasswordFormProps {
   locale: Locale;
 }
 
-interface ResetState {
-  password: string;
-  confirmPassword: string;
-}
-
-const INITIAL_STATE: ResetState = {
-  password: "",
-  confirmPassword: "",
-};
+type CodeState =
+  | { status: "verifying" }
+  | { status: "valid"; email?: string; code: string }
+  | { status: "invalid"; error: string };
 
 function ResetPasswordFormInternal({ locale }: ResetPasswordFormProps) {
   const t = getTranslations(locale);
   const formId = React.useId();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token") || undefined;
 
-  const [formData, setFormData] = React.useState<ResetState>(INITIAL_STATE);
-  const [errors, setErrors] = React.useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isSuccess, setIsSuccess] = React.useState(false);
-
-  const resetSchema = React.useMemo(() => createResetPasswordSchema(locale), [locale]);
+  // Firebase passes oobCode for password reset. Check oobCode first, fallback to token.
+  const actionCode =
+    searchParams.get("oobCode") || searchParams.get("token") || undefined;
 
   const prefix = locale === "en" ? "/en" : "";
   const loginHref = `${prefix}/login`;
+  const forgotHref = `${prefix}/forgot-password`;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    if (errors[name]) {
-      setErrors((prev) => {
-        const next = { ...prev };
-        delete next[name];
-        return next;
-      });
+  const [codeState, setCodeState] = React.useState<CodeState>(() => {
+    if (!actionCode) {
+      return {
+        status: "invalid",
+        error: t.auth.resetPassword.invalidCodeDesc,
+      };
     }
-  };
+    return { status: "verifying" };
+  });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setErrors({});
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [isSuccess, setIsSuccess] = React.useState(false);
 
-    const result = resetSchema.safeParse({
-      ...formData,
-      token,
-    });
+  const resetSchema = React.useMemo(
+    () => createResetPasswordSchema(locale),
+    [locale]
+  );
 
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      for (const issue of result.error.issues) {
-        const key = issue.path[0]?.toString();
-        if (key && !fieldErrors[key]) {
-          fieldErrors[key] = issue.message;
-        }
-      }
-      setErrors(fieldErrors);
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<ResetPasswordInput>({
+    resolver: zodResolver(resetSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
+      token: actionCode || "",
+    },
+    mode: "onTouched",
+  });
 
-      const firstField = Object.keys(fieldErrors)[0];
-      if (firstField) {
-        const el = document.getElementById(`${formId}-${firstField}`);
-        el?.focus();
-      }
+  // Verify action code on mount
+  React.useEffect(() => {
+    if (!actionCode) {
+      setCodeState({
+        status: "invalid",
+        error: t.auth.resetPassword.invalidCodeDesc,
+      });
       return;
     }
 
-    // Input is valid: simulate latency for demo
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    let isMounted = true;
+    verifyResetCode(actionCode)
+      .then((accountEmail) => {
+        if (!isMounted) return;
+        setCodeState({
+          status: "valid",
+          email: accountEmail,
+          code: actionCode,
+        });
+        setValue("token", actionCode);
+      })
+      .catch((err: unknown) => {
+        if (!isMounted) return;
+        const fbError = err as { code?: string };
+        const mappedMsg = getFirebaseErrorMessage(
+          fbError?.code || "auth/invalid-action-code",
+          locale
+        );
+        setCodeState({
+          status: "invalid",
+          error: mappedMsg,
+        });
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [actionCode, locale, setValue, t.auth.resetPassword.invalidCodeDesc]);
+
+  const onSubmit = async (data: ResetPasswordInput) => {
+    if (codeState.status !== "valid") return;
+    setSubmitError(null);
+
+    try {
+      await confirmNewPassword(codeState.code, data.password);
       setIsSuccess(true);
-      // Immediately wipe passwords from memory
-      setFormData(INITIAL_STATE);
-    }, 500);
+      reset();
+    } catch (err: unknown) {
+      const fbError = err as { code?: string };
+      setSubmitError(
+        getFirebaseErrorMessage(fbError?.code || "auth/generic-error", locale)
+      );
+    }
   };
 
-  const handleResetDemo = () => {
-    setIsSuccess(false);
-    setFormData(INITIAL_STATE);
-    setErrors({});
-  };
+  // State 1: Verification in progress
+  if (codeState.status === "verifying") {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="rounded-xl border border-border bg-surface p-8 text-center space-y-4"
+      >
+        <div className="inline-flex items-center justify-center size-12 rounded-full bg-primary/10 text-primary">
+          <Loader2 className="size-6 animate-spin" aria-hidden="true" />
+        </div>
+        <p className="text-sm font-medium text-muted-foreground">
+          {t.auth.resetPassword.verifyingCode}
+        </p>
+      </div>
+    );
+  }
 
+  // State 2: Invalid or expired action code
+  if (codeState.status === "invalid") {
+    return (
+      <div
+        role="alert"
+        className="rounded-xl border border-destructive/20 bg-destructive/5 p-6 text-center space-y-4 animate-in fade-in duration-200"
+      >
+        <div className="inline-flex items-center justify-center size-12 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
+          <ShieldAlert className="size-6" aria-hidden="true" />
+        </div>
+
+        <div className="space-y-2">
+          <h3 className="text-lg font-bold text-foreground">
+            {t.auth.resetPassword.invalidCodeTitle}
+          </h3>
+          <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
+            {codeState.error}
+          </p>
+        </div>
+
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+          <Button asChild variant="default" size="sm" className="w-full sm:w-auto">
+            <Link href={forgotHref}>
+              <Send className="size-3.5 mr-1.5" aria-hidden="true" />
+              {t.auth.resetPassword.requestNewLink}
+            </Link>
+          </Button>
+
+          <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
+            <Link href={loginHref}>
+              <ArrowLeft className="size-3.5 mr-1.5" aria-hidden="true" />
+              {t.auth.resetPassword.backToLogin}
+            </Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // State 3: Successfully updated password
   if (isSuccess) {
     return (
       <div
@@ -122,31 +210,15 @@ function ResetPasswordFormInternal({ locale }: ResetPasswordFormProps) {
 
         <div className="space-y-2">
           <h3 className="text-lg font-bold text-foreground">
-            {t.auth.resetPassword.demoSuccessTitle}
+            {t.auth.resetPassword.successTitle}
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
-            {t.auth.resetPassword.demoSuccessDesc}
+            {t.auth.resetPassword.successDesc}
           </p>
         </div>
 
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={handleResetDemo}
-            className="w-full sm:w-auto"
-          >
-            <RotateCcw className="size-3.5 mr-1.5" aria-hidden="true" />
-            {t.auth.common.tryAnother}
-          </Button>
-
-          <Button
-            asChild
-            variant="default"
-            size="sm"
-            className="w-full sm:w-auto"
-          >
+        <div className="pt-2">
+          <Button asChild variant="default" size="sm" className="w-full sm:w-auto">
             <Link href={loginHref}>
               <ArrowLeft className="size-3.5 mr-1.5" aria-hidden="true" />
               {t.auth.resetPassword.backToLogin}
@@ -157,43 +229,47 @@ function ResetPasswordFormInternal({ locale }: ResetPasswordFormProps) {
     );
   }
 
+  // State 4: Valid action code - Render Form
   return (
     <form
       id={formId}
-      onSubmit={handleSubmit}
+      onSubmit={handleSubmit(onSubmit)}
       noValidate
       className="space-y-4"
     >
-      {/* Demo Notice Banner */}
-      <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-700 dark:text-amber-400">
-        <AlertCircle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
-        <span className="leading-relaxed">{t.auth.common.demoNotice}</span>
-      </div>
-
-      {/* Token Readiness Info Callout */}
-      <div className="flex items-start gap-2.5 rounded-lg border border-primary/15 bg-primary/5 p-3 text-xs text-muted-foreground">
-        <Info className="size-4 text-primary shrink-0 mt-0.5" aria-hidden="true" />
-        <div className="space-y-0.5 leading-relaxed">
-          <span className="font-semibold text-foreground block">
-            {t.auth.resetPassword.tokenNoticeTitle}
+      {/* Account email notification if available */}
+      {codeState.email && (
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-surface p-3 text-xs text-muted-foreground">
+          <Mail className="size-4 text-primary shrink-0" aria-hidden="true" />
+          <span>
+            {t.auth.resetPassword.accountEmail}:{" "}
+            <strong className="text-foreground">{codeState.email}</strong>
           </span>
-          <span>{t.auth.resetPassword.tokenNoticeDesc}</span>
         </div>
-      </div>
+      )}
+
+      {/* Submission Error Banner */}
+      {submitError && (
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive animate-in fade-in duration-150"
+        >
+          <AlertCircle className="size-4 shrink-0 mt-0.5" aria-hidden="true" />
+          <span className="leading-relaxed">{submitError}</span>
+        </div>
+      )}
 
       {/* New Password */}
       <FormField
         id={`${formId}-password`}
         label={t.auth.resetPassword.passwordLabel}
         required
-        error={errors.password}
+        error={errors.password?.message}
         helperText={t.auth.resetPassword.passwordHint}
       >
         <PasswordInput
           id={`${formId}-password`}
-          name="password"
-          value={formData.password}
-          onChange={handleChange}
+          {...register("password")}
           placeholder={t.auth.resetPassword.passwordPlaceholder}
           autoComplete="new-password"
           disabled={isSubmitting}
@@ -213,13 +289,11 @@ function ResetPasswordFormInternal({ locale }: ResetPasswordFormProps) {
         id={`${formId}-confirmPassword`}
         label={t.auth.resetPassword.confirmPasswordLabel}
         required
-        error={errors.confirmPassword}
+        error={errors.confirmPassword?.message}
       >
         <PasswordInput
           id={`${formId}-confirmPassword`}
-          name="confirmPassword"
-          value={formData.confirmPassword}
-          onChange={handleChange}
+          {...register("confirmPassword")}
           placeholder={t.auth.resetPassword.confirmPasswordPlaceholder}
           autoComplete="new-password"
           disabled={isSubmitting}
