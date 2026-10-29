@@ -1,12 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { Droplet, Search, UserPlus, ShieldCheck, MapPin } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Droplet,
+  Search,
+  UserPlus,
+  ShieldCheck,
+  MapPin,
+  AlertCircle,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useIsDonor } from "@/hooks/use-is-donor";
 import { getTranslations } from "@/i18n/translations";
+import { BLOOD_GROUPS, type BloodGroup } from "@/constants/blood-groups";
 import type { Locale } from "@/i18n/config";
 
 interface HeroSectionProps {
@@ -15,17 +24,26 @@ interface HeroSectionProps {
 
 export function HeroSection({ locale }: HeroSectionProps) {
   const t = getTranslations(locale);
+  const router = useRouter();
   const { isDonor } = useIsDonor();
-  const registerHref = locale === "en" ? "/en/donors/register" : "/donors/register";
+
+  const prefix = locale === "en" ? "/en" : "";
+  const registerHref = `${prefix}/donors/register`;
+  const createRequestHref = `${prefix}/blood-request/create`;
+  const donorsBaseHref = `${prefix}/donors`;
+
+  const handleQuickGroupSelect = (group: BloodGroup) => {
+    router.push(`${donorsBaseHref}?bloodGroup=${encodeURIComponent(group)}`);
+  };
 
   return (
     <section
       aria-labelledby="hero-heading"
-      className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-background to-background py-16 sm:py-24 lg:py-28 border-b border-border"
+      className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-background to-background py-16 sm:py-20 lg:py-24 border-b border-border/70"
     >
-      {/* Subtle decorative background circles */}
+      {/* Subtle ambient lighting */}
       <div
-        className="pointer-events-none absolute -top-24 right-0 -z-10 size-96 rounded-full bg-primary/5 blur-3xl"
+        className="pointer-events-none absolute -top-24 right-0 -z-10 size-96 rounded-full bg-primary/8 blur-3xl"
         aria-hidden="true"
       />
       <div
@@ -35,57 +53,88 @@ export function HeroSection({ locale }: HeroSectionProps) {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-          {/* Left Column: Text and CTAs */}
+          {/* Left Column: Mission, Headings & CTAs */}
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
+            {/* Top Mission Pill */}
             <div className="flex justify-center lg:justify-start">
               <Badge
-                variant="outline"
-                className="gap-1.5 border-primary/30 bg-primary/5 text-primary px-3.5 py-1 text-xs font-semibold rounded-full shadow-xs"
+                variant="subtle"
+                className="gap-2 px-3.5 py-1 text-xs font-bold rounded-full shadow-2xs border border-primary-border"
               >
-                <Droplet className="size-3.5 fill-primary text-primary animate-pulse" aria-hidden="true" />
-                <span>{t.home.hero.badge}</span>
+                <span className="relative flex size-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                  <span className="relative inline-flex rounded-full size-2 bg-primary" />
+                </span>
+                <span>
+                  {locale === "en"
+                    ? "Find Blood, Save Lives • রক্ত খুঁজুন, জীবন বাঁচান"
+                    : "রক্ত খুঁজুন, জীবন বাঁচান • Find Blood, Save Lives"}
+                </span>
               </Badge>
             </div>
 
+            {/* Main Headline */}
             <h1
               id="hero-heading"
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.15]"
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-foreground leading-[1.18] sm:leading-[1.15]"
             >
               {t.home.hero.headline}
             </h1>
 
+            {/* Supporting Copy */}
             <p className="text-base sm:text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto lg:mx-0">
               {t.home.hero.supporting}
             </p>
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5 pt-2">
-              <Button asChild size="lg" className="w-full sm:w-auto text-base shadow-sm font-semibold">
+            {/* Action Buttons Row */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3 pt-2">
+              {/* Primary Action: Search Donors */}
+              <Button
+                asChild
+                size="lg"
+                className="shadow-xs font-semibold text-base min-h-[48px] bg-gradient-to-b from-primary via-primary to-rose-700 hover:from-primary-hover hover:to-rose-800 text-white border border-primary/20"
+              >
                 <a href="#search-panel">
-                  <Search className="size-4 mr-2" aria-hidden="true" />
+                  <Search className="size-4.5 mr-2" aria-hidden="true" />
                   {t.home.hero.primaryCta}
                 </a>
               </Button>
 
+              {/* Emergency Requisition Action */}
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="min-h-[48px] font-semibold text-base border-border hover:bg-muted text-foreground"
+              >
+                <Link href={createRequestHref}>
+                  <AlertCircle className="size-4.5 mr-2 text-primary" aria-hidden="true" />
+                  <span>
+                    {locale === "en" ? "Post Blood Request" : "রক্তের আবেদন করুন"}
+                  </span>
+                </Link>
+              </Button>
+
+              {/* Voluntary Donor Action */}
               {!isDonor && (
                 <Button
                   asChild
-                  variant="outline"
+                  variant="ghost"
                   size="lg"
-                  className="w-full sm:w-auto text-base border-primary/20 hover:border-primary/50 hover:bg-primary/5 hover:text-primary font-semibold"
+                  className="min-h-[48px] font-semibold text-base text-primary hover:bg-primary/10 hover:text-primary"
                 >
                   <Link href={registerHref}>
-                    <UserPlus className="size-4 mr-2" aria-hidden="true" />
+                    <UserPlus className="size-4.5 mr-2" aria-hidden="true" />
                     {t.home.hero.secondaryCta}
                   </Link>
                 </Button>
               )}
             </div>
 
-            {/* Micro Highlights */}
+            {/* Real Platform Capabilities Matrix (No Fake Stats) */}
             <div className="grid grid-cols-3 gap-3 pt-6 border-t border-border/80 max-w-lg mx-auto lg:mx-0">
               <div className="space-y-1">
-                <div className="text-xl sm:text-2xl font-bold text-foreground">
+                <div className="text-lg sm:text-xl font-extrabold text-foreground tracking-tight">
                   {t.home.hero.quickStat1}
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -93,7 +142,7 @@ export function HeroSection({ locale }: HeroSectionProps) {
                 </div>
               </div>
               <div className="space-y-1 border-x border-border/80 px-2 sm:px-4">
-                <div className="text-xl sm:text-2xl font-bold text-foreground">
+                <div className="text-lg sm:text-xl font-extrabold text-foreground tracking-tight">
                   {t.home.hero.quickStat2}
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -101,7 +150,7 @@ export function HeroSection({ locale }: HeroSectionProps) {
                 </div>
               </div>
               <div className="space-y-1">
-                <div className="text-xl sm:text-2xl font-bold text-primary">
+                <div className="text-lg sm:text-xl font-extrabold text-primary tracking-tight">
                   {t.home.hero.quickStat3}
                 </div>
                 <div className="text-xs text-muted-foreground">
@@ -111,64 +160,83 @@ export function HeroSection({ locale }: HeroSectionProps) {
             </div>
           </div>
 
-          {/* Right Column: Visual / Graphic Composition */}
+          {/* Right Column: Interactive Instant Blood Discovery Card */}
           <div className="lg:col-span-5 flex justify-center">
             <div className="relative w-full max-w-md">
-              {/* Outer decorative glow */}
+              {/* Outer soft ambient glow */}
               <div
-                className="absolute inset-0 -m-3 rounded-3xl bg-gradient-to-tr from-primary/15 via-primary/5 to-transparent blur-xl"
+                className="absolute inset-0 -m-3 rounded-3xl bg-gradient-to-tr from-primary/15 via-rose-500/5 to-transparent blur-xl pointer-events-none"
                 aria-hidden="true"
               />
 
-              {/* Main Illustration Card */}
-              <div className="relative rounded-2xl border border-border bg-surface p-6 sm:p-8 shadow-md">
-                <div className="flex items-center justify-between pb-6 border-b border-border">
+              {/* Discovery Card */}
+              <div className="relative rounded-2xl border border-border/80 bg-surface/95 backdrop-blur-md p-6 sm:p-7 shadow-xl space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between pb-5 border-b border-border/80">
                   <div className="flex items-center gap-3">
-                    <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
-                      <Droplet className="size-6 fill-primary" aria-hidden="true" />
+                    <div className="flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-rose-600 text-white shadow-xs">
+                      <Droplet className="size-6 fill-current" aria-hidden="true" />
                     </div>
                     <div>
-                      <div className="font-bold text-foreground text-base">
-                        {t.brand.name}
+                      <div className="font-extrabold text-foreground text-base leading-tight">
+                        {locale === "en" ? "Instant Blood Discovery" : "তাৎক্ষণিক রক্তদাতা অনুসন্ধান"}
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {t.brand.tagline}
+                      <div className="text-xs text-muted-foreground mt-0.5">
+                        {locale === "en"
+                          ? "Tap your blood group below"
+                          : "আপনার প্রয়োজনীয় গ্রুপে ট্যাপ করুন"}
                       </div>
                     </div>
                   </div>
-                  <Badge variant="outline" className="border-available/40 text-available bg-available/10 text-xs">
+                  <Badge variant="available" className="text-[11px] shrink-0 font-bold">
                     {t.domain.donorStatus.available}
                   </Badge>
                 </div>
 
-                {/* Visual Blood Group Badges Matrix */}
-                <div className="py-6 space-y-4">
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                    {t.home.bloodGroups.badge}
+                {/* Interactive 8 Blood Groups Grid (Direct Search Links) */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    <span>{t.home.bloodGroups.badge}</span>
+                    <span className="text-[11px] font-normal normal-case text-primary">
+                      {locale === "en" ? "1-Click Search" : "১-ক্লিকে অনুসন্ধান"}
+                    </span>
                   </div>
-                  <div className="grid grid-cols-4 gap-2.5">
-                    {["A+", "B+", "O+", "AB+", "A-", "B-", "O-", "AB-"].map((group) => (
-                      <div
+
+                  <div className="grid grid-cols-4 gap-2.5" role="group" aria-label="Quick Blood Group Search">
+                    {BLOOD_GROUPS.map((group) => (
+                      <button
                         key={group}
-                        className="flex h-9 items-center justify-center rounded-lg border border-border bg-background transition-colors"
+                        type="button"
+                        onClick={() => handleQuickGroupSelect(group)}
+                        title={
+                          locale === "en"
+                            ? `Find ${group} blood donors`
+                            : `${group} রক্তদাতা অনুসন্ধান করুন`
+                        }
+                        aria-label={
+                          locale === "en"
+                            ? `Find ${group} blood donors`
+                            : `${group} রক্তদাতা অনুসন্ধান করুন`
+                        }
+                        className="flex flex-col items-center justify-center h-12 rounded-xl border border-border bg-surface hover:border-primary/50 hover:bg-primary-subtle text-foreground hover:text-primary font-black text-sm tracking-tight transition-all duration-150 shadow-2xs hover:scale-105 active:scale-95 cursor-pointer touch-manipulation group"
                       >
-                        <span className="font-extrabold text-foreground text-sm leading-none text-center">
+                        <span className="leading-none group-hover:scale-110 transition-transform">
                           {group}
                         </span>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Platform Trust Highlights */}
-                <div className="pt-4 border-t border-border grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+                {/* Reassurance Footer */}
+                <div className="pt-4 border-t border-border/80 grid grid-cols-2 gap-3 text-xs text-muted-foreground">
                   <div className="flex items-center gap-2">
-                    <ShieldCheck className="size-4 text-available shrink-0" aria-hidden="true" />
-                    <span>{t.home.becomeDonor.point3Title}</span>
+                    <ShieldCheck className="size-4 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
+                    <span className="truncate">{t.home.becomeDonor.point3Title}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="size-4 text-primary shrink-0" aria-hidden="true" />
-                    <span>{t.home.hero.quickStat1Desc}</span>
+                    <span className="truncate">{t.home.hero.quickStat1Desc}</span>
                   </div>
                 </div>
               </div>

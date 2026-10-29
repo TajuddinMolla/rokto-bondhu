@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Search, UserPlus } from "lucide-react";
+import { Search, UserPlus, ArrowRight, Heart } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useIsDonor } from "@/hooks/use-is-donor";
@@ -15,50 +15,65 @@ interface FinalCtaSectionProps {
 export function FinalCtaSection({ locale }: FinalCtaSectionProps) {
   const t = getTranslations(locale);
   const { isDonor } = useIsDonor();
-  const registerHref = locale === "en" ? "/en/donors/register" : "/donors/register";
+  const prefix = locale === "en" ? "/en" : "";
+  const registerHref = `${prefix}/donors/register`;
+  const donorsHref = `${prefix}/donors`;
 
   return (
     <section
       aria-labelledby="final-cta-heading"
-      className="py-16 sm:py-20 bg-slate-900 text-white"
+      className="relative overflow-hidden py-16 sm:py-20 lg:py-24 bg-gradient-to-b from-surface via-background to-background border-t border-border/80"
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-        <h2
-          id="final-cta-heading"
-          className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-white max-w-2xl mx-auto leading-tight"
-        >
-          {t.home.finalCta.title}
-        </h2>
+      {/* Subtle ambient lighting */}
+      <div
+        className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 -z-10 size-96 rounded-full bg-primary/10 blur-3xl"
+        aria-hidden="true"
+      />
 
-        <p className="text-sm sm:text-base text-slate-300 max-w-xl mx-auto leading-relaxed">
-          {t.home.finalCta.subtitle}
-        </p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative rounded-3xl border border-border/80 bg-surface/90 backdrop-blur-md p-8 sm:p-12 lg:p-16 text-center space-y-6 shadow-xl">
+          <div className="inline-flex size-12 items-center justify-center rounded-2xl bg-primary-subtle text-primary border border-primary-border shadow-xs">
+            <Heart className="size-6 fill-current" aria-hidden="true" />
+          </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          <Button
-            asChild
-            size="lg"
-            className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white font-semibold shadow-sm text-base"
+          <h2
+            id="final-cta-heading"
+            className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-foreground max-w-2xl mx-auto leading-tight"
           >
-            <a href="#search-panel">
-              <Search className="size-4 mr-2" aria-hidden="true" />
-              {t.home.finalCta.findDonorsCta}
-            </a>
-          </Button>
+            {t.home.finalCta.title}
+          </h2>
 
-          {!isDonor && (
+          <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
+            {t.home.finalCta.subtitle}
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
             <Button
               asChild
-              variant="outline"
               size="lg"
-              className="w-full sm:w-auto border-slate-700 bg-slate-800 text-white hover:border-slate-500 hover:bg-slate-700 hover:text-white font-semibold text-base"
+              className="w-full sm:w-auto min-h-[48px] px-8 bg-primary hover:bg-primary-hover text-white font-bold shadow-sm text-base gap-2"
             >
-              <Link href={registerHref}>
-                <UserPlus className="size-4 mr-2" aria-hidden="true" />
-                {t.home.finalCta.registerCta}
+              <Link href={donorsHref}>
+                <Search className="size-4.5" aria-hidden="true" />
+                <span>{t.home.finalCta.findDonorsCta}</span>
+                <ArrowRight className="size-4" aria-hidden="true" />
               </Link>
             </Button>
-          )}
+
+            {!isDonor && (
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto min-h-[48px] px-7 border-border hover:bg-muted font-bold text-base gap-2"
+              >
+                <Link href={registerHref}>
+                  <UserPlus className="size-4.5" aria-hidden="true" />
+                  <span>{t.home.finalCta.registerCta}</span>
+                </Link>
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </section>

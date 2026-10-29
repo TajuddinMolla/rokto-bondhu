@@ -1,22 +1,22 @@
 "use client";
 
 import * as React from "react";
-import { Search, RotateCcw, AlertCircle, Info } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Search, RotateCcw, AlertCircle, AlertTriangle, ArrowRight, Droplet, MapPin } from "lucide-react";
 
 import { BLOOD_GROUPS, type BloodGroup } from "@/constants/blood-groups";
 import {
   getDivisions,
   getDistricts,
   getUpazilas,
-  getDivisionById,
-  getDistrictById,
-  getUpazilaById,
 } from "@/constants/locations";
 import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 
 interface DonorSearchPanelProps {
   locale: Locale;
@@ -28,6 +28,7 @@ export function DonorSearchPanel({
   defaultBloodGroup,
 }: DonorSearchPanelProps) {
   const t = getTranslations(locale);
+  const router = useRouter();
   const formId = React.useId();
 
   // Search state
@@ -48,13 +49,7 @@ export function DonorSearchPanel({
 
   // Feedback state
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
-  const [searchSubmitted, setSearchSubmitted] = React.useState<boolean>(false);
-  const [submittedCriteria, setSubmittedCriteria] = React.useState<{
-    bloodGroup: string;
-    divisionName: string;
-    districtName: string;
-    upazilaName: string;
-  } | null>(null);
+  const [isSearching, setIsSearching] = React.useState<boolean>(false);
 
   // Derived location datasets
   const divisions = React.useMemo(() => getDivisions(), []);
@@ -74,7 +69,6 @@ export function DonorSearchPanel({
     setDistrictId("");
     setUpazilaId("");
     setErrorMessage(null);
-    setSearchSubmitted(false);
   };
 
   const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -82,19 +76,16 @@ export function DonorSearchPanel({
     setDistrictId(newDistrict);
     setUpazilaId("");
     setErrorMessage(null);
-    setSearchSubmitted(false);
   };
 
   const handleUpazilaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setUpazilaId(e.target.value);
     setErrorMessage(null);
-    setSearchSubmitted(false);
   };
 
-  const handleBloodGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setBloodGroup(e.target.value);
+  const handleBloodGroupSelect = (group: string) => {
+    setBloodGroup(group === bloodGroup ? "" : group);
     setErrorMessage(null);
-    setSearchSubmitted(false);
   };
 
   const handleReset = () => {
@@ -103,8 +94,6 @@ export function DonorSearchPanel({
     setDistrictId("");
     setUpazilaId("");
     setErrorMessage(null);
-    setSearchSubmitted(false);
-    setSubmittedCriteria(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -112,61 +101,98 @@ export function DonorSearchPanel({
 
     if (!bloodGroup) {
       setErrorMessage(t.home.search.pleaseSelectBloodGroup);
-      setSearchSubmitted(false);
       return;
     }
 
     setErrorMessage(null);
+    setIsSearching(true);
 
-    const divisionObj = divisionId ? getDivisionById(divisionId) : undefined;
-    const districtObj = districtId ? getDistrictById(districtId) : undefined;
-    const upazilaObj = upazilaId ? getUpazilaById(upazilaId) : undefined;
+    const params = new URLSearchParams();
+    if (bloodGroup) params.set("bloodGroup", bloodGroup);
+    if (divisionId) params.set("division", divisionId);
+    if (districtId) params.set("district", districtId);
+    if (upazilaId) params.set("upazila", upazilaId);
 
-    setSubmittedCriteria({
-      bloodGroup,
-      divisionName: divisionObj
-        ? locale === "en"
-          ? divisionObj.nameEn
-          : divisionObj.nameBn
-        : t.home.search.allBangladesh,
-      districtName: districtObj
-        ? locale === "en"
-          ? districtObj.nameEn
-          : districtObj.nameBn
-        : t.home.search.allDistricts,
-      upazilaName: upazilaObj
-        ? locale === "en"
-          ? upazilaObj.nameEn
-          : upazilaObj.nameBn
-        : t.home.search.allUpazilas,
-    });
-    setSearchSubmitted(true);
+    const prefix = locale === "en" ? "/en" : "";
+    const queryString = params.toString();
+    const destination = `${prefix}/donors${queryString ? `?${queryString}` : ""}`;
+
+    router.push(destination);
   };
+
+  const prefix = locale === "en" ? "/en" : "";
+  const requestCreateHref = `${prefix}/blood-request/create`;
 
   return (
     <section
       id="search-panel"
       aria-labelledby="search-heading"
-      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 sm:-mt-12 relative z-20"
+      className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 sm:-mt-12 relative z-20 space-y-4"
     >
-      <Card className="border border-border/80 shadow-lg bg-surface">
+      {/* Emergency Requisition Top Notice */}
+      <div className="rounded-2xl border border-emergency-border bg-gradient-to-r from-emergency-subtle via-surface to-emergency-subtle/30 p-4 sm:p-5 shadow-sm transition-all duration-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-emergency/10 text-emergency border border-emergency/20">
+              <AlertTriangle className="size-5" aria-hidden="true" />
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-foreground text-sm sm:text-base">
+                  {locale === "en"
+                    ? "Need Blood Urgently for a Patient?"
+                    : "রোগীর জন্য জরুরি রক্তের প্রয়োজন?"}
+                </span>
+                <Badge variant="emergency" className="text-[10px] font-bold py-0.5 px-2">
+                  {locale === "en" ? "Emergency" : "জরুরি"}
+                </Badge>
+              </div>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                {locale === "en"
+                  ? "Post a verified blood request to reach nearby donors and volunteers instantly."
+                  : "নিকটস্থ রক্তদাতা ও ভলান্টিয়ারদের তাৎক্ষণিক সাড়া পেতে রক্তের অনুরোধ পোস্ট করুন।"}
+              </p>
+            </div>
+          </div>
+
+          <Button
+            asChild
+            size="sm"
+            className="self-start sm:self-auto min-h-[44px] bg-emergency hover:bg-emergency/90 text-white font-semibold shadow-xs shrink-0"
+          >
+            <Link href={requestCreateHref}>
+              <span>{locale === "en" ? "Post Blood Request" : "রক্তের আবেদন করুন"}</span>
+              <ArrowRight className="size-4 ml-1.5" aria-hidden="true" />
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Donor Search Card */}
+      <Card className="border border-border/80 shadow-xl bg-surface">
         <CardHeader className="pb-4 sm:pb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <CardTitle id="search-heading" className="text-xl sm:text-2xl font-bold text-foreground">
-                {t.home.search.title}
-              </CardTitle>
-              <CardDescription className="text-sm text-muted-foreground mt-1">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Search className="size-4" aria-hidden="true" />
+                </div>
+                <CardTitle id="search-heading" className="text-xl sm:text-2xl font-black text-foreground">
+                  {t.home.search.title}
+                </CardTitle>
+              </div>
+              <CardDescription className="text-sm text-muted-foreground">
                 {t.home.search.subtitle}
               </CardDescription>
             </div>
+
             {bloodGroup || divisionId ? (
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={handleReset}
-                className="self-start sm:self-auto text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                className="self-start sm:self-auto text-xs text-muted-foreground hover:text-foreground gap-1.5 min-h-[36px]"
               >
                 <RotateCcw className="size-3.5" aria-hidden="true" />
                 {t.home.search.resetCriteria}
@@ -175,29 +201,78 @@ export function DonorSearchPanel({
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="space-y-6">
+          {/* Quick Blood Group Buttons Row */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor={`${formId}-blood-group`}
+                className="block text-xs font-bold text-foreground uppercase tracking-wider"
+              >
+                {t.home.search.bloodGroupLabel} <span className="text-primary">*</span>
+              </label>
+              <span className="text-xs text-muted-foreground">
+                {locale === "en" ? "Select group or pick below" : "গ্রুপ নির্বাচন করুন বা ট্যাপ করুন"}
+              </span>
+            </div>
+
+            <div
+              role="group"
+              aria-label={t.home.search.bloodGroupLabel}
+              className="grid grid-cols-4 sm:grid-cols-8 gap-2"
+            >
+              {BLOOD_GROUPS.map((group) => {
+                const isSelected = bloodGroup === group;
+                return (
+                  <button
+                    key={group}
+                    type="button"
+                    onClick={() => handleBloodGroupSelect(group)}
+                    aria-pressed={isSelected}
+                    className={`flex items-center justify-center h-12 rounded-xl border text-sm font-extrabold transition-all duration-150 cursor-pointer touch-manipulation min-h-[44px] ${
+                      isSelected
+                        ? "border-primary bg-primary text-primary-foreground shadow-xs ring-2 ring-primary/20 scale-[1.02]"
+                        : "border-border bg-surface text-foreground hover:border-primary/50 hover:bg-primary-subtle"
+                    }`}
+                  >
+                    <Droplet
+                      className={`size-3.5 mr-1 shrink-0 ${
+                        isSelected ? "fill-current" : "text-primary fill-primary/30"
+                      }`}
+                      aria-hidden="true"
+                    />
+                    <span>{group}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <form onSubmit={handleSubmit} noValidate className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Blood Group Field */}
+              {/* Blood Group Select (Accessible fallback / alternative) */}
               <div className="space-y-1.5">
                 <label
                   htmlFor={`${formId}-blood-group`}
-                  className="block text-xs font-semibold text-foreground uppercase tracking-wider"
+                  className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider"
                 >
-                  {t.home.search.bloodGroupLabel} <span className="text-primary">*</span>
+                  {t.home.search.bloodGroupLabel}
                 </label>
                 <Select
                   id={`${formId}-blood-group`}
                   value={bloodGroup}
-                  onChange={handleBloodGroupChange}
+                  onChange={(e) => {
+                    setBloodGroup(e.target.value);
+                    setErrorMessage(null);
+                  }}
                   aria-required="true"
                   aria-invalid={Boolean(errorMessage)}
                   aria-describedby={errorMessage ? `${formId}-error` : undefined}
-                  className={
+                  className={`min-h-[44px] ${
                     errorMessage
                       ? "border-destructive focus-visible:ring-destructive enabled:hover:border-destructive"
                       : ""
-                  }
+                  }`}
                 >
                   <option value="">{t.home.search.bloodGroupPlaceholder}</option>
                   {BLOOD_GROUPS.map((group) => (
@@ -208,11 +283,11 @@ export function DonorSearchPanel({
                 </Select>
               </div>
 
-              {/* Division Field */}
+              {/* Division Select */}
               <div className="space-y-1.5">
                 <label
                   htmlFor={`${formId}-division`}
-                  className="block text-xs font-semibold text-foreground uppercase tracking-wider"
+                  className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider"
                 >
                   {t.home.search.divisionLabel}
                 </label>
@@ -220,6 +295,7 @@ export function DonorSearchPanel({
                   id={`${formId}-division`}
                   value={divisionId}
                   onChange={handleDivisionChange}
+                  className="min-h-[44px]"
                 >
                   <option value="">{t.home.search.divisionPlaceholder}</option>
                   {divisions.map((div) => (
@@ -230,11 +306,11 @@ export function DonorSearchPanel({
                 </Select>
               </div>
 
-              {/* District Field (Dependent on Division) */}
+              {/* District Select */}
               <div className="space-y-1.5">
                 <label
                   htmlFor={`${formId}-district`}
-                  className="block text-xs font-semibold text-foreground uppercase tracking-wider"
+                  className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider"
                 >
                   {t.home.search.districtLabel}
                 </label>
@@ -243,6 +319,7 @@ export function DonorSearchPanel({
                   value={districtId}
                   onChange={handleDistrictChange}
                   disabled={!divisionId}
+                  className="min-h-[44px]"
                 >
                   <option value="">
                     {divisionId
@@ -257,11 +334,11 @@ export function DonorSearchPanel({
                 </Select>
               </div>
 
-              {/* Upazila Field (Dependent on District) */}
+              {/* Upazila Select */}
               <div className="space-y-1.5">
                 <label
                   htmlFor={`${formId}-upazila`}
-                  className="block text-xs font-semibold text-foreground uppercase tracking-wider"
+                  className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider"
                 >
                   {t.home.search.upazilaLabel}
                 </label>
@@ -270,6 +347,7 @@ export function DonorSearchPanel({
                   value={upazilaId}
                   onChange={handleUpazilaChange}
                   disabled={!districtId || upazilas.length === 0}
+                  className="min-h-[44px]"
                 >
                   <option value="">
                     {!districtId
@@ -287,82 +365,43 @@ export function DonorSearchPanel({
               </div>
             </div>
 
-            {/* Validation Error Feedback */}
+            {/* Inline Error Message */}
             {errorMessage ? (
               <div
                 id={`${formId}-error`}
                 role="alert"
-                className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-md"
+                className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 p-3 rounded-xl"
               >
                 <AlertCircle className="size-4 shrink-0" aria-hidden="true" />
-                <span>{errorMessage}</span>
+                <span className="font-medium">{errorMessage}</span>
               </div>
             ) : null}
 
-            {/* Submit Action */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-2">
-              <Button type="submit" size="lg" className="font-semibold shadow-xs">
-                <Search className="size-4 mr-2" aria-hidden="true" />
-                {t.home.search.searchButton}
+            {/* Search Submit Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-2 border-t border-border/80">
+              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                <MapPin className="size-3.5 text-primary shrink-0" aria-hidden="true" />
+                <span>
+                  {locale === "en"
+                    ? "Direct navigation to verified donor registry"
+                    : "যাচাইকৃত রক্তদাতাদের তালিকায় সরাসরি অনুসন্ধান"}
+                </span>
+              </div>
+
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isSearching}
+                className="min-h-[48px] px-8 font-bold text-base shadow-xs bg-primary hover:bg-primary-hover text-primary-foreground gap-2"
+              >
+                <Search className="size-4.5" aria-hidden="true" />
+                <span>
+                  {isSearching ? t.home.search.searching : t.home.search.searchButton}
+                </span>
+                <ArrowRight className="size-4" aria-hidden="true" />
               </Button>
             </div>
           </form>
-
-          {/* Localized Demo Feedback Card (Guaranteed Zero Fake Donor Records) */}
-          {searchSubmitted && submittedCriteria ? (
-            <div
-              role="region"
-              aria-live="polite"
-              className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4 sm:p-6 space-y-4"
-            >
-              <div className="flex items-start gap-3">
-                <Info className="size-5 text-primary shrink-0 mt-0.5" aria-hidden="true" />
-                <div className="space-y-1">
-                  <h3 className="text-base font-bold text-foreground">
-                    {t.home.search.demoTitle}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    {t.home.search.demoNotice}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-surface rounded-lg border border-border p-3 sm:p-4 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                <div>
-                  <span className="text-muted-foreground block">
-                    {t.home.search.bloodGroupLabel}:
-                  </span>
-                  <span className="font-extrabold text-primary text-sm">
-                    {submittedCriteria.bloodGroup}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block">
-                    {t.home.search.divisionLabel}:
-                  </span>
-                  <span className="font-semibold text-foreground">
-                    {submittedCriteria.divisionName}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block">
-                    {t.home.search.districtLabel}:
-                  </span>
-                  <span className="font-semibold text-foreground">
-                    {submittedCriteria.districtName}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground block">
-                    {t.home.search.upazilaLabel}:
-                  </span>
-                  <span className="font-semibold text-foreground">
-                    {submittedCriteria.upazilaName}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ) : null}
         </CardContent>
       </Card>
     </section>

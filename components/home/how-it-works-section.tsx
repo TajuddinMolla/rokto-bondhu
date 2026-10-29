@@ -14,19 +14,19 @@ export function HowItWorksSection({ locale }: HowItWorksSectionProps) {
 
   const steps = [
     {
-      number: "০১" === "০১" && locale === "bn" ? "১" : "1",
+      number: locale === "bn" ? "০১" : "01",
       icon: Search,
       title: t.home.howItWorks.step1Title,
       description: t.home.howItWorks.step1Desc,
     },
     {
-      number: locale === "bn" ? "২" : "2",
+      number: locale === "bn" ? "০২" : "02",
       icon: PhoneCall,
       title: t.home.howItWorks.step2Title,
       description: t.home.howItWorks.step2Desc,
     },
     {
-      number: locale === "bn" ? "৩" : "3",
+      number: locale === "bn" ? "০৩" : "03",
       icon: HeartHandshake,
       title: t.home.howItWorks.step3Title,
       description: t.home.howItWorks.step3Desc,
@@ -36,20 +36,20 @@ export function HowItWorksSection({ locale }: HowItWorksSectionProps) {
   return (
     <section
       aria-labelledby="how-it-works-heading"
-      className="py-16 sm:py-20 lg:py-24 bg-background border-b border-border"
+      className="py-16 sm:py-20 lg:py-24 bg-background border-b border-border/80"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         {/* Section Header */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
           <Badge
-            variant="outline"
-            className="border-primary/20 text-primary bg-primary/5 px-3 py-1 text-xs font-semibold rounded-full"
+            variant="subtle"
+            className="border-primary-border text-primary bg-primary-subtle px-3 py-1 text-xs font-semibold rounded-full"
           >
             {t.home.howItWorks.badge}
           </Badge>
           <h2
             id="how-it-works-heading"
-            className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight"
+            className="text-2xl sm:text-3xl lg:text-4xl font-black text-foreground tracking-tight"
           >
             {t.home.howItWorks.sectionTitle}
           </h2>
@@ -65,29 +65,30 @@ export function HowItWorksSection({ locale }: HowItWorksSectionProps) {
             return (
               <Card
                 key={index}
-                className="relative overflow-hidden border border-border bg-surface transition-all duration-200 hover:shadow-md hover:border-primary/30"
+                className="relative overflow-hidden border border-border/80 bg-surface rounded-2xl transition-all duration-200 hover:shadow-lg hover:border-primary/40 group"
               >
                 <div
-                  className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary/30 via-primary to-primary/30"
+                  className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
                   aria-hidden="true"
                 />
-                <CardContent className="pt-8 pb-6 px-6 space-y-4">
+                <CardContent className="pt-8 pb-7 px-6 sm:px-7 space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
-                      <Icon className="size-6" aria-hidden="true" />
+                    <div className="flex size-13 items-center justify-center rounded-2xl bg-primary-subtle text-primary border border-primary-border group-hover:scale-105 transition-transform">
+                      <Icon className="size-6.5" aria-hidden="true" />
                     </div>
-                    <span className="text-2xl sm:text-3xl font-extrabold text-muted-foreground/30 font-mono leading-none select-none">
+                    <span className="text-3xl sm:text-4xl font-black text-muted-foreground/30 font-mono leading-none select-none">
                       {step.number}
                     </span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-foreground">
-                    {step.title}
-                  </h3>
-
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {step.description}
-                  </p>
+                  <div className="space-y-2 pt-1">
+                    <h3 className="text-lg sm:text-xl font-bold text-foreground group-hover:text-primary transition-colors">
+                      {step.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {step.description}
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             );
