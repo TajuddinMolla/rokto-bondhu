@@ -1,5 +1,7 @@
 import type { BloodGroup, RequestStatus, RequestUrgency } from "@/types/blood";
 
+export type BloodRequestScope = "LOCAL" | "GLOBAL";
+
 /**
  * Blood Request Entity.
  * Represents an urgent or planned requisition for blood units from patients or hospitals.
@@ -23,6 +25,7 @@ export interface BloodRequest {
   neededAt: string; // ISO 8601 string
   urgency: RequestUrgency;
   status: RequestStatus;
+  scope?: BloodRequestScope;
   additionalNotes?: string;
   hiddenReason?: string;
   moderatedAt?: string;
@@ -46,6 +49,7 @@ export interface CreateBloodRequestInput {
   locationAddress?: string;
   neededAt: string;
   urgency: RequestUrgency;
+  scope?: BloodRequestScope;
   additionalNotes?: string;
 }
 
@@ -64,6 +68,7 @@ export interface UpdateBloodRequestInput {
   locationAddress?: string;
   neededAt?: string;
   urgency?: RequestUrgency;
+  scope?: BloodRequestScope;
   additionalNotes?: string;
   status?: RequestStatus;
 }
@@ -82,5 +87,6 @@ export interface BloodRequestSummary {
   neededAt: string;
   urgency: RequestUrgency;
   status: RequestStatus;
+  scope?: BloodRequestScope;
   createdAt: string;
 }

@@ -37,6 +37,7 @@ import {
   useOutgoingContactRequests,
 } from "@/hooks/queries/use-contact-requests";
 import { useUnreadNotificationsCount } from "@/hooks/queries/use-notifications";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useUpdateDonorAvailability } from "@/hooks/mutations/use-update-donor-availability";
 import { useUpdateUserProfile } from "@/hooks/mutations/use-update-user-profile";
 import { useUpdateDonorContactMode } from "@/hooks/mutations/use-contact-request-mutations";
@@ -71,6 +72,7 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
   const { data: incomingContactRequests = [] } = useIncomingContactRequests(user?.uid);
   const { data: outgoingContactRequests = [] } = useOutgoingContactRequests(user?.uid);
   const { data: unreadCount = 0 } = useUnreadNotificationsCount(user?.uid);
+  const pushState = usePushNotifications();
 
   // Mutations
   const updateAvailabilityMutation = useUpdateDonorAvailability();
@@ -861,7 +863,7 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
                 </Link>
               </Button>
             </CardHeader>
-            <CardContent className="p-5 sm:p-6">
+            <CardContent className="p-5 sm:p-6 space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl border border-border bg-muted/10">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -886,6 +888,96 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
                     </Link>
                   </Button>
                 </div>
+              </div>
+
+              {/* Browser Web Push Notifications Control */}
+              <div className="p-4 rounded-xl border border-border bg-muted/10 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-foreground">
+                      {locale === "en" ? "Browser Push Notifications" : "ব্রাউজার পুশ নোটিফিকেশন"}
+                    </span>
+                    <Badge
+                      variant={
+                        pushState.isSubscribed
+                          ? "default"
+                          : pushState.status === "denied"
+                          ? "destructive"
+                          : "outline"
+                      }
+                      className="text-[10px] font-semibold"
+                    >
+                      {pushState.isSubscribed
+                        ? locale === "en"
+                          ? "Active"
+                          : "সক্রিয়"
+                        : pushState.status === "denied"
+                        ? locale === "en"
+                          ? "Blocked in Browser"
+                          : "ব্রাউজারে ব্লকড"
+                        : pushState.status === "unsupported"
+                        ? locale === "en"
+                          ? "Unsupported"
+                          : "সমর্থিত নয়"
+                        : locale === "en"
+                        ? "Inactive"
+                        : "নিষ্ক্রিয়"}
+                    </Badge>
+                  </div>
+
+                  <div>
+                    {pushState.isSubscribed ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={pushState.isLoading}
+                        onClick={() => pushState.disablePush()}
+                        className="h-8 text-xs text-destructive hover:bg-destructive/10"
+                      >
+                        {pushState.isLoading ? (
+                          <Loader2 className="size-3 animate-spin mr-1.5" />
+                        ) : null}
+                        <span>{locale === "en" ? "Disable Push" : "বন্ধ করুন"}</span>
+                      </Button>
+                    ) : pushState.status === "denied" ? (
+                      <span className="text-[11px] text-destructive">
+                        {locale === "en" ? "Please unblock in browser site settings" : "ব্রাউজার সাইট সেটিংসে অনুমতি দিন"}
+                      </span>
+                    ) : pushState.status === "unsupported" ? (
+                      <span className="text-[11px] text-muted-foreground">
+                        {locale === "en" ? "Not available on this device" : "এই ডিভাইসে অনুপলব্ধ"}
+                      </span>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={pushState.isLoading}
+                        onClick={() => pushState.enablePush()}
+                        className="h-8 text-xs font-semibold gap-1.5 shadow-xs"
+                      >
+                        {pushState.isLoading ? (
+                          <Loader2 className="size-3 animate-spin" />
+                        ) : (
+                          <Bell className="size-3" />
+                        )}
+                        <span>{locale === "en" ? "Enable Push Alerts" : "পুশ নোটিফিকেশন চালু করুন"}</span>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {locale === "en"
+                    ? "Receive instant desktop and mobile notifications when urgent blood requests matching your group are created or when patients contact you."
+                    : "আপনার গ্রুপের রক্তের জরুরি অনুরোধ আসলে কিংবা রোগীরা যোগাযোগের অনুরোধ পাঠালে সাথে সাথে ব্রাউজারে নোটিফিকেশন পান।"}
+                </p>
+
+                {pushState.error && (
+                  <p className="text-[11px] text-destructive font-medium">
+                    {pushState.error}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>

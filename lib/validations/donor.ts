@@ -58,6 +58,7 @@ export function createDonorSchema(locale: Locale = "bn") {
 
     isPhonePublic: z.boolean().default(false),
     contactMode: z.enum(["PUBLIC", "PRIVATE"]).default("PRIVATE"),
+    phoneVisibility: z.enum(["PUBLIC", "PRIVATE"]).optional(),
 
     divisionId: z
       .string()

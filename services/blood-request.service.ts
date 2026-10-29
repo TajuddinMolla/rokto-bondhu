@@ -60,6 +60,7 @@ export async function createBloodRequest(
     locationAddress: input.locationAddress?.trim() || null,
     neededAt: input.neededAt.trim(),
     urgency: input.urgency,
+    scope: input.scope || "LOCAL",
     status: "open",
     additionalNotes: input.additionalNotes?.trim() || null,
     createdAt: serverTimestamp(),
@@ -90,6 +91,7 @@ export async function createBloodRequest(
     locationAddress: input.locationAddress?.trim() || undefined,
     neededAt: input.neededAt.trim(),
     urgency: input.urgency,
+    scope: input.scope || "LOCAL",
     status: "open",
     additionalNotes: input.additionalNotes?.trim() || undefined,
     createdAt: now,
@@ -127,6 +129,7 @@ export async function getMyBloodRequests(userId: string): Promise<BloodRequest[]
       neededAt: data.neededAt || "",
       urgency: data.urgency || "urgent",
       status: data.status || "open",
+      scope: data.scope || "LOCAL",
       additionalNotes: data.additionalNotes || undefined,
       createdAt: timestampToIso(data.createdAt),
       updatedAt: timestampToIso(data.updatedAt),
@@ -169,6 +172,7 @@ export async function getBloodRequestById(requestId: string): Promise<BloodReque
     neededAt: data.neededAt || "",
     urgency: data.urgency || "urgent",
     status: data.status || "open",
+    scope: data.scope || "LOCAL",
     additionalNotes: data.additionalNotes || undefined,
     createdAt: timestampToIso(data.createdAt),
     updatedAt: timestampToIso(data.updatedAt),
@@ -220,6 +224,7 @@ export async function updateBloodRequest(
   if (updates.neededAt !== undefined) payload.neededAt = updates.neededAt;
   if (updates.urgency !== undefined) payload.urgency = updates.urgency;
   if (updates.additionalNotes !== undefined) payload.additionalNotes = updates.additionalNotes?.trim() || null;
+  if (updates.scope !== undefined) payload.scope = updates.scope;
   if (updates.status !== undefined) payload.status = updates.status;
 
   await updateDoc(docRef, payload);

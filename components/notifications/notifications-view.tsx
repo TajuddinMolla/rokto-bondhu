@@ -20,6 +20,7 @@ import {
 } from "@/hooks/queries/use-notifications";
 import { useMarkAllNotificationsAsRead } from "@/hooks/mutations/use-notification-mutations";
 import { NotificationItem } from "@/components/notifications/notification-item";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,7 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
   }, [status, router, loginHref]);
 
   const { data: unreadCount = 0 } = useUnreadNotificationsCount(user?.uid);
+  const pushState = usePushNotifications();
   const {
     data,
     isLoading,
@@ -132,6 +134,41 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
           </Button>
         )}
       </div>
+
+      {/* Push Notification Opt-in Prompt Banner */}
+      {!pushState.isSubscribed && pushState.status !== "denied" && pushState.status !== "unsupported" && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-xl border border-primary/20 bg-primary/5 text-xs text-foreground shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+              <Bell className="size-4" />
+            </div>
+            <div>
+              <p className="font-bold text-foreground">
+                {locale === "en" ? "Enable Browser Push Notifications" : "ব্রাউজার পুশ নোটিফিকেশন চালু করুন"}
+              </p>
+              <p className="text-muted-foreground text-[11px] leading-relaxed">
+                {locale === "en"
+                  ? "Get instant alerts for emergency blood requests and direct messages even when you are away."
+                  : "জরুরি রক্তের অনুরোধ কিংবা সরাসরি বার্তার নোটিফিকেশন সাথে সাথে আপনার ডিভাইসে পান।"}
+              </p>
+            </div>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            disabled={pushState.isLoading}
+            onClick={() => pushState.enablePush()}
+            className="w-full sm:w-auto text-xs font-semibold gap-1.5 shrink-0 shadow-xs"
+          >
+            {pushState.isLoading ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Bell className="size-3.5" />
+            )}
+            <span>{locale === "en" ? "Turn On" : "চালু করুন"}</span>
+          </Button>
+        </div>
+      )}
 
       {/* Main Content Card */}
       <Card className="border border-border bg-surface shadow-xs overflow-hidden">

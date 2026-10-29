@@ -76,6 +76,8 @@ export function createBloodRequestSchema(locale: Locale = "bn") {
       message: t.validation.urgencyInvalid,
     }),
 
+    scope: z.enum(["LOCAL", "GLOBAL"]).default("LOCAL"),
+
     additionalNotes: z
       .string()
       .trim()

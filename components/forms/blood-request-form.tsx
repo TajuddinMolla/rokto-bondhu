@@ -18,6 +18,7 @@ import {
   PhoneCall,
   ClipboardList,
   Search,
+  Globe,
 } from "lucide-react";
 
 import { BLOOD_GROUPS } from "@/constants/blood-groups";
@@ -55,6 +56,7 @@ const INITIAL_FORM_STATE: BloodRequestInput = {
   bloodGroup: "" as unknown as BloodRequestInput["bloodGroup"],
   unitsNeeded: 1,
   urgency: "urgent",
+  scope: "LOCAL",
   divisionId: "",
   districtId: "",
   upazilaId: "",
@@ -114,6 +116,7 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
   const watchedDivisionId = useWatch({ control, name: "divisionId" });
   const watchedDistrictId = useWatch({ control, name: "districtId" });
   const watchedUrgency = useWatch({ control, name: "urgency" });
+  const watchedScope = useWatch({ control, name: "scope" }) || "LOCAL";
 
   // Location datasets
   const divisions = React.useMemo(() => getDivisions(), []);
@@ -170,6 +173,7 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
           locationAddress: data.locationAddress || undefined,
           neededAt: data.neededAt,
           urgency: data.urgency,
+          scope: data.scope || "LOCAL",
           additionalNotes: data.additionalNotes || undefined,
         },
       });
@@ -577,6 +581,65 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
                   {...register("neededAt")}
                 />
               </FormField>
+
+              {/* Broadcast Scope: LOCAL vs GLOBAL */}
+              <div className="space-y-2 pt-2">
+                <label className="block text-xs font-semibold text-foreground">
+                  {locale === "en" ? "Notification Broadcast Scope" : "বিজ্ঞপ্তি সম্প্রচারের পরিধি"}
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setValue("scope", "LOCAL", { shouldValidate: true })}
+                    className={`text-left p-3.5 rounded-xl border transition-all cursor-pointer ${
+                      watchedScope === "LOCAL"
+                        ? "border-primary bg-primary/5 ring-1 ring-primary shadow-xs"
+                        : "border-border bg-surface hover:border-muted-foreground/30"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-semibold text-xs text-foreground mb-1">
+                      <MapPin className="size-3.5 text-primary shrink-0" />
+                      <span>{locale === "en" ? "District Only (Local)" : "শুধু জেলা ভিত্তিক (স্থানীয়)"}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {locale === "en"
+                        ? "Notifies matching available donors in the selected district only."
+                        : "শুধু সংশ্লিষ্ট জেলার সামঞ্জস্যপূর্ণ রক্তদাতাদের কাছে বিজ্ঞপ্তি পাঠানো হবে।"}
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setValue("scope", "GLOBAL", { shouldValidate: true })}
+                    className={`text-left p-3.5 rounded-xl border transition-all cursor-pointer ${
+                      watchedScope === "GLOBAL"
+                        ? "border-destructive bg-destructive/5 ring-1 ring-destructive shadow-xs"
+                        : "border-border bg-surface hover:border-muted-foreground/30"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-semibold text-xs text-foreground mb-1">
+                      <Globe className="size-3.5 text-destructive shrink-0" />
+                      <span>{locale === "en" ? "Nationwide (Global Broadcast)" : "সারাদেশব্যাপী জরুরি সম্প্রচার"}</span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      {locale === "en"
+                        ? "Alerts matching donors across all districts in Bangladesh for extreme emergencies."
+                        : "জরুরি সংকটময় পরিস্থিতিতে সারা বাংলাদেশের সংশ্লিষ্ট গ্রুপের রক্তদাতাদের কাছে বিজ্ঞপ্তি যাবে।"}
+                    </p>
+                  </button>
+                </div>
+
+                {watchedScope === "GLOBAL" && (
+                  <div className="flex items-start gap-2 p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-[11px] text-destructive animate-in fade-in duration-200">
+                    <ShieldAlert className="size-4 shrink-0 mt-0.5" />
+                    <span>
+                      {locale === "en"
+                        ? "Notice: Nationwide broadcast is monitored. To protect donors from notification fatigue, broadcast limits apply."
+                        : "সতর্কতা: সারাদেশব্যাপী জরুরি সম্প্রচার অপব্যবহার রোধে মনিটর করা হয় এবং নির্দিষ্ট সীমায় নিয়ন্ত্রিত।"}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Section 3: Hospital & Location */}

@@ -26,6 +26,7 @@ export interface DonorProfile {
   phoneNumber: string;
   isPhonePublic: boolean;
   contactMode?: DonorContactMode;
+  phoneVisibility?: DonorContactMode;
   lastDonationDate?: string; // YYYY-MM-DD
   availabilityStatus: DonorAvailabilityStatus;
   isSuspended?: boolean;
@@ -49,6 +50,7 @@ export interface DonorPublicSummary {
   area?: string;
   isPhonePublic: boolean;
   contactMode?: DonorContactMode;
+  phoneVisibility?: DonorContactMode;
   phoneNumber?: string; // Only present if contactMode === "PUBLIC" or isPhonePublic is true
   lastDonationDate?: string;
   availabilityStatus: DonorAvailabilityStatus;
@@ -67,6 +69,7 @@ export interface PublicDonorProfile {
   upazilaId: string;
   availabilityStatus: DonorAvailabilityStatus;
   contactMode?: DonorContactMode;
+  phoneVisibility?: DonorContactMode;
   phoneNumber?: string; // Strictly present ONLY when contactMode === "PUBLIC"
   lastDonationDate?: string; // YYYY-MM-DD
   isSuspended?: boolean;

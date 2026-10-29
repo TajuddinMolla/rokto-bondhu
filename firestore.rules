@@ -60,6 +60,11 @@ service cloud.firestore {
                     ) || isAdmin();
 
       allow delete: if false;
+
+      // Device push tokens for FCM web push
+      match /pushTokens/{tokenId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+      }
     }
 
     // -------------------------------------------------------------
@@ -187,7 +192,8 @@ service cloud.firestore {
                     && isValidBloodGroup(request.resource.data.bloodGroup)
                     && request.resource.data.unitsNeeded >= 1
                     && request.resource.data.unitsNeeded <= 20
-                    && request.resource.data.urgency in ['normal', 'urgent', 'critical'];
+                    && request.resource.data.urgency in ['normal', 'urgent', 'critical']
+                    && (!('scope' in request.resource.data) || request.resource.data.scope in ['LOCAL', 'GLOBAL']);
 
       allow update: if (
                       isAuthenticated()
@@ -195,6 +201,7 @@ service cloud.firestore {
                       && resource.data.requesterId == request.auth.uid
                       && request.resource.data.requesterId == resource.data.requesterId
                       && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
+                      && (!('scope' in request.resource.data) || request.resource.data.scope in ['LOCAL', 'GLOBAL'])
                       && (resource.data.status == 'open' && request.resource.data.status in ['open', 'fulfilled', 'cancelled'])
                     ) || isAdmin();
 

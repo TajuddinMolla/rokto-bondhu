@@ -110,6 +110,7 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
   const watchedDivisionId = useWatch({ control, name: "divisionId" });
   const watchedDistrictId = useWatch({ control, name: "districtId" });
   const watchedAvailabilityStatus = useWatch({ control, name: "availabilityStatus" });
+  const watchedIsPhonePublic = useWatch({ control, name: "isPhonePublic" });
 
   // Pre-fill existing donor profile when loaded (Edit Mode)
   const hasInitializedRef = React.useRef(false);
@@ -177,9 +178,14 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
     }
 
     try {
+      const contactMode = data.isPhonePublic ? "PUBLIC" : "PRIVATE";
       const savedProfile = await saveDonorMutation.mutateAsync({
         uid: user.uid,
-        input: data,
+        input: {
+          ...data,
+          contactMode,
+          phoneVisibility: contactMode,
+        },
       });
       setSubmittedSnapshot(savedProfile);
       setIsSuccess(true);
@@ -527,7 +533,7 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
                 </FormField>
 
                 {/* Phone Public Checkbox */}
-                <div className="flex flex-col justify-end pt-1">
+                <div className="flex flex-col justify-end pt-1 space-y-2">
                   <label className="flex items-start gap-3 p-3 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-colors">
                     <input
                       id={`${formId}-isPhonePublic`}
@@ -544,6 +550,22 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
                       </span>
                     </div>
                   </label>
+
+                  {watchedIsPhonePublic && (
+                    <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-900 dark:text-amber-200 animate-in fade-in duration-200">
+                      <ShieldAlert className="size-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <strong className="font-semibold block">
+                          {locale === "en" ? "Explicit Consent & Privacy Notice:" : "স্পষ্ট সম্মতি ও গোপনীয়তা নোটিশ:"}
+                        </strong>
+                        <p className="leading-relaxed">
+                          {locale === "en"
+                            ? "By enabling public phone visibility, your contact number will be visible to all visitors on public searches and profile pages with a direct 'Call Now' (tel:) link, without requiring an in-app contact request."
+                            : "ফোন নম্বর উন্মুক্ত করলে যেকোনো সাধারণ ব্যবহারকারী বা রোগী রক্তদাতা অনুসন্ধানে আপনার নম্বর দেখতে পাবেন এবং সরাসরি কল করতে পারবেন। ব্যক্তিগত যোগাযোগের সুরক্ষা প্রযোজ্য হবে না।"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

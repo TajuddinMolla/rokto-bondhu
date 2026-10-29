@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 
 import { getServerFirestore } from "@/lib/firebase/server";
 import {
@@ -7,7 +7,11 @@ import {
   buildContactRequestReceivedEmail,
   buildContactRequestAcceptedEmail,
   buildContactInfoSharedEmail,
+  buildBloodRequestCreatedEmail,
+  buildBloodRequestStatusEmail,
 } from "@/services/email.service";
+import { sendPushNotification } from "@/services/push.service";
+import { getDistrictById, getDivisionById } from "@/constants/locations";
 import type { NotificationType, EmailDeliveryStatus } from "@/types/notification";
 
 export async function POST(req: NextRequest) {
@@ -38,17 +42,16 @@ export async function POST(req: NextRequest) {
     // Case 1: Contact Request Notifications
     // -------------------------------------------------------------
     if (contactRequestId) {
-      const contactDocRef = doc(db, "donorContactRequests", contactRequestId);
-      const contactSnap = await getDoc(contactDocRef);
+      const contactSnap = await db.collection("donorContactRequests").doc(contactRequestId).get();
 
-      if (!contactSnap.exists()) {
+      if (!contactSnap.exists) {
         return NextResponse.json(
           { error: "Referenced contact request not found" },
           { status: 404 }
         );
       }
 
-      const contactData = contactSnap.data();
+      const contactData = contactSnap.data() || {};
       const donorId = String(contactData.donorId || "");
       const requesterId = String(contactData.requesterId || "");
       const donorName = String(contactData.donorName || "Donor");
@@ -171,9 +174,9 @@ export async function POST(req: NextRequest) {
       let emailSentAt: string | null = null;
 
       if (shouldSendEmail && recipientId) {
-        const recipientUserDoc = await getDoc(doc(db, "users", recipientId));
-        if (recipientUserDoc.exists()) {
-          const udata = recipientUserDoc.data();
+        const recipientUserDoc = await db.collection("users").doc(recipientId).get();
+        if (recipientUserDoc.exists) {
+          const udata = recipientUserDoc.data() || {};
           const recipientEmail = udata.email as string | undefined;
           const emailNotificationsEnabled = udata.emailNotificationsEnabled !== false;
 
@@ -206,12 +209,24 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Dispatch Web Push Notification
+      if (recipientId) {
+        sendPushNotification({
+          recipientUserIds: [recipientId],
+          title: titleBn,
+          body: messageBn,
+          url: actionUrl,
+          tag: `contact-${contactRequestId}`,
+        }).catch((err) => {
+          console.warn("[Dispatch] Push notification error:", err);
+        });
+      }
+
       // Create / upsert in-app notification doc with deterministic ID
       const notifId = `notif_${event.toLowerCase().replace(/_/g, "-")}_${contactRequestId}`;
-      const notifDocRef = doc(db, "notifications", notifId);
+      const notifDocRef = db.collection("notifications").doc(notifId);
 
-      await setDoc(
-        notifDocRef,
+      await notifDocRef.set(
         {
           recipientId,
           senderId: senderId || null,
@@ -225,8 +240,8 @@ export async function POST(req: NextRequest) {
           emailStatus,
           emailSentAt,
           emailError,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true }
       );
@@ -239,77 +254,260 @@ export async function POST(req: NextRequest) {
     }
 
     // -------------------------------------------------------------
-    // Case 2: Blood Request Notifications
+    // Case 2: Blood Request Notifications & Matching Donor Broadcast
     // -------------------------------------------------------------
     if (bloodRequestId) {
-      const bloodDocRef = doc(db, "bloodRequests", bloodRequestId);
-      const bloodSnap = await getDoc(bloodDocRef);
+      const bloodSnap = await db.collection("bloodRequests").doc(bloodRequestId).get();
 
-      if (!bloodSnap.exists()) {
+      if (!bloodSnap.exists) {
         return NextResponse.json(
           { error: "Referenced blood request not found" },
           { status: 404 }
         );
       }
 
-      const bloodData = bloodSnap.data();
+      const bloodData = bloodSnap.data() || {};
       const requesterId = String(bloodData.requesterId || "");
       const bloodGroup = String(bloodData.bloodGroup || "");
+      const unitsNeeded = Number(bloodData.unitsNeeded || 1);
+      const districtId = String(bloodData.districtId || "");
+      const divisionId = String(bloodData.divisionId || "");
+      const hospitalName = bloodData.hospitalName ? String(bloodData.hospitalName) : undefined;
+      const urgency = String(bloodData.urgency || "urgent");
+      const scope = String(bloodData.scope || "LOCAL");
+      const isGlobal = scope === "GLOBAL";
 
-      let titleBn = "";
-      let titleEn = "";
-      let messageBn = "";
-      let messageEn = "";
+      const districtObj = districtId ? getDistrictById(districtId) : undefined;
+      const divisionObj = divisionId ? getDivisionById(divisionId) : undefined;
+      const locationText = districtObj
+        ? `${districtObj.nameBn}, ${divisionObj?.nameBn || ""}`
+        : "বাংলাদেশ";
 
-      switch (event) {
-        case "BLOOD_REQUEST_CREATED":
-          titleBn = "রক্তের অনুরোধ সফলভাবে প্রচারিত হয়েছে";
-          titleEn = "Blood Request Broadcasted Successfully";
-          messageBn = `${bloodGroup} গ্রুপের রক্তের অনুরোধ সফলভাবে তৈরি হয়েছে এবং রক্তদাতাদের জন্য দৃশ্যমান।`;
-          messageEn = `Your blood request for group ${bloodGroup} is now live and searchable by voluntary donors.`;
-          break;
-        case "BLOOD_REQUEST_FULFILLED":
-          titleBn = "রক্তের অনুরোধ সম্পন্ন হয়েছে";
-          titleEn = "Blood Request Marked as Fulfilled";
-          messageBn = `${bloodGroup} গ্রুপের রক্তের অনুরোধটি সম্পন্ন হিসেবে চিহ্নিত করা হয়েছে।`;
-          messageEn = `Your blood request for group ${bloodGroup} has been fulfilled.`;
-          break;
-        case "BLOOD_REQUEST_CANCELLED":
-          titleBn = "রক্তের অনুরোধ বাতিল করা হয়েছে";
-          titleEn = "Blood Request Cancelled";
-          messageBn = `${bloodGroup} গ্রুপের রক্তের অনুরোধটি বাতিল করা হয়েছে।`;
-          messageEn = `Your blood request for group ${bloodGroup} has been cancelled.`;
-          break;
-        default:
-          return NextResponse.json({ skipped: true });
+      // Self-notification for requester on status events
+      if (event === "BLOOD_REQUEST_FULFILLED" || event === "BLOOD_REQUEST_CANCELLED") {
+        const isFulfilled = event === "BLOOD_REQUEST_FULFILLED";
+        const titleBn = isFulfilled ? "রক্তের অনুরোধ সম্পন্ন হয়েছে" : "রক্তের অনুরোধ বাতিল করা হয়েছে";
+        const titleEn = isFulfilled ? "Blood Request Marked as Fulfilled" : "Blood Request Cancelled";
+        const messageBn = isFulfilled
+          ? `${bloodGroup} গ্রুপের রক্তের অনুরোধটি সম্পন্ন হিসেবে চিহ্নিত করা হয়েছে।`
+          : `${bloodGroup} গ্রুপের রক্তের অনুরোধটি বাতিল করা হয়েছে।`;
+        const messageEn = isFulfilled
+          ? `Your blood request for group ${bloodGroup} has been fulfilled.`
+          : `Your blood request for group ${bloodGroup} has been cancelled.`;
+
+        const notifId = `notif_${event.toLowerCase().replace(/_/g, "-")}_${bloodRequestId}`;
+        const actionUrl = `/blood-request/${bloodRequestId}`;
+
+        await db.collection("notifications").doc(notifId).set(
+          {
+            recipientId: requesterId,
+            type: event,
+            title: { bn: titleBn, en: titleEn },
+            message: { bn: messageBn, en: messageEn },
+            relatedRequestId: bloodRequestId,
+            actionUrl,
+            read: false,
+            readAt: null,
+            emailStatus: "NOT_APPLICABLE",
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+
+        // Optionally send transactional email to requester
+        const requesterUserSnap = await db.collection("users").doc(requesterId).get();
+        if (requesterUserSnap.exists) {
+          const reqEmail = requesterUserSnap.data()?.email as string | undefined;
+          if (reqEmail && reqEmail.includes("@")) {
+            const emailTpl = buildBloodRequestStatusEmail({
+              requesterName: String(bloodData.requesterName || "Requester"),
+              bloodGroup,
+              status: isFulfilled ? "fulfilled" : "cancelled",
+              actionUrl,
+            });
+            sendTransactionalEmail({
+              to: reqEmail,
+              subject: emailTpl.subject,
+              html: emailTpl.html,
+              text: emailTpl.text,
+            }).catch(() => {});
+          }
+        }
+
+        // Send push notification to requester
+        sendPushNotification({
+          recipientUserIds: [requesterId],
+          title: titleBn,
+          body: messageBn,
+          url: actionUrl,
+          tag: `request-status-${bloodRequestId}`,
+        }).catch(() => {});
+
+        return NextResponse.json({
+          success: true,
+          notificationId: notifId,
+        });
       }
 
-      const notifId = `notif_${event.toLowerCase().replace(/_/g, "-")}_${bloodRequestId}`;
-      const notifDocRef = doc(db, "notifications", notifId);
+      // Event: BLOOD_REQUEST_CREATED
+      if (event === "BLOOD_REQUEST_CREATED") {
+        // 1. Create confirmation notification for requester
+        const requesterNotifId = `notif_blood_request_created_${bloodRequestId}`;
+        await db.collection("notifications").doc(requesterNotifId).set(
+          {
+            recipientId: requesterId,
+            type: "BLOOD_REQUEST_CREATED",
+            title: {
+              bn: "রক্তের অনুরোধ সফলভাবে প্রচারিত হয়েছে",
+              en: "Blood Request Broadcasted Successfully",
+            },
+            message: {
+              bn: `${bloodGroup} গ্রুপের রক্তের অনুরোধ সফলভাবে তৈরি হয়েছে এবং রক্তদাতাদের জন্য দৃশ্যমান।`,
+              en: `Your blood request for group ${bloodGroup} is now live and searchable by voluntary donors.`,
+            },
+            relatedRequestId: bloodRequestId,
+            actionUrl: `/blood-request/${bloodRequestId}`,
+            read: false,
+            readAt: null,
+            emailStatus: "NOT_APPLICABLE",
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
 
-      await setDoc(
-        notifDocRef,
-        {
-          recipientId: requesterId,
-          type: event,
-          title: { bn: titleBn, en: titleEn },
-          message: { bn: messageBn, en: messageEn },
-          relatedRequestId: bloodRequestId,
-          actionUrl: `/blood-request/${bloodRequestId}`,
-          read: false,
-          readAt: null,
-          emailStatus: "NOT_APPLICABLE",
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+        // 2. Identify eligible matching voluntary donors
+        // Match: exact bloodGroup, available, not suspended, matching district (if local)
+        const recipientLimit = isGlobal ? 150 : 50;
+        let donorsQuery = db
+          .collection("publicDonorProfiles")
+          .where("bloodGroup", "==", bloodGroup)
+          .where("availabilityStatus", "==", "available");
 
-      return NextResponse.json({
-        success: true,
-        notificationId: notifId,
-        emailStatus: "NOT_APPLICABLE",
-      });
+        if (!isGlobal && districtId) {
+          donorsQuery = donorsQuery.where("districtId", "==", districtId);
+        }
+
+        donorsQuery = donorsQuery.limit(recipientLimit);
+        const matchingDonorsSnap = await donorsQuery.get();
+
+        const matchingDonorIds: string[] = [];
+        const matchingDonorsData: Array<{ id: string; displayName: string }> = [];
+
+        matchingDonorsSnap.forEach((docSnap) => {
+          const donorId = docSnap.id;
+          const dData = docSnap.data();
+          // Filter out requester themselves and suspended accounts
+          if (donorId !== requesterId && dData.isSuspended !== true) {
+            matchingDonorIds.push(donorId);
+            matchingDonorsData.push({
+              id: donorId,
+              displayName: String(dData.displayName || "স্বেচ্ছাসেবী রক্তদাতা"),
+            });
+          }
+        });
+
+        // 3. Batch write in-app notifications to matching donors
+        const batch = db.batch();
+        const actionUrl = `/blood-request/${bloodRequestId}`;
+        const titleBn = isGlobal
+          ? `জরুরি ${bloodGroup} রক্ত প্রয়োজন [সারাদেশব্যাপী]`
+          : `জরুরি ${bloodGroup} রক্ত প্রয়োজন`;
+        const titleEn = isGlobal
+          ? `Urgent ${bloodGroup} Blood Needed [Nationwide]`
+          : `Urgent ${bloodGroup} Blood Needed`;
+        const messageBn = `${hospitalName ? `${hospitalName}, ` : ""}${locationText}-এ ${unitsNeeded} ব্যাগ ${bloodGroup} রক্ত প্রয়োজন।`;
+        const messageEn = `${unitsNeeded} unit(s) of ${bloodGroup} needed at ${hospitalName || locationText}.`;
+
+        for (const donor of matchingDonorsData) {
+          const notifId = `notif_blood_req_${bloodRequestId}_${donor.id}`;
+          const ref = db.collection("notifications").doc(notifId);
+          batch.set(
+            ref,
+            {
+              recipientId: donor.id,
+              senderId: requesterId,
+              type: "BLOOD_REQUEST_MATCH",
+              title: { bn: titleBn, en: titleEn },
+              message: { bn: messageBn, en: messageEn },
+              relatedRequestId: bloodRequestId,
+              actionUrl,
+              read: false,
+              readAt: null,
+              emailStatus: "PENDING",
+              createdAt: FieldValue.serverTimestamp(),
+              updatedAt: FieldValue.serverTimestamp(),
+            },
+            { merge: true }
+          );
+        }
+
+        await batch.commit();
+
+        // 4. Send Transactional Emails to matching donors (asynchronous & bounded)
+        // Look up donor emails in chunks of 50
+        const emailDonors = matchingDonorsData.slice(0, 50);
+        for (const donor of emailDonors) {
+          try {
+            const userSnap = await db.collection("users").doc(donor.id).get();
+            if (userSnap.exists) {
+              const uData = userSnap.data() || {};
+              const email = uData.email as string | undefined;
+              const emailEnabled = uData.emailNotificationsEnabled !== false;
+
+              if (emailEnabled && email && email.includes("@")) {
+                const emailTpl = buildBloodRequestCreatedEmail({
+                  donorName: donor.displayName,
+                  bloodGroup,
+                  unitsNeeded,
+                  hospitalName,
+                  locationText,
+                  urgency,
+                  isGlobal,
+                  actionUrl,
+                });
+
+                sendTransactionalEmail({
+                  to: email,
+                  subject: emailTpl.subject,
+                  html: emailTpl.html,
+                  text: emailTpl.text,
+                }).catch(() => {});
+              }
+            }
+          } catch (emailErr) {
+            console.warn(`[Dispatch] Email delivery error for donor ${donor.id}:`, emailErr);
+          }
+        }
+
+        // 5. Send FCM Web Push Notifications to all matching donors with registered devices
+        if (matchingDonorIds.length > 0) {
+          sendPushNotification({
+            recipientUserIds: matchingDonorIds,
+            title: titleBn,
+            body: messageBn,
+            url: actionUrl,
+            tag: `blood-request-${bloodRequestId}`,
+            data: {
+              bloodRequestId,
+              bloodGroup,
+              urgency,
+            },
+          }).catch((pushErr) => {
+            console.warn("[Dispatch] Multicast push error for matching donors:", pushErr);
+          });
+        }
+
+        return NextResponse.json({
+          success: true,
+          requesterNotificationId: requesterNotifId,
+          matchedDonorsNotified: matchingDonorIds.length,
+          isGlobal,
+        });
+      }
+
+      return NextResponse.json({ skipped: true, message: `Unhandled event: ${event}` });
     }
 
     return NextResponse.json(
@@ -318,11 +516,9 @@ export async function POST(req: NextRequest) {
     );
   } catch (error: unknown) {
     console.error("Error in /api/notifications/dispatch:", error);
-    // Never fail the caller catastrophically
     return NextResponse.json(
       { success: false, error: (error as Error)?.message || "Internal server error" },
       { status: 500 }
     );
   }
 }
-

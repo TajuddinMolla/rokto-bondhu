@@ -51,7 +51,7 @@ export async function getDonorProfile(uid: string): Promise<DonorProfile | null>
 
   const data = snap.data();
   const contactMode: DonorContactMode =
-    data.contactMode || (data.isPhonePublic ? "PUBLIC" : "PRIVATE");
+    data.phoneVisibility || data.contactMode || (data.isPhonePublic ? "PUBLIC" : "PRIVATE");
 
   const profile: DonorProfile = {
     id: snap.id,
@@ -65,6 +65,7 @@ export async function getDonorProfile(uid: string): Promise<DonorProfile | null>
     phoneNumber: data.phoneNumber,
     isPhonePublic: contactMode === "PUBLIC",
     contactMode,
+    phoneVisibility: contactMode,
     lastDonationDate: data.lastDonationDate || undefined,
     availabilityStatus: data.availabilityStatus as DonorAvailabilityStatus,
     createdAt: timestampToIso(data.createdAt),
@@ -100,7 +101,9 @@ export async function ensurePublicDonorProfile(
     if (!profile) return;
 
     const isPublic =
-      profile.contactMode === "PUBLIC" || Boolean(profile.isPhonePublic);
+      profile.phoneVisibility === "PUBLIC" ||
+      profile.contactMode === "PUBLIC" ||
+      Boolean(profile.isPhonePublic);
     const contactMode: DonorContactMode = isPublic ? "PUBLIC" : "PRIVATE";
 
     const publicPayload: Record<string, unknown> = {
@@ -112,6 +115,7 @@ export async function ensurePublicDonorProfile(
       availabilityStatus: profile.availabilityStatus || "available",
       lastDonationDate: profile.lastDonationDate || null,
       contactMode,
+      phoneVisibility: contactMode,
       updatedAt: serverTimestamp(),
     };
 
@@ -145,7 +149,9 @@ export async function upsertDonorProfile(
   const isNew = !existing.exists();
 
   const isPublic =
-    input.contactMode === "PUBLIC" || Boolean(input.isPhonePublic);
+    (input as Record<string, unknown>).phoneVisibility === "PUBLIC" ||
+    input.contactMode === "PUBLIC" ||
+    Boolean(input.isPhonePublic);
   const contactMode: DonorContactMode = isPublic ? "PUBLIC" : "PRIVATE";
 
   const payload: Record<string, unknown> = {
@@ -155,6 +161,7 @@ export async function upsertDonorProfile(
     phoneNumber: input.phoneNumber.trim(),
     isPhonePublic: isPublic,
     contactMode,
+    phoneVisibility: contactMode,
     divisionId: input.divisionId,
     districtId: input.districtId,
     upazilaId: input.upazilaId,
@@ -178,6 +185,7 @@ export async function upsertDonorProfile(
     availabilityStatus: input.availabilityStatus || "available",
     lastDonationDate: input.lastDonationDate?.trim() || null,
     contactMode,
+    phoneVisibility: contactMode,
     updatedAt: serverTimestamp(),
   };
 
@@ -284,12 +292,14 @@ export async function updateDonorContactMode(
 
   const privateUpdates: Record<string, unknown> = {
     contactMode: mode,
+    phoneVisibility: mode,
     isPhonePublic: isPublic,
     updatedAt: serverTimestamp(),
   };
 
   const publicUpdates: Record<string, unknown> = {
     contactMode: mode,
+    phoneVisibility: mode,
     updatedAt: serverTimestamp(),
   };
 

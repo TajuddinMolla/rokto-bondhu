@@ -118,7 +118,8 @@ export async function searchPublicDonors(
     .filter((docSnap) => !docSnap.data().isSuspended)
     .map((docSnap) => {
     const data = docSnap.data();
-    const contactMode = (data.contactMode ||
+    const contactMode = (data.phoneVisibility ||
+      data.contactMode ||
       (data.phoneNumber ? "PUBLIC" : "PRIVATE")) as DonorContactMode;
 
     return {
@@ -132,6 +133,7 @@ export async function searchPublicDonors(
         "available") as DonorAvailabilityStatus,
       lastDonationDate: data.lastDonationDate || undefined,
       contactMode,
+      phoneVisibility: contactMode,
       phoneNumber:
         contactMode === "PUBLIC" ? data.phoneNumber || undefined : undefined,
       updatedAt: timestampToIso(data.updatedAt),
@@ -208,7 +210,8 @@ export async function searchMatchingDonors(
     .filter((docSnap) => !docSnap.data().isSuspended)
     .map((docSnap) => {
     const data = docSnap.data();
-    const contactMode = (data.contactMode ||
+    const contactMode = (data.phoneVisibility ||
+      data.contactMode ||
       (data.phoneNumber ? "PUBLIC" : "PRIVATE")) as DonorContactMode;
 
     const donorUpazila = String(data.upazilaId || "");
@@ -226,6 +229,7 @@ export async function searchMatchingDonors(
         "available") as DonorAvailabilityStatus,
       lastDonationDate: data.lastDonationDate ? String(data.lastDonationDate) : undefined,
       contactMode,
+      phoneVisibility: contactMode,
       phoneNumber:
         contactMode === "PUBLIC" ? (data.phoneNumber ? String(data.phoneNumber) : undefined) : undefined,
       updatedAt: timestampToIso(data.updatedAt),

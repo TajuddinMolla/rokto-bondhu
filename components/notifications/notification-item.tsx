@@ -39,6 +39,7 @@ function getNotificationIcon(type: NotificationType) {
     case "CONTACT_REQUEST_SUBMITTED":
       return <Send className="size-4 text-primary" aria-hidden="true" />;
     case "BLOOD_REQUEST_CREATED":
+    case "BLOOD_REQUEST_MATCH":
       return <Droplet className="size-4 text-primary" aria-hidden="true" />;
     case "BLOOD_REQUEST_FULFILLED":
       return <CheckCircle2 className="size-4 text-emerald-600" aria-hidden="true" />;
