@@ -39,27 +39,29 @@ interface DonorResultsStateProps {
 
 function DonorCardSkeleton() {
   return (
-    <Card className="border border-border/80 bg-surface rounded-2xl p-5 sm:p-6 space-y-5">
+    <Card className="rounded-3xl border border-border/80 bg-surface/90 p-5 sm:p-7 space-y-5 shadow-xs">
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <Skeleton className="size-13 sm:size-14 rounded-2xl shrink-0" />
+        <div className="flex items-start gap-4 sm:gap-5">
+          <Skeleton className="size-16 sm:size-20 rounded-2xl shrink-0" />
           <div className="space-y-2 pt-1">
-            <Skeleton className="h-5 w-36 sm:w-48 rounded-md" />
-            <Skeleton className="h-3.5 w-28 sm:w-36 rounded-md" />
+            <Skeleton className="h-6 w-44 sm:w-56 rounded-md" />
+            <Skeleton className="h-4 w-32 sm:w-44 rounded-md" />
           </div>
         </div>
-        <Skeleton className="h-7 w-24 rounded-full self-start sm:self-auto" />
+        <Skeleton className="h-8 w-28 rounded-full self-start sm:self-auto" />
       </div>
 
-      <div className="pt-3 border-t border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Skeleton className="h-6 w-28 rounded-lg" />
-          <Skeleton className="h-6 w-32 rounded-lg" />
-        </div>
-        <div className="flex items-center gap-2 pt-1 sm:pt-0">
-          <Skeleton className="h-10 w-28 rounded-xl" />
-          <Skeleton className="h-10 w-28 rounded-xl" />
-          <Skeleton className="size-10 rounded-xl" />
+      <div className="pt-2 flex flex-wrap items-center gap-2.5">
+        <Skeleton className="h-8 w-36 rounded-xl" />
+        <Skeleton className="h-8 w-44 rounded-xl" />
+      </div>
+
+      <div className="pt-4 border-t border-border/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <Skeleton className="h-4 w-48 rounded hidden lg:block" />
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <Skeleton className="h-11 w-36 rounded-xl flex-1 sm:flex-none" />
+          <Skeleton className="h-11 w-32 rounded-xl flex-1 sm:flex-none" />
+          <Skeleton className="size-11 rounded-xl shrink-0" />
         </div>
       </div>
     </Card>
