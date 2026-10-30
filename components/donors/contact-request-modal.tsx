@@ -12,12 +12,16 @@ import {
   Clock,
   LogIn,
   ExternalLink,
+  RotateCcw,
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useUserProfile } from "@/hooks/queries/use-user-profile";
 import { useActiveContactRequest } from "@/hooks/queries/use-contact-requests";
-import { useCreateContactRequest } from "@/hooks/mutations/use-contact-request-mutations";
+import {
+  useCreateContactRequest,
+  useCancelContactRequest,
+} from "@/hooks/mutations/use-contact-request-mutations";
 import {
   createContactRequestSchema,
   type ContactRequestFormData,
@@ -61,8 +65,10 @@ export function ContactRequestModal({
     useActiveContactRequest(user?.uid, donor.id);
 
   const createMutation = useCreateContactRequest();
+  const cancelMutation = useCancelContactRequest();
   const [isSuccess, setIsSuccess] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [isCancellingActive, setIsCancellingActive] = React.useState(false);
 
   const prefix = locale === "en" ? "/en" : "";
   const loginHref = `${prefix}/login?redirect=${encodeURIComponent(
@@ -72,6 +78,21 @@ export function ContactRequestModal({
 
   const isSelf = user?.uid === donor.id;
   const hasActiveRequest = Boolean(activeCheck?.hasActive);
+
+  const handleCancelActiveRequest = async () => {
+    if (!user?.uid || !activeCheck?.existingRequestId) return;
+    setIsCancellingActive(true);
+    try {
+      await cancelMutation.mutateAsync({
+        requestId: activeCheck.existingRequestId,
+        requesterId: user.uid,
+      });
+    } catch (err) {
+      console.warn("Failed to cancel active request:", err);
+    } finally {
+      setIsCancellingActive(false);
+    }
+  };
 
   const schema = React.useMemo(
     () => createContactRequestSchema(locale),
@@ -175,8 +196,34 @@ export function ContactRequestModal({
             </Badge>
           </div>
 
-          {/* Unauthenticated Guard */}
-          {status === "unauthenticated" ? (
+          {/* 1. Success State (Checked FIRST so post-submit invalidation never flips to duplicate warning) */}
+          {isSuccess ? (
+            <div className="py-6 px-4 text-center space-y-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
+              <div className="inline-flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 mx-auto">
+                <CheckCircle2 className="size-6" />
+              </div>
+              <div className="space-y-1 max-w-sm mx-auto">
+                <h4 className="font-bold text-base text-foreground">
+                  {t.contactRequests.successTitle}
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {t.contactRequests.successDesc}
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
+                <Button asChild size="default" className="min-h-[44px] rounded-xl px-6 w-full sm:w-auto gap-1.5">
+                  <Link href={outgoingRequestsHref}>
+                    <span>{t.contactRequests.trackAction}</span>
+                    <ExternalLink className="size-3.5" />
+                  </Link>
+                </Button>
+                <Button size="default" variant="outline" onClick={onClose} className="min-h-[44px] rounded-xl px-6 w-full sm:w-auto">
+                  {locale === "en" ? "Done" : "ঠিক আছে"}
+                </Button>
+              </div>
+            </div>
+          ) : status === "unauthenticated" ? (
+            /* Unauthenticated Guard */
             <div className="py-6 px-4 text-center space-y-4 rounded-2xl border border-dashed border-border bg-muted/10">
               <div className="inline-flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary mx-auto">
                 <LogIn className="size-6" />
@@ -197,6 +244,14 @@ export function ContactRequestModal({
                   <span>{locale === "en" ? "Sign In to Proceed" : "লগইন করুন"}</span>
                 </Link>
               </Button>
+            </div>
+          ) : isCheckingActive ? (
+            /* Active Check Loading */
+            <div className="py-12 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+              <Loader2 className="size-6 animate-spin text-primary" />
+              <span className="text-xs">
+                {locale === "en" ? "Checking request status..." : "অনুরোধের অবস্থা যাচাই করা হচ্ছে..."}
+              </span>
             </div>
           ) : isSelf ? (
             /* Self-Request Prevention Guard */
@@ -223,8 +278,8 @@ export function ContactRequestModal({
                 </strong>
                 <p className="text-muted-foreground text-xs leading-relaxed">
                   {locale === "en"
-                    ? "You already have a pending or accepted request with this donor. Please check your request status."
-                    : "এই রক্তদাতার কাছে আপনার একটি সক্রিয় অনুরোধ ইতিমধ্যেই রয়েছে। অনুগ্রহ করে অনুরোধের অবস্থা দেখুন।"}
+                    ? "You already have a pending or accepted request with this donor. Please check your request status or cancel to submit a fresh request."
+                    : "এই রক্তদাতার কাছে আপনার একটি সক্রিয় অনুরোধ ইতিমধ্যেই রয়েছে। অনুরোধের অবস্থা দেখুন অথবা নতুন অনুরোধ পাঠাতে পূর্বেরটি বাতিল করুন।"}
                 </p>
               </div>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-1">
@@ -234,34 +289,24 @@ export function ContactRequestModal({
                     <ExternalLink className="size-3.5" />
                   </Link>
                 </Button>
+                {activeCheck?.existingRequestId && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCancelActiveRequest}
+                    disabled={isCancellingActive}
+                    className="min-h-[44px] rounded-xl px-4 gap-1.5 w-full sm:w-auto border-border/80 cursor-pointer"
+                  >
+                    {isCancellingActive ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <RotateCcw className="size-3.5" />
+                    )}
+                    <span>{locale === "en" ? "Cancel & Send New" : "বাতিল করে নতুন পাঠান"}</span>
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" onClick={onClose} className="min-h-[44px] rounded-xl px-4 w-full sm:w-auto">
                   {locale === "en" ? "Close" : "বন্ধ করুন"}
-                </Button>
-              </div>
-            </div>
-          ) : isSuccess ? (
-            /* Success State */
-            <div className="py-6 px-4 text-center space-y-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
-              <div className="inline-flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 mx-auto">
-                <CheckCircle2 className="size-6" />
-              </div>
-              <div className="space-y-1 max-w-sm mx-auto">
-                <h4 className="font-bold text-base text-foreground">
-                  {t.contactRequests.successTitle}
-                </h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {t.contactRequests.successDesc}
-                </p>
-              </div>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 pt-2">
-                <Button asChild size="default" className="min-h-[44px] rounded-xl px-6 w-full sm:w-auto gap-1.5">
-                  <Link href={outgoingRequestsHref}>
-                    <span>{t.contactRequests.trackAction}</span>
-                    <ExternalLink className="size-3.5" />
-                  </Link>
-                </Button>
-                <Button size="default" variant="outline" onClick={onClose} className="min-h-[44px] rounded-xl px-6 w-full sm:w-auto">
-                  {locale === "en" ? "Done" : "ঠিক আছে"}
                 </Button>
               </div>
             </div>

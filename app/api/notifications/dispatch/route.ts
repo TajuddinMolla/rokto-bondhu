@@ -120,6 +120,12 @@ export async function POST(req: NextRequest) {
       const requesterId = String(contactData.requesterId || "");
       const donorName = String(contactData.donorName || "Donor");
       const requesterName = String(contactData.requesterName || "Requester");
+      const requesterPhone = String(
+        contactData.requesterPhone ||
+        contactData.contactNumber ||
+        contactData.phone ||
+        ""
+      ).trim();
       const donorBloodGroup = String(contactData.donorBloodGroup || "O+");
       const urgency = String(contactData.urgency || "normal");
       const hospitalName = contactData.hospitalName ? String(contactData.hospitalName) : undefined;
@@ -187,6 +193,7 @@ export async function POST(req: NextRequest) {
             donorBloodGroup,
             urgency,
             hospitalName,
+            requesterPhone,
             actionUrl,
           });
           emailSubject = emailTemplate.subject;
@@ -225,9 +232,13 @@ export async function POST(req: NextRequest) {
           messageEn = `Donor ${donorName} consented to direct calling. The phone number is now visible in your dashboard.`;
           shouldSendEmail = true;
 
+          const sharedDetails = (contactData.sharedContactDetails || {}) as { phoneNumber?: string };
+          const donorPhone = sharedDetails.phoneNumber ? String(sharedDetails.phoneNumber).trim() : undefined;
+
           const emailTemplate = buildContactInfoSharedEmail({
             requesterName,
             donorName,
+            donorPhone,
             actionUrl,
           });
           emailSubject = emailTemplate.subject;
@@ -268,38 +279,53 @@ export async function POST(req: NextRequest) {
       let emailSentAt: string | null = null;
 
       if (shouldSendEmail && recipientId) {
+        let recipientEmail: string | undefined = undefined;
+        let emailNotificationsEnabled = true;
+
         const recipientUserDoc = await db.collection("users").doc(recipientId).get();
         if (recipientUserDoc.exists) {
           const udata = recipientUserDoc.data() || {};
-          const recipientEmail = udata.email as string | undefined;
-          const emailNotificationsEnabled = udata.emailNotificationsEnabled !== false;
+          recipientEmail = udata.email as string | undefined;
+          emailNotificationsEnabled = udata.emailNotificationsEnabled !== false;
+        }
 
-          if (!emailNotificationsEnabled) {
-            emailStatus = "SKIPPED_PREFERENCE";
-          } else if (recipientEmail && recipientEmail.includes("@")) {
-            try {
-              const emailResult = await sendTransactionalEmail({
-                to: recipientEmail,
-                subject: emailSubject,
-                html: emailHtml,
-                text: emailText,
-              });
-
-              if (emailResult.success) {
-                emailStatus = "ACCEPTED_BY_PROVIDER";
-                emailSentAt = new Date().toISOString();
-              } else {
-                emailStatus = "FAILED";
-                emailError = emailResult.error || "Email delivery failed";
-              }
-            } catch (err: unknown) {
-              emailStatus = "FAILED";
-              emailError = (err as Error)?.message || "Email dispatch exception";
+        // Check Firebase Auth as fallback if not in users document
+        if (!recipientEmail || !recipientEmail.includes("@")) {
+          try {
+            const authRecord = await adminAuth.getUser(recipientId);
+            if (authRecord && authRecord.email) {
+              recipientEmail = authRecord.email;
             }
-          } else {
-            emailStatus = "FAILED";
-            emailError = "Recipient has no valid email address";
+          } catch (authErr) {
+            console.warn(`[Dispatch] Auth fetch error for user ${recipientId}:`, authErr);
           }
+        }
+
+        if (!emailNotificationsEnabled) {
+          emailStatus = "SKIPPED_PREFERENCE";
+        } else if (recipientEmail && recipientEmail.includes("@")) {
+          try {
+            const emailResult = await sendTransactionalEmail({
+              to: recipientEmail,
+              subject: emailSubject,
+              html: emailHtml,
+              text: emailText,
+            });
+
+            if (emailResult.success) {
+              emailStatus = "ACCEPTED_BY_PROVIDER";
+              emailSentAt = new Date().toISOString();
+            } else {
+              emailStatus = "FAILED";
+              emailError = emailResult.error || "Email delivery failed";
+            }
+          } catch (err: unknown) {
+            emailStatus = "FAILED";
+            emailError = (err as Error)?.message || "Email dispatch exception";
+          }
+        } else {
+          emailStatus = "FAILED";
+          emailError = "Recipient has no valid email address";
         }
       }
 
@@ -370,6 +396,14 @@ export async function POST(req: NextRequest) {
       const urgency = String(bloodData.urgency || "urgent");
       const scope = String(bloodData.scope || "LOCAL");
       const isGlobal = scope === "GLOBAL";
+      const requesterName = String(bloodData.requesterName || "Requester").trim();
+      const contactPhone = String(
+        bloodData.contactNumber ||
+        bloodData.contactPhone ||
+        bloodData.requesterPhone ||
+        bloodData.phone ||
+        ""
+      ).trim();
 
       // Ownership authorization check: Caller must be the requester or an admin
       if (callerUid !== requesterId && !isAdmin) {
@@ -479,20 +513,52 @@ export async function POST(req: NextRequest) {
           { merge: true }
         );
 
+        // Send confirmation email to the blood requester
+        const actionUrl = `/blood-request/${bloodRequestId}`;
+        try {
+          const requesterSnap = await db.collection("users").doc(requesterId).get();
+          let requesterEmail = requesterSnap.exists
+            ? (requesterSnap.data()?.email as string | undefined)
+            : undefined;
+          if (!requesterEmail || !requesterEmail.includes("@")) {
+            const authRecord = await adminAuth.getUser(requesterId).catch(() => null);
+            if (authRecord?.email) requesterEmail = authRecord.email;
+          }
+
+          if (requesterEmail && requesterEmail.includes("@")) {
+            const reqTpl = buildBloodRequestCreatedEmail({
+              donorName: requesterName,
+              bloodGroup,
+              unitsNeeded,
+              hospitalName,
+              locationText,
+              urgency,
+              isGlobal,
+              requesterName,
+              contactPhone,
+              actionUrl,
+            });
+            sendTransactionalEmail({
+              to: requesterEmail,
+              subject: `[রক্তের অনুরোধ নিশ্চিতকরণ] ${reqTpl.subject}`,
+              html: reqTpl.html,
+              text: reqTpl.text,
+            }).catch((err) =>
+              console.warn("[Dispatch] Requester confirmation email error:", err)
+            );
+          }
+        } catch (reqEmailErr) {
+          console.warn("[Dispatch] Error preparing requester confirmation email:", reqEmailErr);
+        }
+
         // 2. Identify eligible matching voluntary donors
         // Match: exact bloodGroup, available, not suspended, matching district (if local)
         const recipientLimit = isGlobal ? 100 : 50;
-        let donorsQuery = db
+        const matchingDonorsSnap = await db
           .collection("publicDonorProfiles")
           .where("bloodGroup", "==", bloodGroup)
-          .where("availabilityStatus", "==", "available");
-
-        if (!isGlobal && districtId) {
-          donorsQuery = donorsQuery.where("districtId", "==", districtId);
-        }
-
-        donorsQuery = donorsQuery.limit(recipientLimit);
-        const matchingDonorsSnap = await donorsQuery.get();
+          .limit(recipientLimit)
+          .get();
 
         const matchingDonorIds: string[] = [];
         const matchingDonorsData: Array<{ id: string; displayName: string }> = [];
@@ -501,8 +567,17 @@ export async function POST(req: NextRequest) {
           const donorId = docSnap.id;
           const dData = docSnap.data();
 
-          // Filter out requester themselves and suspended accounts
-          if (donorId !== requesterId && dData.isSuspended !== true) {
+          const isAvailable = dData.availabilityStatus !== "unavailable";
+          const matchesLocation =
+            isGlobal || !districtId || dData.districtId === districtId;
+
+          // Filter out requester themselves, suspended accounts, and unavailable donors
+          if (
+            donorId !== requesterId &&
+            dData.isSuspended !== true &&
+            isAvailable &&
+            matchesLocation
+          ) {
             matchingDonorIds.push(donorId);
             matchingDonorsData.push({
               id: donorId,
@@ -513,7 +588,6 @@ export async function POST(req: NextRequest) {
 
         // 3. Batch write in-app notifications to matching donors
         const batch = db.batch();
-        const actionUrl = `/blood-request/${bloodRequestId}`;
         const titleBn = isGlobal
           ? `জরুরি ${bloodGroup} রক্ত প্রয়োজন [সারাদেশব্যাপী]`
           : `জরুরি ${bloodGroup} রক্ত প্রয়োজন`;
@@ -562,38 +636,51 @@ export async function POST(req: NextRequest) {
               continue;
             }
 
+            let email: string | undefined = undefined;
+            let emailEnabled = true;
+
             const userSnap = await db.collection("users").doc(donor.id).get();
             if (userSnap.exists) {
               const uData = userSnap.data() || {};
-              const email = uData.email as string | undefined;
-              const emailEnabled = uData.emailNotificationsEnabled !== false;
+              email = uData.email as string | undefined;
+              emailEnabled = uData.emailNotificationsEnabled !== false;
+            }
 
-              if (!emailEnabled) {
-                await db.collection("notifications").doc(notifId).update({
-                  emailStatus: "SKIPPED_PREFERENCE",
-                  updatedAt: FieldValue.serverTimestamp(),
-                }).catch(() => {});
-                continue;
+            if (!email || !email.includes("@")) {
+              const authRecord = await adminAuth.getUser(donor.id).catch(() => null);
+              if (authRecord?.email) {
+                email = authRecord.email;
               }
+            }
 
-              if (email && email.includes("@")) {
-                const emailTpl = buildBloodRequestCreatedEmail({
-                  donorName: donor.displayName,
-                  bloodGroup,
-                  unitsNeeded,
-                  hospitalName,
-                  locationText,
-                  urgency,
-                  isGlobal,
-                  actionUrl,
-                });
+            if (!emailEnabled) {
+              await db.collection("notifications").doc(notifId).update({
+                emailStatus: "SKIPPED_PREFERENCE",
+                updatedAt: FieldValue.serverTimestamp(),
+              }).catch(() => {});
+              continue;
+            }
 
-                const emailResult = await sendTransactionalEmail({
-                  to: email,
-                  subject: emailTpl.subject,
-                  html: emailTpl.html,
-                  text: emailTpl.text,
-                });
+            if (email && email.includes("@")) {
+              const emailTpl = buildBloodRequestCreatedEmail({
+                donorName: donor.displayName,
+                bloodGroup,
+                unitsNeeded,
+                hospitalName,
+                locationText,
+                urgency,
+                isGlobal,
+                requesterName,
+                contactPhone,
+                actionUrl,
+              });
+
+              const emailResult = await sendTransactionalEmail({
+                to: email,
+                subject: emailTpl.subject,
+                html: emailTpl.html,
+                text: emailTpl.text,
+              });
 
                 if (emailResult.success) {
                   await db.collection("notifications").doc(notifId).update({
@@ -610,8 +697,7 @@ export async function POST(req: NextRequest) {
                   }).catch(() => {});
                 }
               }
-            }
-          } catch (emailErr) {
+            } catch (emailErr) {
             console.warn(`[Dispatch] Email delivery error for donor ${donor.id}:`, emailErr);
           }
         }

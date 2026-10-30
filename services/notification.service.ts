@@ -330,8 +330,12 @@ export async function dispatchNotificationSafely(input: {
 }): Promise<void> {
   try {
     const auth = getFirebaseAuth();
-    const currentUser = auth?.currentUser;
-    const token = currentUser ? await currentUser.getIdToken() : null;
+    let currentUser = auth?.currentUser;
+    if (!currentUser && auth) {
+      await new Promise((r) => setTimeout(r, 250));
+      currentUser = auth.currentUser;
+    }
+    const token = currentUser ? await currentUser.getIdToken(false) : null;
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",

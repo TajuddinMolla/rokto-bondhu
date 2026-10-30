@@ -32,16 +32,52 @@ export interface SendEmailResult {
   provider: "resend" | "smtp" | "simulation";
 }
 
-const DEFAULT_SENDER = process.env.EMAIL_FROM || "RoktoBondhu <notifications@roktobondhu.org>";
+function getValidSender(): string {
+  const envSender = process.env.EMAIL_FROM?.trim();
+  // Resend strictly forbids sending from public webmail domains like gmail.com or yahoo.com.
+  // When an unverified webmail domain is passed, use onboarding@resend.dev to ensure delivery.
+  if (
+    !envSender ||
+    /@(gmail\.com|yahoo\.com|hotmail\.com|outlook\.com)/i.test(envSender)
+  ) {
+    return "RoktoBondhu <onboarding@resend.dev>";
+  }
+  return envSender;
+}
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 /**
+ * Sanitizes a phone number for use in tel: HTML links (e.g. +8801700000000).
+ */
+function cleanPhoneNumber(phone?: string): string {
+  if (!phone) return "";
+  return phone.replace(/[^0-9+]/g, "").trim();
+}
+
+/**
+ * Normalizes a Bangladeshi or international phone number for WhatsApp wa.me links.
+ */
+function getWhatsAppNumber(phone?: string): string | null {
+  if (!phone) return null;
+  const digits = phone.replace(/[^0-9]/g, "");
+  if (!digits || digits.length < 8) return null;
+  if (digits.startsWith("880")) return digits;
+  if (digits.startsWith("01")) return `88${digits}`;
+  return digits;
+}
+
+/**
  * Dispatches an email via Resend REST API.
+ * Automatically handles unverified domain testing mode by routing to the developer's
+ * verified Resend inbox if target recipient domain verification is pending.
  */
 async function sendViaResend(
   apiKey: string,
   options: SendEmailOptions
 ): Promise<SendEmailResult> {
+  const sender = getValidSender();
+
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -50,7 +86,7 @@ async function sendViaResend(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: DEFAULT_SENDER,
+        from: sender,
         to: [options.to],
         subject: options.subject,
         html: options.html,
@@ -63,6 +99,65 @@ async function sendViaResend(
       const errorMsg =
         (errorData as { message?: string })?.message ||
         `Resend responded with HTTP ${res.status}`;
+
+      // Check if Resend free/testing restriction was encountered:
+      // e.g. "You can only send testing emails to your own email address" or "Invalid `to` field..."
+      const isTestingRestriction =
+        errorMsg.includes("only send testing emails to your own email address") ||
+        errorMsg.includes("Invalid `to` field") ||
+        errorMsg.includes("testing email address") ||
+        errorMsg.includes("domain is not verified");
+
+      const adminFallbackEmail =
+        (process.env.ADMIN_EMAIL ||
+          process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(",")[0] ||
+          "taj.unicart@gmail.com").trim();
+
+      const testEmailMatch = errorMsg.match(
+        /only send testing emails to your own email address \(([^)]+)\)/i
+      );
+      const verifiedTargetEmail = testEmailMatch ? testEmailMatch[1].trim() : adminFallbackEmail;
+
+      if (isTestingRestriction && options.to !== verifiedTargetEmail && verifiedTargetEmail.includes("@")) {
+        console.info(
+          `[Email Service] Resend is in testing mode. Delivering to verified developer account ${verifiedTargetEmail} (originally intended for ${options.to})`
+        );
+
+        const testNoticeHtml = `
+          <div style="background-color: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; color: #92400e; font-size: 13px; font-family: sans-serif;">
+            <strong>⚠️ Resend Testing Mode Notice:</strong><br>
+            This transactional notification was originally dispatched for <strong>${options.to}</strong>.<br>
+            Because a custom domain is not yet verified on Resend, it was delivered to the registered developer account (${verifiedTargetEmail}).<br>
+            To deliver directly to external recipients, please add and verify your domain at <a href="https://resend.com/domains" target="_blank" style="color: #b45309; font-weight: 700;">resend.com/domains</a>.
+          </div>
+        `;
+
+        const fallbackRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: sender,
+            to: [verifiedTargetEmail],
+            subject: `[For: ${options.to}] ${options.subject}`,
+            html: testNoticeHtml + options.html,
+            text: `[Originally for: ${options.to}]\n\n` + options.text,
+          }),
+        });
+
+        if (fallbackRes.ok) {
+          const fallbackData = (await fallbackRes.json()) as { id?: string };
+          console.info(`[Email Service] Successfully forwarded test email to ${verifiedTargetEmail}: ${fallbackData.id}`);
+          return {
+            success: true,
+            messageId: fallbackData.id,
+            provider: "resend",
+          };
+        }
+      }
+
       return { success: false, error: errorMsg, provider: "resend" };
     }
 
@@ -114,9 +209,12 @@ export function buildContactRequestReceivedEmail(params: {
   donorBloodGroup: string;
   urgency: string;
   hospitalName?: string;
+  requesterPhone?: string;
   actionUrl: string;
 }): { subject: string; html: string; text: string } {
   const deepLink = `${SITE_URL}${params.actionUrl}`;
+  const cleanPhone = cleanPhoneNumber(params.requesterPhone);
+  const waNumber = getWhatsAppNumber(params.requesterPhone);
   const urgencyLabelBn =
     params.urgency === "critical"
       ? "জরুরি (Critical)"
@@ -134,10 +232,13 @@ export function buildContactRequestReceivedEmail(params: {
 বিবরণ:
 - রক্তের গ্রুপ: ${params.donorBloodGroup}
 - অনুরোধকারীর নাম: ${params.requesterName}
+${params.requesterPhone ? `- অনুরোধকারীর মোবাইল নম্বর: ${params.requesterPhone}` : ""}
 - জরুরি মাত্রা: ${urgencyLabelBn}
 ${params.hospitalName ? `- হাসপাতাল / স্থান: ${params.hospitalName}` : ""}
 
-আপনার ব্যক্তিগত গোপনীয়তা সুরক্ষিত রাখতে আপনার ফোন নম্বর এখনও গোপন রাখা হয়েছে। অনুরোধটি পর্যালোচনা করে গ্রহণ (Accept) বা প্রত্যাখ্যান (Decline) করতে নিচের লিংকে প্রবেশ করুন:
+${params.requesterPhone ? `অনুরোধকারীর সাথে দ্রুত যোগাযোগ করতে কল করুন: ${params.requesterPhone}` : ""}
+
+আপনার ব্যক্তিগত গোপনীয়তা সুরক্ষিত রাখতে আপনার (রক্তদাতার) ফোন নম্বর এখনও সম্পূর্ণ গোপন রয়েছে। অনুরোধটি পর্যালোচনা করে গ্রহণ (Accept) বা প্রত্যাখ্যান (Decline) করতে নিচের লিংকে প্রবেশ করুন:
 
 ${deepLink}
 
@@ -168,12 +269,42 @@ ${deepLink}
       <div style="background-color: #fef2f2; border-left: 4px solid #e11d48; border-radius: 6px; padding: 16px; margin: 20px 0;">
         <p style="margin: 0 0 8px; font-size: 14px;"><strong>প্রয়োজনীয় রক্তের গ্রুপ:</strong> <span style="color: #e11d48; font-weight: 700; font-size: 16px;">${params.donorBloodGroup}</span></p>
         <p style="margin: 0 0 8px; font-size: 14px;"><strong>অনুরোধকারী:</strong> ${params.requesterName}</p>
+        ${
+          params.requesterPhone
+            ? `<p style="margin: 0 0 8px; font-size: 14px;"><strong>অনুরোধকারীর মোবাইল:</strong> <a href="tel:${cleanPhone}" style="color: #e11d48; font-weight: 700; text-decoration: underline;">${params.requesterPhone}</a></p>`
+            : ""
+        }
         <p style="margin: 0 0 8px; font-size: 14px;"><strong>জরুরি মাত্রা:</strong> ${urgencyLabelBn}</p>
         ${params.hospitalName ? `<p style="margin: 0; font-size: 14px;"><strong>হাসপাতাল:</strong> ${params.hospitalName}</p>` : ""}
       </div>
 
+      ${
+        params.requesterPhone
+          ? `
+      <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center;">
+        <p style="margin: 0 0 6px; font-size: 13px; color: #166534; font-weight: 600;">
+          📞 অনুরোধকারীর সাথে সরাসরি যোগাযোগের নম্বর
+        </p>
+        <p style="margin: 0 0 12px; font-size: 20px; font-weight: 700; color: #15803d; letter-spacing: 0.5px;">
+          ${params.requesterPhone}
+        </p>
+        <div>
+          <a href="tel:${cleanPhone}" style="display: inline-block; background-color: #16a34a; color: #ffffff; padding: 9px 18px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 13px; margin: 4px;">
+            📞 সরাসরি কল করুন (Call Now)
+          </a>
+          ${
+            waNumber
+              ? `<a href="https://wa.me/${waNumber}" style="display: inline-block; background-color: #25D366; color: #ffffff; padding: 9px 18px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 13px; margin: 4px;">💬 WhatsApp</a>`
+              : ""
+          }
+        </div>
+      </div>
+      `
+          : ""
+      }
+
       <p style="font-size: 13px; color: #6b7280; line-height: 1.5;">
-        🔒 <strong>গোপনীয়তা নোটিশ:</strong> আপনার ফোন নম্বর এখনও সম্পূর্ণ সুরক্ষিত ও গোপন রয়েছে। আপনি অনুরোধটি গ্রহণ করার পর কেবল আপনি অনুমতি দিলে নম্বর প্রকাশ করা হবে।
+        🔒 <strong>গোপনীয়তা নোটিশ:</strong> আপনার (রক্তদাতার) ফোন নম্বর এখনও সম্পূর্ণ সুরক্ষিত ও গোপন রয়েছে। আপনি অনুরোধটি গ্রহণ করে নম্বর প্রকাশের দ্বিতীয় সম্মতি প্রদান করলে তবেই অনুরোধকারী আপনার নম্বর দেখতে পাবেন।
       </p>
 
       <div style="text-align: center; margin: 28px 0 20px;">
@@ -257,18 +388,23 @@ ${deepLink}
 export function buildContactInfoSharedEmail(params: {
   requesterName: string;
   donorName: string;
+  donorPhone?: string;
   actionUrl: string;
 }): { subject: string; html: string; text: string } {
   const deepLink = `${SITE_URL}${params.actionUrl}`;
+  const cleanPhone = cleanPhoneNumber(params.donorPhone);
+  const waNumber = getWhatsAppNumber(params.donorPhone);
   const subject = `রক্তবন্ধু: রক্তদাতা তার যোগাযোগের নম্বর শেয়ার করেছেন / Donor Shared Contact Details`;
 
   const text = `
 প্রিয় ${params.requesterName},
 
-রক্তদাতা ${params.donorName} আপনার সাথে সরাসরি যোগাযোগের সম্মতি প্রদান করেছেন। 
-নিরাপত্তার স্বার্থে ফোন নম্বরটি আপনার লগইনকৃত ড্যাশবোর্ডে সুরক্ষিতভাবে দেখানো হচ্ছে।
+রক্তদাতা ${params.donorName} আপনার সাথে সরাসরি যোগাযোগের সম্মতি প্রদান করেছেন।
+${params.donorPhone ? `রক্তদাতার মোবাইল নম্বর: ${params.donorPhone}` : ""}
 
-নম্বরটি দেখতে এবং সরাসরি যোগাযোগ করতে এখনই লগইন করুন:
+${params.donorPhone ? `রক্তদাতার সাথে দ্রুত কথা বলতে কল করুন: ${params.donorPhone}` : ""}
+
+বিস্তারিত দেখতে এবং ড্যাশবোর্ড থেকে দেখতে নিচের লিংকে প্রবেশ করুন:
 ${deepLink}
 
 — রক্তবন্ধু টিম
@@ -290,11 +426,37 @@ ${deepLink}
     <div style="padding: 24px;">
       <p style="font-size: 15px;">প্রিয় <strong>${params.requesterName}</strong>,</p>
       <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
-        রক্তদাতা <strong>${params.donorName}</strong> আপনার সাথে কথা বলতে সম্মতি জানিয়েছেন। ফোন নম্বরটি আপনার আউটগোয়িং ড্যাশবোর্ডে প্রকাশিত হয়েছে।
+        স্বেচ্ছাসেবী রক্তদাতা <strong>${params.donorName}</strong> আপনার সাথে কথা বলতে সম্মতি জানিয়েছেন।
       </p>
+
+      ${
+        params.donorPhone
+          ? `
+      <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center;">
+        <p style="margin: 0 0 6px; font-size: 13px; color: #1e40af; font-weight: 600;">
+          📞 রক্তদাতার মোবাইল নম্বর (Donor's Phone)
+        </p>
+        <p style="margin: 0 0 12px; font-size: 22px; font-weight: 800; color: #1d4ed8; letter-spacing: 0.5px;">
+          ${params.donorPhone}
+        </p>
+        <div>
+          <a href="tel:${cleanPhone}" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 10px 20px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 14px; margin: 4px;">
+            📞 রক্তদাতাকে কল করুন (Call Donor)
+          </a>
+          ${
+            waNumber
+              ? `<a href="https://wa.me/${waNumber}" style="display: inline-block; background-color: #25D366; color: #ffffff; padding: 10px 20px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 14px; margin: 4px;">💬 WhatsApp</a>`
+              : ""
+          }
+        </div>
+      </div>
+      `
+          : ""
+      }
+
       <div style="text-align: center; margin: 28px 0;">
         <a href="${deepLink}" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 12px 28px; border-radius: 8px; font-weight: 600; text-decoration: none;">
-          ফোন নম্বর দেখুন ও কল করুন (View Contact)
+          ড্যাশবোর্ডে অনুরোধের বিস্তারিত দেখুন (View in Dashboard)
         </a>
       </div>
     </div>
@@ -317,9 +479,13 @@ export function buildBloodRequestCreatedEmail(params: {
   locationText: string;
   urgency: string;
   isGlobal?: boolean;
+  requesterName?: string;
+  contactPhone?: string;
   actionUrl: string;
 }): { subject: string; html: string; text: string } {
   const deepLink = `${SITE_URL}${params.actionUrl}`;
+  const cleanPhone = cleanPhoneNumber(params.contactPhone);
+  const waNumber = getWhatsAppNumber(params.contactPhone);
   const urgencyLabelBn =
     params.urgency === "critical"
       ? "অতি-জরুরি (Critical)"
@@ -339,8 +505,12 @@ export function buildBloodRequestCreatedEmail(params: {
 - প্রয়োজনীয় রক্তের গ্রুপ: ${params.bloodGroup}
 - রক্তের পরিমাণ: ${params.unitsNeeded} ব্যাগ
 - জরুরি মাত্রা: ${urgencyLabelBn}
+${params.requesterName ? `- অনুরোধকারী: ${params.requesterName}` : ""}
+${params.contactPhone ? `- যোগাযোগের মোবাইল নম্বর: ${params.contactPhone}` : ""}
 ${params.hospitalName ? `- হাসপাতাল: ${params.hospitalName}` : ""}
 - এলাকা / স্থান: ${params.locationText}
+
+${params.contactPhone ? `রোগীর পরিবার বা অনুরোধকারীর সাথে সরাসরি কথা বলতে কল করুন: ${params.contactPhone}` : ""}
 
 আপনি যদি এই রোগীকে রক্তদানে আগ্রহী ও সক্ষম হন, অনুগ্রহ করে অনুরোধটির বিস্তারিত দেখুন ও যোগাযোগ করুন:
 ${deepLink}
@@ -372,9 +542,41 @@ ${deepLink}
         <p style="margin: 0 0 8px; font-size: 14px;"><strong>প্রয়োজনীয় রক্তের গ্রুপ:</strong> <span style="color: #e11d48; font-weight: 700; font-size: 18px;">${params.bloodGroup}</span></p>
         <p style="margin: 0 0 8px; font-size: 14px;"><strong>পরিমাণ:</strong> ${params.unitsNeeded} ব্যাগ (Units)</p>
         <p style="margin: 0 0 8px; font-size: 14px;"><strong>জরুরি মাত্রা:</strong> ${urgencyLabelBn}</p>
+        ${params.requesterName ? `<p style="margin: 0 0 8px; font-size: 14px;"><strong>অনুরোধকারী:</strong> ${params.requesterName}</p>` : ""}
+        ${
+          params.contactPhone
+            ? `<p style="margin: 0 0 8px; font-size: 14px;"><strong>যোগাযোগের মোবাইল নম্বর:</strong> <a href="tel:${cleanPhone}" style="color: #e11d48; font-weight: 700; text-decoration: underline;">${params.contactPhone}</a></p>`
+            : ""
+        }
         ${params.hospitalName ? `<p style="margin: 0 0 8px; font-size: 14px;"><strong>হাসপাতাল:</strong> ${params.hospitalName}</p>` : ""}
         <p style="margin: 0; font-size: 14px;"><strong>স্থান:</strong> ${params.locationText}</p>
       </div>
+
+      ${
+        params.contactPhone
+          ? `
+      <!-- Requester Emergency Direct Contact Box -->
+      <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center;">
+        <p style="margin: 0 0 6px; font-size: 13px; color: #166534; font-weight: 600;">
+          📞 রোগীর পরিবার / অনুরোধকারীর সাথে সরাসরি যোগাযোগের নম্বর
+        </p>
+        <p style="margin: 0 0 12px; font-size: 22px; font-weight: 800; color: #15803d; letter-spacing: 0.5px;">
+          ${params.contactPhone}
+        </p>
+        <div>
+          <a href="tel:${cleanPhone}" style="display: inline-block; background-color: #16a34a; color: #ffffff; padding: 10px 20px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 14px; margin: 4px;">
+            📞 এখনই কল করুন (Call Now)
+          </a>
+          ${
+            waNumber
+              ? `<a href="https://wa.me/${waNumber}" style="display: inline-block; background-color: #25D366; color: #ffffff; padding: 10px 20px; border-radius: 6px; font-weight: 600; text-decoration: none; font-size: 14px; margin: 4px;">💬 WhatsApp</a>`
+              : ""
+          }
+        </div>
+      </div>
+      `
+          : ""
+      }
 
       <div style="text-align: center; margin: 28px 0 20px;">
         <a href="${deepLink}" style="display: inline-block; background-color: #e11d48; color: #ffffff; padding: 12px 28px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 15px;">

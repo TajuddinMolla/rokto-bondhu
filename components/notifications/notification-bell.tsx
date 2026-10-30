@@ -33,16 +33,12 @@ export function NotificationBell({ locale }: NotificationBellProps) {
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
   const { data: unreadCount = 0 } = useUnreadNotificationsCount(user?.uid);
-  const {
-    data,
-    isLoading,
-    isError,
-    error,
-    refetch,
-  } = useNotificationsInfinite({
-    recipientId: user?.uid,
-    pageSize: 5,
-  });
+  const { data, isLoading, isError, error, refetch } = useNotificationsInfinite(
+    {
+      recipientId: user?.uid,
+      pageSize: 5,
+    },
+  );
 
   React.useEffect(() => {
     if (error) {
@@ -92,7 +88,8 @@ export function NotificationBell({ locale }: NotificationBellProps) {
     markAllMutation.mutate({ recipientId: user.uid });
   };
 
-  const badgeText = unreadCount > 9 ? "9+" : unreadCount > 0 ? String(unreadCount) : null;
+  const badgeText =
+    unreadCount > 9 ? "9+" : unreadCount > 0 ? String(unreadCount) : null;
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -135,7 +132,9 @@ export function NotificationBell({ locale }: NotificationBellProps) {
             className="fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-96 max-w-[calc(100vw-1.5rem)] sm:max-w-sm border border-border/80 bg-surface shadow-2xl rounded-2xl overflow-hidden z-50 animate-in fade-in-50 slide-in-from-top-2 duration-150"
             role="dialog"
             aria-modal="true"
-            aria-label={locale === "en" ? "Notifications dropdown" : "বিজ্ঞপ্তি ড্রপডাউন"}
+            aria-label={
+              locale === "en" ? "Notifications dropdown" : "বিজ্ঞপ্তি ড্রপডাউন"
+            }
           >
             {/* Header */}
             <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-border/70 bg-muted/20">
@@ -158,14 +157,18 @@ export function NotificationBell({ locale }: NotificationBellProps) {
                     onClick={handleMarkAllAsRead}
                     disabled={markAllMutation.isPending}
                     className="h-7 text-xs text-muted-foreground hover:text-foreground px-2 gap-1 cursor-pointer"
-                    title={locale === "en" ? "Mark all as read" : "সব পড়া হয়েছে"}
+                    title={
+                      locale === "en" ? "Mark all as read" : "সব পড়া হয়েছে"
+                    }
                   >
                     {markAllMutation.isPending ? (
                       <Loader2 className="size-3 animate-spin" />
                     ) : (
                       <CheckCheck className="size-3.5" />
                     )}
-                    <span>{locale === "en" ? "Mark all read" : "সব চিহ্নিত করুন"}</span>
+                    <span>
+                      {locale === "en" ? "Mark all read" : "সব চিহ্নিত করুন"}
+                    </span>
                   </Button>
                 )}
 
@@ -174,7 +177,11 @@ export function NotificationBell({ locale }: NotificationBellProps) {
                   type="button"
                   onClick={() => setIsOpen(false)}
                   className="sm:hidden p-1 text-muted-foreground hover:text-foreground rounded-lg"
-                  aria-label={locale === "en" ? "Close notifications" : "বিজ্ঞপ্তি বন্ধ করুন"}
+                  aria-label={
+                    locale === "en"
+                      ? "Close notifications"
+                      : "বিজ্ঞপ্তি বন্ধ করুন"
+                  }
                 >
                   <X className="size-4" />
                 </button>
@@ -182,19 +189,23 @@ export function NotificationBell({ locale }: NotificationBellProps) {
             </div>
 
             {/* Notification Items List */}
-            <div className="max-h-[360px] overflow-y-auto divide-y divide-border/50 p-1.5 sm:p-2 overscroll-contain">
+            <div className="max-h-[360px] overflow-y-auto space-y-2 p-1.5 sm:p-2 overscroll-contain">
               {isLoading ? (
                 <div className="py-12 flex flex-col items-center justify-center gap-2 text-muted-foreground">
                   <Loader2 className="size-5 animate-spin text-primary" />
                   <span className="text-xs">
-                    {locale === "en" ? "Loading notifications..." : "বিজ্ঞপ্তি লোড হচ্ছে..."}
+                    {locale === "en"
+                      ? "Loading notifications..."
+                      : "বিজ্ঞপ্তি লোড হচ্ছে..."}
                   </span>
                 </div>
               ) : isError ? (
                 <div className="py-8 px-4 text-center space-y-2.5">
                   <AlertCircle className="size-6 text-destructive mx-auto" />
                   <p className="text-xs font-semibold text-foreground">
-                    {locale === "en" ? "Failed to load notifications." : "বিজ্ঞপ্তি লোড করা সম্ভব হয়নি।"}
+                    {locale === "en"
+                      ? "Failed to load notifications."
+                      : "বিজ্ঞপ্তি লোড করা সম্ভব হয়নি।"}
                   </p>
                   <p className="text-[11px] text-muted-foreground leading-relaxed max-w-xs mx-auto">
                     {locale === "en"
@@ -216,7 +227,9 @@ export function NotificationBell({ locale }: NotificationBellProps) {
                     <Inbox className="size-5" />
                   </div>
                   <p className="text-xs font-medium text-foreground">
-                    {locale === "en" ? "No notifications yet" : "এখনও কোনো বিজ্ঞপ্তি নেই"}
+                    {locale === "en"
+                      ? "No notifications yet"
+                      : "এখনও কোনো বিজ্ঞপ্তি নেই"}
                   </p>
                   <p className="text-[11px] text-muted-foreground/80 max-w-[220px] mx-auto leading-relaxed">
                     {locale === "en"
@@ -225,14 +238,16 @@ export function NotificationBell({ locale }: NotificationBellProps) {
                   </p>
                 </div>
               ) : (
-                notifications.slice(0, 5).map((notification) => (
-                  <NotificationItem
-                    key={notification.id}
-                    notification={notification}
-                    locale={locale}
-                    onItemClick={() => setIsOpen(false)}
-                  />
-                ))
+                notifications
+                  .slice(0, 5)
+                  .map((notification) => (
+                    <NotificationItem
+                      key={notification.id}
+                      notification={notification}
+                      locale={locale}
+                      onItemClick={() => setIsOpen(false)}
+                    />
+                  ))
               )}
             </div>
 
@@ -243,7 +258,11 @@ export function NotificationBell({ locale }: NotificationBellProps) {
                 onClick={() => setIsOpen(false)}
                 className="inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-primary hover:text-primary-hover transition-colors py-1 w-full"
               >
-                <span>{locale === "en" ? "View all notifications" : "সব বিজ্ঞপ্তি দেখুন"}</span>
+                <span>
+                  {locale === "en"
+                    ? "View all notifications"
+                    : "সব বিজ্ঞপ্তি দেখুন"}
+                </span>
                 <ArrowRight className="size-3.5" />
               </Link>
             </div>
