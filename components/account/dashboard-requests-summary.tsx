@@ -36,7 +36,10 @@ export function DashboardRequestsSummary({
   const t = getTranslations(locale);
 
   const myRequestsHref = locale === "en" ? "/en/account/requests" : "/account/requests";
-  const createRequestHref = locale === "en" ? "/en/blood-request/create" : "/blood-request/create";
+  const createRequestHref =
+    locale === "en"
+      ? "/en/blood-request/create#request-form"
+      : "/blood-request/create#request-form";
   const contactRequestsHref = locale === "en" ? "/en/account/contact-requests" : "/account/contact-requests";
 
   const openRequestsCount = myRequests.filter((r) => r.status === "open").length;

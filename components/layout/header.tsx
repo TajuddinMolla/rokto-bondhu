@@ -189,7 +189,7 @@ export function Header() {
                   </DropdownMenuItem>
 
                   {isDonor && (
-                    <DropdownMenuItem onClick={() => router.push(`${prefix}/donors/register`)}>
+                    <DropdownMenuItem onClick={() => router.push(`${prefix}/donors/register#registration-form`)}>
                       <Droplet className="size-4 text-primary fill-primary/20" aria-hidden="true" />
                       <span>
                         {currentLocale === "en" ? "Donor Profile" : "রক্তদাতা প্রোফাইল"}

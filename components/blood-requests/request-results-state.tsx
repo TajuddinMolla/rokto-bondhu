@@ -302,7 +302,13 @@ export function RequestResultsState({ locale }: RequestResultsStateProps) {
 
           <div className="pt-2">
             <Button asChild size="default" className="shadow-xs font-bold gap-2 rounded-xl min-h-[44px] px-6">
-              <Link href={locale === "en" ? "/en/blood-request/create" : "/blood-request/create"}>
+              <Link
+                href={
+                  locale === "en"
+                    ? "/en/blood-request/create#request-form"
+                    : "/blood-request/create#request-form"
+                }
+              >
                 <PlusCircle className="size-4" />
                 <span>{t.bloodRequestsPage.createRequestCta}</span>
               </Link>

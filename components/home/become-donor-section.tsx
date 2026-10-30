@@ -16,7 +16,10 @@ interface BecomeDonorSectionProps {
 export function BecomeDonorSection({ locale }: BecomeDonorSectionProps) {
   const t = getTranslations(locale);
   const { isDonor } = useIsDonor();
-  const registerHref = locale === "en" ? "/en/donors/register" : "/donors/register";
+  const registerHref =
+    locale === "en"
+      ? "/en/donors/register#registration-form"
+      : "/donors/register#registration-form";
 
   return (
     <section

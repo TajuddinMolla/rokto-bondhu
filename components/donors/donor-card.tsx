@@ -54,7 +54,7 @@ export function DonorCard({ donor, locale, onRequestContact }: DonorCardProps) {
     donor.bloodGroup
   )}&division=${donor.divisionId}&district=${donor.districtId}&upazila=${
     donor.upazilaId
-  }`;
+  }#request-form`;
 
   return (
     <article

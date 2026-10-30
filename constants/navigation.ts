@@ -22,7 +22,7 @@ export function getMainNavItems(locale: Locale): readonly NavItem[] {
     { label: t.nav.bloodRequests, href: `${prefix}/blood-request` },
     {
       label: locale === "en" ? "Post Request" : "রক্তের আবেদন",
-      href: `${prefix}/blood-request/create`,
+      href: `${prefix}/blood-request/create#request-form`,
     },
   ];
 }
@@ -53,13 +53,13 @@ export function getUserNavItems(
     if (options.isDonor) {
       items.push({
         label: locale === "en" ? "Donor Profile" : "রক্তদাতা প্রোফাইল",
-        href: `${prefix}/donors/register`,
+        href: `${prefix}/donors/register#registration-form`,
         isPrimary: true,
       });
     } else {
       items.push({
         label: t.nav.becomeDonor,
-        href: `${prefix}/donors/register`,
+        href: `${prefix}/donors/register#registration-form`,
         isPrimary: true,
       });
     }
@@ -71,7 +71,7 @@ export function getUserNavItems(
     { label: t.nav.login, href: `${prefix}/login` },
     {
       label: t.nav.becomeDonor,
-      href: `${prefix}/donors/register`,
+      href: `${prefix}/donors/register#registration-form`,
       isPrimary: true,
     },
     {

@@ -60,7 +60,7 @@ export function DonorProfileCard({
   const [updatingTarget, setUpdatingTarget] = React.useState<DonorContactMode | null>(null);
 
   const prefix = locale === "en" ? "/en" : "";
-  const donorRegisterHref = `${prefix}/donors/register`;
+  const donorRegisterHref = `${prefix}/donors/register#registration-form`;
 
   const isAvailable = donorProfile?.availabilityStatus === "available";
   const activeMode: DonorContactMode = donorProfile?.contactMode || "PRIVATE";

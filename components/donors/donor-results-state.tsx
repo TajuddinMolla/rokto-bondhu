@@ -84,7 +84,10 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
   const upazilaId = searchParams.get("upazila") || undefined;
   const availability = searchParams.get("availability") || undefined;
 
-  const registerHref = locale === "en" ? "/en/donors/register" : "/donors/register";
+  const registerHref =
+    locale === "en"
+      ? "/en/donors/register#registration-form"
+      : "/donors/register#registration-form";
 
   const division = divisionId ? getDivisionById(divisionId) : undefined;
   const district = districtId ? getDistrictById(districtId) : undefined;

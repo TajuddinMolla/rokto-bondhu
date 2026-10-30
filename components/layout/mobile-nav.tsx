@@ -311,7 +311,7 @@ export function MobileNav() {
                       size="lg"
                       className="w-full justify-center shadow-xs font-semibold min-h-[48px] border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
                     >
-                      <Link href={`${prefix}/donors/register`} onClick={() => setIsOpen(false)}>
+                      <Link href={`${prefix}/donors/register#registration-form`} onClick={() => setIsOpen(false)}>
                         <ShieldCheck className="size-4.5 mr-2" aria-hidden="true" />
                         <span>{currentLocale === "en" ? "Donor Profile" : "রক্তদাতা প্রোফাইল"}</span>
                       </Link>

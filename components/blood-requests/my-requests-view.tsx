@@ -156,7 +156,10 @@ export function MyRequestsView({ locale }: MyRequestsViewProps) {
     );
   }
 
-  const createHref = locale === "en" ? "/en/blood-request/create" : "/blood-request/create";
+  const createHref =
+    locale === "en"
+      ? "/en/blood-request/create#request-form"
+      : "/blood-request/create#request-form";
 
   return (
     <div className="space-y-6">

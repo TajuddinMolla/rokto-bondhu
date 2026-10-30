@@ -16,7 +16,7 @@ interface EmergencyBannerProps {
 
 export function EmergencyBanner({ locale, className }: EmergencyBannerProps) {
   const prefix = locale === "en" ? "/en" : "";
-  const requestCreateHref = `${prefix}/blood-request/create`;
+  const requestCreateHref = `${prefix}/blood-request/create#request-form`;
   const { isDonor } = useIsDonor();
 
   const donorActionLabel = isDonor
@@ -94,7 +94,7 @@ export function EmergencyBanner({ locale, className }: EmergencyBannerProps) {
             size="default"
             className="flex-1 md:flex-initial min-h-[46px] px-5 rounded-xl font-bold text-xs sm:text-sm border-border/80 hover:bg-muted text-foreground cursor-pointer"
           >
-            <Link href={`${prefix}/donors/register`}>
+            <Link href={`${prefix}/donors/register#registration-form`}>
               <span>{donorActionLabel}</span>
             </Link>
           </Button>

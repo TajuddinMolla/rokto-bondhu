@@ -42,7 +42,7 @@ export function VerifyEmailView({ locale }: VerifyEmailViewProps) {
   const prefix = locale === "en" ? "/en" : "";
   const homeHref = prefix || "/";
   const loginHref = `${prefix}/login`;
-  const donorRegisterHref = `${prefix}/donors/register`;
+  const donorRegisterHref = `${prefix}/donors/register#registration-form`;
 
   // Redirect to login if user is not authenticated and finished loading
   React.useEffect(() => {

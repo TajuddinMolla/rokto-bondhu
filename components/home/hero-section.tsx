@@ -28,8 +28,8 @@ export function HeroSection({ locale }: HeroSectionProps) {
   const { isDonor } = useIsDonor();
 
   const prefix = locale === "en" ? "/en" : "";
-  const registerHref = `${prefix}/donors/register`;
-  const createRequestHref = `${prefix}/blood-request/create`;
+  const registerHref = `${prefix}/donors/register#registration-form`;
+  const createRequestHref = `${prefix}/blood-request/create#request-form`;
   const donorsBaseHref = `${prefix}/donors`;
 
   const handleQuickGroupSelect = (group: BloodGroup) => {

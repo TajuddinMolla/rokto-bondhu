@@ -48,7 +48,7 @@ function Dialog({
       }
       onOpenChange?.(nextOpen);
     },
-    [isControlled, onOpenChange]
+    [isControlled, onOpenChange],
   );
 
   const titleId = React.useId();
@@ -87,7 +87,7 @@ const DialogTrigger = React.forwardRef<HTMLButtonElement, DialogTriggerProps>(
         {children}
       </Comp>
     );
-  }
+  },
 );
 DialogTrigger.displayName = "DialogTrigger";
 
@@ -97,7 +97,7 @@ function DialogPortal({ children }: { children: React.ReactNode }) {
   const isClient = React.useSyncExternalStore(
     emptySubscribe,
     () => true,
-    () => false
+    () => false,
   );
 
   if (!isClient || typeof document === "undefined") {
@@ -122,7 +122,7 @@ const DialogOverlay = React.forwardRef<
       onClick={() => setOpen(false)}
       className={cn(
         "fixed inset-0 z-50 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200",
-        className
+        className,
       )}
       {...props}
     />
@@ -182,7 +182,9 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
             ref={(node) => {
               contentRef.current = node;
               if (typeof ref === "function") ref(node);
-              else if (ref) (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+              else if (ref)
+                (ref as React.MutableRefObject<HTMLDivElement | null>).current =
+                  node;
             }}
             role="dialog"
             aria-modal="true"
@@ -192,7 +194,7 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
             onClick={(e) => e.stopPropagation()}
             className={cn(
               "relative w-full max-w-lg rounded-3xl border border-border/80 bg-surface p-6 sm:p-8 text-foreground shadow-2xl transition-all duration-200 animate-in fade-in zoom-in-95 focus:outline-none my-8",
-              className
+              className,
             )}
             {...props}
           >
@@ -212,7 +214,7 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
         </div>
       </DialogPortal>
     );
-  }
+  },
 );
 DialogContent.displayName = "DialogContent";
 
@@ -222,8 +224,8 @@ const DialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "flex flex-col space-y-1.5 text-left pb-4 border-b border-border/80 pr-10",
-      className
+      "flex flex-col pl-2 space-y-1.5 text-left pb-4 border-b border-border/80 pr-10",
+      className,
     )}
     {...props}
   />
@@ -236,8 +238,8 @@ const DialogBody = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
   <div
     className={cn(
-      "space-y-4 py-4 text-sm text-foreground overflow-y-auto max-h-[72vh]",
-      className
+      "space-y-4 py-4 px-2 text-sm text-foreground overflow-y-auto max-h-[72vh]",
+      className,
     )}
     {...props}
   />
@@ -251,7 +253,7 @@ const DialogFooter = ({
   <div
     className={cn(
       "flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 pt-4 border-t border-border/80",
-      className
+      className,
     )}
     {...props}
   />
@@ -269,7 +271,7 @@ const DialogTitle = React.forwardRef<
       id={titleId}
       className={cn(
         "text-lg sm:text-xl font-black tracking-tight text-foreground leading-snug",
-        className
+        className,
       )}
       {...props}
     />
@@ -288,7 +290,7 @@ const DialogDescription = React.forwardRef<
       id={descriptionId}
       className={cn(
         "text-xs sm:text-sm text-muted-foreground leading-relaxed",
-        className
+        className,
       )}
       {...props}
     />
@@ -300,30 +302,29 @@ interface DialogCloseProps extends React.ButtonHTMLAttributes<HTMLButtonElement>
   asChild?: boolean;
 }
 
-const DialogClose = React.forwardRef<
-  HTMLButtonElement,
-  DialogCloseProps
->(({ className, onClick, asChild = false, children, ...props }, ref) => {
-  const { setOpen } = useDialogContext();
-  const Comp = asChild ? Slot : "button";
+const DialogClose = React.forwardRef<HTMLButtonElement, DialogCloseProps>(
+  ({ className, onClick, asChild = false, children, ...props }, ref) => {
+    const { setOpen } = useDialogContext();
+    const Comp = asChild ? Slot : "button";
 
-  return (
-    <Comp
-      ref={ref}
-      type={asChild ? undefined : "button"}
-      onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-        onClick?.(e);
-        if (!e.defaultPrevented) {
-          setOpen(false);
-        }
-      }}
-      className={className}
-      {...props}
-    >
-      {children}
-    </Comp>
-  );
-});
+    return (
+      <Comp
+        ref={ref}
+        type={asChild ? undefined : "button"}
+        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+          onClick?.(e);
+          if (!e.defaultPrevented) {
+            setOpen(false);
+          }
+        }}
+        className={className}
+        {...props}
+      >
+        {children}
+      </Comp>
+    );
+  },
+);
 DialogClose.displayName = "DialogClose";
 
 interface ModalProps {
@@ -350,7 +351,12 @@ function Modal({
   hideCloseButton = false,
 }: ModalProps) {
   return (
-    <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
       <DialogContent className={className} hideCloseButton={hideCloseButton}>
         {(title || description || icon) && (
           <DialogHeader>
@@ -358,7 +364,9 @@ function Modal({
               {icon}
               {title && <DialogTitle>{title}</DialogTitle>}
             </div>
-            {description && <DialogDescription>{description}</DialogDescription>}
+            {description && (
+              <DialogDescription>{description}</DialogDescription>
+            )}
           </DialogHeader>
         )}
         <DialogBody>{children}</DialogBody>
@@ -382,4 +390,3 @@ export {
   DialogClose,
   Modal,
 };
-

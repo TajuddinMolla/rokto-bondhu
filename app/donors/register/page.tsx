@@ -7,11 +7,13 @@ import {
   HeartPulse,
   Sparkles,
   Users,
+  ArrowDown,
 } from "lucide-react";
 
 import { constructMetadata } from "@/lib/seo/metadata";
 import { getTranslations } from "@/i18n/translations";
 import { InnerPageHero } from "@/components/shared/inner-page-hero";
+import { AutoScrollToTarget } from "@/components/shared/auto-scroll-to-target";
 import { DonorRegistrationForm } from "@/components/forms/donor-registration-form";
 
 export const metadata: Metadata = constructMetadata({
@@ -69,6 +71,13 @@ export default function DonorRegisterPage() {
 
             {/* Platform Trust & Safety Badges */}
             <div className="shrink-0 flex flex-wrap items-center gap-2.5 pt-1 md:pt-0 w-full md:w-auto">
+              <a
+                href="#registration-form"
+                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/95 text-white text-xs font-black shadow-xs transition-all flex-1 md:flex-none min-h-[42px] group"
+              >
+                <span>নিবন্ধন ফরম পূরণ করুন</span>
+                <ArrowDown className="size-3.5 transition-transform group-hover:translate-y-0.5" aria-hidden="true" />
+              </a>
               <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface border border-border/80 text-foreground text-xs font-bold shadow-2xs">
                 <Sparkles className="size-4 text-primary shrink-0" aria-hidden="true" />
                 <span>১০০% অবাণিজ্যিক মানবিক সেবা</span>
@@ -99,7 +108,11 @@ export default function DonorRegisterPage() {
       </InnerPageHero>
 
       {/* Main 12-Column Form & Guidelines Section */}
-      <section className="py-8 sm:py-12 bg-background">
+      <section
+        id="registration-form"
+        className="py-8 sm:py-12 bg-background scroll-mt-20 md:scroll-mt-24"
+      >
+        <AutoScrollToTarget targetId="registration-form" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <React.Suspense
             fallback={

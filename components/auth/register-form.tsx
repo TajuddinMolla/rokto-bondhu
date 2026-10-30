@@ -31,7 +31,7 @@ export function RegisterForm({ locale }: RegisterFormProps) {
   const registerSchema = React.useMemo(() => createRegisterSchema(locale), [locale]);
 
   const prefix = locale === "en" ? "/en" : "";
-  const donorRegisterHref = `${prefix}/donors/register`;
+  const donorRegisterHref = `${prefix}/donors/register#registration-form`;
   const homeHref = prefix || "/";
 
   const {

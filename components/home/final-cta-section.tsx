@@ -16,7 +16,7 @@ export function FinalCtaSection({ locale }: FinalCtaSectionProps) {
   const t = getTranslations(locale);
   const { isDonor } = useIsDonor();
   const prefix = locale === "en" ? "/en" : "";
-  const registerHref = `${prefix}/donors/register`;
+  const registerHref = `${prefix}/donors/register#registration-form`;
   const donorsHref = `${prefix}/donors`;
 
   return (
