@@ -598,6 +598,100 @@ ${deepLink}
 }
 
 /**
+ * Generates email content for the requester confirming their blood requisition is live.
+ */
+export function buildBloodRequestRequesterConfirmationEmail(params: {
+  requesterName: string;
+  bloodGroup: string;
+  unitsNeeded: number;
+  hospitalName?: string;
+  locationText: string;
+  urgency: string;
+  contactPhone: string;
+  actionUrl: string;
+}): { subject: string; html: string; text: string } {
+  const deepLink = `${SITE_URL}${params.actionUrl}`;
+  const urgencyLabelBn =
+    params.urgency === "critical"
+      ? "অতি-জরুরি (Critical)"
+      : params.urgency === "urgent"
+      ? "জরুরি (Urgent)"
+      : "স্বাভাবিক (Normal)";
+
+  const subject = `রক্তবন্ধু: আপনার ${params.bloodGroup} রক্তের অনুরোধ সফলভাবে প্রচারিত হয়েছে / Blood Request Live`;
+
+  const text = `
+প্রিয় ${params.requesterName},
+
+রক্তবন্ধু প্ল্যাটফর্মে আপনার রক্তের অনুরোধটি সফলভাবে প্রকাশিত ও প্রচারিত হয়েছে।
+
+অনুরোধের বিবরণ:
+- প্রয়োজনীয় রক্তের গ্রুপ: ${params.bloodGroup}
+- রক্তের পরিমাণ: ${params.unitsNeeded} ব্যাগ
+- জরুরি মাত্রা: ${urgencyLabelBn}
+${params.hospitalName ? `- হাসপাতাল: ${params.hospitalName}` : ""}
+- এলাকা / স্থান: ${params.locationText}
+- যোগাযোগের নম্বর: ${params.contactPhone}
+
+আপনার উল্লেখিত এলাকা (${params.locationText})-র নিবন্ধিত উপযুক্ত স্বেচ্ছাসেবী রক্তদাতাদের নিকট জরুরি বার্তা ও বিজ্ঞপ্তি পাঠানো হচ্ছে। কোন রক্তদাতা আগ্রহ প্রকাশ করলে বা যোগাযোগ করলে আপনার ড্যাশবোর্ডে তা দেখতে পাবেন।
+
+অনুরোধের অগ্রগতি দেখতে ও পরিচালনা করতে নিচের লিংকে প্রবেশ করুন:
+${deepLink}
+
+— রক্তবন্ধু টিম
+`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="utf-8">
+  <title>${subject}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafb; margin: 0; padding: 24px; color: #1f2937;">
+  <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e5e7eb; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <div style="background-color: #059669; padding: 20px 24px; text-align: left;">
+      <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 700;">রক্তবন্ধু • RoktoBondhu</h1>
+      <p style="color: #d1fae5; margin: 4px 0 0; font-size: 13px;">অনুরোধ নিশ্চিতকরণ / Request Live</p>
+    </div>
+    <div style="padding: 24px;">
+      <p style="font-size: 15px; margin-top: 0;">প্রিয় <strong>${params.requesterName}</strong>,</p>
+      <p style="font-size: 14px; line-height: 1.6; color: #4b5563;">
+        রক্তবন্ধু প্ল্যাটফর্মে আপনার রক্তের অনুরোধটি সফলভাবে প্রকাশিত হয়েছে।
+      </p>
+
+      <div style="background-color: #f0fdf4; border-left: 4px solid #059669; border-radius: 6px; padding: 16px; margin: 20px 0;">
+        <p style="margin: 0 0 8px; font-size: 14px;"><strong>প্রয়োজনীয় রক্তের গ্রুপ:</strong> <span style="color: #e11d48; font-weight: 700; font-size: 18px;">${params.bloodGroup}</span></p>
+        <p style="margin: 0 0 8px; font-size: 14px;"><strong>পরিমাণ:</strong> ${params.unitsNeeded} ব্যাগ (Units)</p>
+        <p style="margin: 0 0 8px; font-size: 14px;"><strong>জরুরি মাত্রা:</strong> ${urgencyLabelBn}</p>
+        ${params.hospitalName ? `<p style="margin: 0 0 8px; font-size: 14px;"><strong>হাসপাতাল:</strong> ${params.hospitalName}</p>` : ""}
+        <p style="margin: 0 0 8px; font-size: 14px;"><strong>স্থান:</strong> ${params.locationText}</p>
+        <p style="margin: 0; font-size: 14px;"><strong>যোগাযোগের নম্বর:</strong> ${params.contactPhone}</p>
+      </div>
+
+      <p style="font-size: 13px; color: #4b5563; line-height: 1.6;">
+        আপনার উল্লেখিত এলাকা <strong>(${params.locationText})</strong>-র সমগোত্রীয় নিবন্ধিত স্বেচ্ছাসেবী রক্তদাতাদের নিকট স্বয়ংক্রিয় বিজ্ঞপ্তি পাঠানো হচ্ছে।
+      </p>
+
+      <div style="text-align: center; margin: 28px 0 20px;">
+        <a href="${deepLink}" style="display: inline-block; background-color: #059669; color: #ffffff; padding: 12px 28px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 15px;">
+          অনুরোধের অগ্রগতি দেখুন (View Request Status)
+        </a>
+      </div>
+
+      <p style="font-size: 12px; color: #9ca3af; text-align: center; margin-top: 24px; border-top: 1px solid #f3f4f6; padding-top: 16px;">
+        RoktoBondhu — সম্পূর্ণ বিনামূল্যে রক্তদাতা ও গ্রহীতাদের সংযোগকারী প্ল্যাটফর্ম।
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+  return { subject, html, text };
+}
+
+/**
  * Generates email content when a blood requisition status changes (sent to Requester).
  */
 export function buildBloodRequestStatusEmail(params: {

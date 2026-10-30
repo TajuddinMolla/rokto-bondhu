@@ -8,10 +8,12 @@ import {
   buildContactRequestAcceptedEmail,
   buildContactInfoSharedEmail,
   buildBloodRequestCreatedEmail,
+  buildBloodRequestRequesterConfirmationEmail,
   buildBloodRequestStatusEmail,
 } from "@/services/email.service";
 import { sendPushNotification } from "@/services/push.service";
 import { getDistrictById, getDivisionById } from "@/constants/locations";
+import { normalizeBloodGroup } from "@/constants/blood-groups";
 import { dispatchNotificationSchema } from "@/lib/validations/notification-dispatch";
 import type { EmailDeliveryStatus } from "@/types/notification";
 
@@ -451,23 +453,26 @@ export async function POST(req: NextRequest) {
           { merge: true }
         );
 
-        // Transactional email to requester
-        const requesterUserSnap = await db.collection("users").doc(requesterId).get();
-        if (requesterUserSnap.exists) {
-          const reqEmail = requesterUserSnap.data()?.email as string | undefined;
-          if (reqEmail && reqEmail.includes("@")) {
-            const emailTpl = buildBloodRequestStatusEmail({
-              requesterName: String(bloodData.requesterName || "Requester"),
-              bloodGroup,
-              status: isFulfilled ? "fulfilled" : "cancelled",
-              actionUrl,
-            });
-            sendTransactionalEmail({
-              to: reqEmail,
-              subject: emailTpl.subject,
-              html: emailTpl.html,
-              text: emailTpl.text,
-            }).catch(() => {});
+        // Transactional email to requester:
+        // Only send email when fulfilled. If the user cancels their request, do not send email.
+        if (isFulfilled) {
+          const requesterUserSnap = await db.collection("users").doc(requesterId).get();
+          if (requesterUserSnap.exists) {
+            const reqEmail = requesterUserSnap.data()?.email as string | undefined;
+            if (reqEmail && reqEmail.includes("@")) {
+              const emailTpl = buildBloodRequestStatusEmail({
+                requesterName: String(bloodData.requesterName || "Requester"),
+                bloodGroup,
+                status: "fulfilled",
+                actionUrl,
+              });
+              sendTransactionalEmail({
+                to: reqEmail,
+                subject: emailTpl.subject,
+                html: emailTpl.html,
+                text: emailTpl.text,
+              }).catch(() => {});
+            }
           }
         }
 
@@ -526,21 +531,19 @@ export async function POST(req: NextRequest) {
           }
 
           if (requesterEmail && requesterEmail.includes("@")) {
-            const reqTpl = buildBloodRequestCreatedEmail({
-              donorName: requesterName,
+            const reqTpl = buildBloodRequestRequesterConfirmationEmail({
+              requesterName,
               bloodGroup,
               unitsNeeded,
               hospitalName,
               locationText,
               urgency,
-              isGlobal,
-              requesterName,
               contactPhone,
               actionUrl,
             });
             sendTransactionalEmail({
               to: requesterEmail,
-              subject: `[রক্তের অনুরোধ নিশ্চিতকরণ] ${reqTpl.subject}`,
+              subject: reqTpl.subject,
               html: reqTpl.html,
               text: reqTpl.text,
             }).catch((err) =>
@@ -552,12 +555,17 @@ export async function POST(req: NextRequest) {
         }
 
         // 2. Identify eligible matching voluntary donors
-        // Match: exact bloodGroup, available, not suspended, matching district (if local)
-        const recipientLimit = isGlobal ? 100 : 50;
+        // Match Criteria: exact bloodGroup AND matching zila (districtId).
+        // Regardless of broadcast scope (GLOBAL or LOCAL), donor alert emails are dispatched
+        // to voluntary donors when both their blood group and zila (district) match the patient requisition.
+        const reqBloodGroup =
+          normalizeBloodGroup(bloodGroup) || String(bloodGroup || "").trim().toUpperCase();
+        const reqDistrictId = String(districtId || "").trim().toLowerCase();
+
         const matchingDonorsSnap = await db
           .collection("publicDonorProfiles")
-          .where("bloodGroup", "==", bloodGroup)
-          .limit(recipientLimit)
+          .where("bloodGroup", "==", reqBloodGroup)
+          .limit(100)
           .get();
 
         const matchingDonorIds: string[] = [];
@@ -567,17 +575,25 @@ export async function POST(req: NextRequest) {
           const donorId = docSnap.id;
           const dData = docSnap.data();
 
-          const isAvailable = dData.availabilityStatus !== "unavailable";
-          const matchesLocation =
-            isGlobal || !districtId || dData.districtId === districtId;
+          const donorBloodGroup =
+            normalizeBloodGroup(dData.bloodGroup) ||
+            String(dData.bloodGroup || "").trim().toUpperCase();
+          const donorDistrictId = String(dData.districtId || "").trim().toLowerCase();
 
-          // Filter out requester themselves, suspended accounts, and unavailable donors
-          if (
-            donorId !== requesterId &&
-            dData.isSuspended !== true &&
-            isAvailable &&
-            matchesLocation
-          ) {
+          const isAvailable = dData.availabilityStatus !== "unavailable";
+          const notSuspended = dData.isSuspended !== true;
+
+          // 1. Blood group match
+          const matchesBlood = donorBloodGroup === reqBloodGroup;
+
+          // 2. Zila (district) match: Donor's zila MUST strictly match the request's zila
+          const matchesDistrict = Boolean(reqDistrictId && donorDistrictId === reqDistrictId);
+
+          // Exclude requester in production; allow self in development/testing for single-account tests
+          const isSelf = donorId === requesterId;
+          const skipSelf = isSelf && process.env.NODE_ENV === "production";
+
+          if (notSuspended && isAvailable && matchesBlood && matchesDistrict && !skipSelf) {
             matchingDonorIds.push(donorId);
             matchingDonorsData.push({
               id: donorId,
@@ -585,6 +601,10 @@ export async function POST(req: NextRequest) {
             });
           }
         });
+
+        console.info(
+          `[Dispatch:BloodRequest] Request ${bloodRequestId} (Blood: ${reqBloodGroup}, Zila: ${reqDistrictId}, Scope: ${scope}): found ${matchingDonorsData.length} eligible matching donor(s).`
+        );
 
         // 3. Batch write in-app notifications to matching donors
         const batch = db.batch();
@@ -683,6 +703,9 @@ export async function POST(req: NextRequest) {
               });
 
                 if (emailResult.success) {
+                  console.info(
+                    `[Dispatch:BloodRequest] Successfully sent email to donor ${donor.id} (${email}): id=${emailResult.messageId}`
+                  );
                   await db.collection("notifications").doc(notifId).update({
                     emailStatus: "ACCEPTED_BY_PROVIDER",
                     emailSentAt: new Date().toISOString(),
@@ -690,6 +713,10 @@ export async function POST(req: NextRequest) {
                     updatedAt: FieldValue.serverTimestamp(),
                   }).catch(() => {});
                 } else {
+                  console.warn(
+                    `[Dispatch:BloodRequest] Email sending failed for donor ${donor.id} (${email}):`,
+                    emailResult.error
+                  );
                   await db.collection("notifications").doc(notifId).update({
                     emailStatus: "FAILED",
                     emailError: emailResult.error || "Email delivery failed",
