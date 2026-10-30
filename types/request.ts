@@ -32,6 +32,7 @@ export interface BloodRequest {
   moderatedBy?: string;
   createdAt: string; // ISO 8601 string
   updatedAt: string; // ISO 8601 string
+  expiresAt?: string; // ISO 8601 string
 }
 
 /**
@@ -89,4 +90,5 @@ export interface BloodRequestSummary {
   status: RequestStatus;
   scope?: BloodRequestScope;
   createdAt: string;
+  expiresAt?: string;
 }

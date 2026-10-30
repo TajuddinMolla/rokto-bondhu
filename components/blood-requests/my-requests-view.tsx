@@ -114,6 +114,7 @@ export function MyRequestsView({ locale }: MyRequestsViewProps) {
       open: requests.filter((r) => r.status === "open").length,
       fulfilled: requests.filter((r) => r.status === "fulfilled").length,
       cancelled: requests.filter((r) => r.status === "cancelled").length,
+      expired: requests.filter((r) => r.status === "expired").length,
     };
   }, [requests]);
 
@@ -243,6 +244,19 @@ export function MyRequestsView({ locale }: MyRequestsViewProps) {
         >
           {locale === "en" ? "Cancelled" : "বাতিল"} ({counts.cancelled})
         </button>
+        {counts.expired > 0 && (
+          <button
+            type="button"
+            onClick={() => setActiveFilter("expired")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+              activeFilter === "expired"
+                ? "bg-amber-600 text-white shadow-xs"
+                : "bg-surface hover:bg-muted text-amber-700 dark:text-amber-400"
+            }`}
+          >
+            {locale === "en" ? "Expired" : "মেয়াদোত্তীর্ণ"} ({counts.expired})
+          </button>
+        )}
       </div>
 
       {/* Requests List */}
@@ -715,6 +729,14 @@ function StatusBadge({ status, locale }: { status: RequestStatus; locale: Locale
       <span className="inline-flex items-center gap-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/25 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-2xs">
         <CheckCircle2 className="size-3" />
         <span>{locale === "en" ? "Fulfilled" : "সম্পন্ন"}</span>
+      </span>
+    );
+  }
+  if (status === "expired") {
+    return (
+      <span className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+        <Clock className="size-3" />
+        <span>{locale === "en" ? "Expired" : "মেয়াদোত্তীর্ণ"}</span>
       </span>
     );
   }

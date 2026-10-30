@@ -44,6 +44,76 @@ function timestampToIso(value: unknown): string {
 }
 
 /**
+ * Calculates a reliable expiration date for a blood request.
+ * Standard validity is 7 days from baseDate.
+ * If neededAt specifies a planned transfusion date further out,
+ * expiry extends to 24 hours after neededAt.
+ */
+export function computeRequestExpiry(neededAt?: string, baseDate = new Date()): {
+  expiryDate: Date;
+  expiryTimestamp: Timestamp;
+  expiryIso: string;
+} {
+  const defaultExpiryMs = baseDate.getTime() + 7 * 24 * 60 * 60 * 1000;
+  let finalExpiryMs = defaultExpiryMs;
+
+  if (neededAt) {
+    const neededTime = new Date(neededAt).getTime();
+    if (!isNaN(neededTime)) {
+      const neededPlusGraceMs = neededTime + 24 * 60 * 60 * 1000;
+      if (neededPlusGraceMs > defaultExpiryMs) {
+        finalExpiryMs = neededPlusGraceMs;
+      }
+    }
+  }
+
+  const expiryDate = new Date(finalExpiryMs);
+  return {
+    expiryDate,
+    expiryTimestamp: Timestamp.fromDate(expiryDate),
+    expiryIso: expiryDate.toISOString(),
+  };
+}
+
+/**
+ * Checks whether a blood request is expired either by stored status
+ * or by immediate evaluation of its expiresAt / legacy fallback cutoff.
+ */
+export function isBloodRequestExpired(request: {
+  status?: string;
+  expiresAt?: string | null;
+  createdAt?: string | null;
+  neededAt?: string | null;
+}): boolean {
+  if (request.status === "expired") {
+    return true;
+  }
+  if (request.status && request.status !== "open") {
+    return false; // fulfilled, cancelled, hidden
+  }
+
+  const nowMs = Date.now();
+
+  // 1. Direct expiresAt evaluation
+  if (request.expiresAt) {
+    const expTime = new Date(request.expiresAt).getTime();
+    if (!isNaN(expTime)) {
+      return expTime <= nowMs;
+    }
+  }
+
+  // 2. Legacy fallback: 7 days after createdAt
+  if (request.createdAt) {
+    const createdTime = new Date(request.createdAt).getTime();
+    if (!isNaN(createdTime) && createdTime + 7 * 24 * 60 * 60 * 1000 <= nowMs) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Creates a new Blood Request in Firestore for the authenticated user.
  */
 export async function createBloodRequest(
@@ -58,6 +128,8 @@ export async function createBloodRequest(
   if (!userId) {
     throw new Error("User must be authenticated to create a blood request");
   }
+
+  const { expiryTimestamp, expiryIso } = computeRequestExpiry(input.neededAt.trim());
 
   const payload: Record<string, unknown> = {
     requesterId: userId,
@@ -77,6 +149,7 @@ export async function createBloodRequest(
     additionalNotes: input.additionalNotes?.trim() || null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    expiresAt: expiryTimestamp,
   };
 
   const colRef = collection(db, BLOOD_REQUESTS_COLLECTION);
@@ -108,6 +181,7 @@ export async function createBloodRequest(
     additionalNotes: input.additionalNotes?.trim() || undefined,
     createdAt: now,
     updatedAt: now,
+    expiresAt: expiryIso,
   };
 }
 
@@ -126,6 +200,20 @@ export async function getMyBloodRequests(userId: string): Promise<BloodRequest[]
   const requests: BloodRequest[] = [];
   snap.forEach((d) => {
     const data = d.data();
+    const rawStatus = (data.status || "open") as RequestStatus;
+    const createdAtIso = timestampToIso(data.createdAt);
+    const updatedAtIso = timestampToIso(data.updatedAt);
+    const expiresAtIso = data.expiresAt
+      ? timestampToIso(data.expiresAt)
+      : new Date(new Date(createdAtIso).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const isExpired = isBloodRequestExpired({
+      status: rawStatus,
+      expiresAt: expiresAtIso,
+      createdAt: createdAtIso,
+      neededAt: data.neededAt,
+    });
+
     requests.push({
       id: d.id,
       requesterId: data.requesterId,
@@ -140,11 +228,12 @@ export async function getMyBloodRequests(userId: string): Promise<BloodRequest[]
       locationAddress: data.locationAddress || undefined,
       neededAt: data.neededAt || "",
       urgency: data.urgency || "urgent",
-      status: data.status || "open",
+      status: isExpired ? "expired" : rawStatus,
       scope: data.scope || "LOCAL",
       additionalNotes: data.additionalNotes || undefined,
-      createdAt: timestampToIso(data.createdAt),
-      updatedAt: timestampToIso(data.updatedAt),
+      createdAt: createdAtIso,
+      updatedAt: updatedAtIso,
+      expiresAt: expiresAtIso,
     });
   });
 
@@ -169,6 +258,20 @@ export async function getBloodRequestById(requestId: string): Promise<BloodReque
   }
 
   const data = snap.data();
+  const rawStatus = (data.status || "open") as RequestStatus;
+  const createdAtIso = timestampToIso(data.createdAt);
+  const updatedAtIso = timestampToIso(data.updatedAt);
+  const expiresAtIso = data.expiresAt
+    ? timestampToIso(data.expiresAt)
+    : new Date(new Date(createdAtIso).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const isExpired = isBloodRequestExpired({
+    status: rawStatus,
+    expiresAt: expiresAtIso,
+    createdAt: createdAtIso,
+    neededAt: data.neededAt,
+  });
+
   return {
     id: snap.id,
     requesterId: data.requesterId,
@@ -183,11 +286,12 @@ export async function getBloodRequestById(requestId: string): Promise<BloodReque
     locationAddress: data.locationAddress || undefined,
     neededAt: data.neededAt || "",
     urgency: data.urgency || "urgent",
-    status: data.status || "open",
+    status: isExpired ? "expired" : rawStatus,
     scope: data.scope || "LOCAL",
     additionalNotes: data.additionalNotes || undefined,
-    createdAt: timestampToIso(data.createdAt),
-    updatedAt: timestampToIso(data.updatedAt),
+    createdAt: createdAtIso,
+    updatedAt: updatedAtIso,
+    expiresAt: expiresAtIso,
   };
 }
 
@@ -233,7 +337,11 @@ export async function updateBloodRequest(
   if (updates.upazilaId !== undefined) payload.upazilaId = updates.upazilaId;
   if (updates.hospitalName !== undefined) payload.hospitalName = updates.hospitalName?.trim() || null;
   if (updates.locationAddress !== undefined) payload.locationAddress = updates.locationAddress?.trim() || null;
-  if (updates.neededAt !== undefined) payload.neededAt = updates.neededAt;
+  if (updates.neededAt !== undefined) {
+    payload.neededAt = updates.neededAt;
+    const { expiryTimestamp } = computeRequestExpiry(updates.neededAt);
+    payload.expiresAt = expiryTimestamp;
+  }
   if (updates.urgency !== undefined) payload.urgency = updates.urgency;
   if (updates.additionalNotes !== undefined) payload.additionalNotes = updates.additionalNotes?.trim() || null;
   if (updates.scope !== undefined) payload.scope = updates.scope;
@@ -331,6 +439,21 @@ export async function getBloodRequestsFeed(
 
     let docs = snap.docs;
 
+    // Filter out expired requests immediately so they never appear as active
+    docs = docs.filter((d) => {
+      const data = d.data();
+      const createdAtIso = timestampToIso(data.createdAt);
+      const expiresAtIso = data.expiresAt
+        ? timestampToIso(data.expiresAt)
+        : new Date(new Date(createdAtIso).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      return !isBloodRequestExpired({
+        status: data.status || "open",
+        expiresAt: expiresAtIso,
+        createdAt: createdAtIso,
+        neededAt: data.neededAt,
+      });
+    });
+
     // In-memory filter for sub-fields (upazila and urgency)
     if (filters.upazilaId) {
       docs = docs.filter((d) => d.data().upazilaId === filters.upazilaId);
@@ -346,6 +469,10 @@ export async function getBloodRequestsFeed(
 
     const requests: BloodRequestSummary[] = resultDocs.map((d) => {
       const data = d.data();
+      const createdAtIso = timestampToIso(data.createdAt);
+      const expiresAtIso = data.expiresAt
+        ? timestampToIso(data.expiresAt)
+        : new Date(new Date(createdAtIso).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
       return {
         id: d.id,
         bloodGroup: data.bloodGroup as BloodGroup,
@@ -358,7 +485,8 @@ export async function getBloodRequestsFeed(
         urgency: (data.urgency || "urgent") as RequestUrgency,
         status: (data.status || "open") as RequestStatus,
         scope: data.scope || "LOCAL",
-        createdAt: timestampToIso(data.createdAt),
+        createdAt: createdAtIso,
+        expiresAt: expiresAtIso,
       };
     });
 
@@ -378,6 +506,22 @@ export async function getBloodRequestsFeed(
     const snap = await getDocs(fallbackQ);
 
     let docs = snap.docs;
+
+    // Filter out expired requests immediately in fallback path as well
+    docs = docs.filter((d) => {
+      const data = d.data();
+      const createdAtIso = timestampToIso(data.createdAt);
+      const expiresAtIso = data.expiresAt
+        ? timestampToIso(data.expiresAt)
+        : new Date(new Date(createdAtIso).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      return !isBloodRequestExpired({
+        status: data.status || "open",
+        expiresAt: expiresAtIso,
+        createdAt: createdAtIso,
+        neededAt: data.neededAt,
+      });
+    });
+
     if (filters.upazilaId) {
       docs = docs.filter((d) => d.data().upazilaId === filters.upazilaId);
     }
@@ -387,6 +531,10 @@ export async function getBloodRequestsFeed(
 
     const requests: BloodRequestSummary[] = docs.map((d) => {
       const data = d.data();
+      const createdAtIso = timestampToIso(data.createdAt);
+      const expiresAtIso = data.expiresAt
+        ? timestampToIso(data.expiresAt)
+        : new Date(new Date(createdAtIso).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
       return {
         id: d.id,
         bloodGroup: data.bloodGroup as BloodGroup,
@@ -399,7 +547,8 @@ export async function getBloodRequestsFeed(
         urgency: (data.urgency || "urgent") as RequestUrgency,
         status: (data.status || "open") as RequestStatus,
         scope: data.scope || "LOCAL",
-        createdAt: timestampToIso(data.createdAt),
+        createdAt: createdAtIso,
+        expiresAt: expiresAtIso,
       };
     });
 

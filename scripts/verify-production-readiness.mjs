@@ -56,6 +56,7 @@ test("vercel.json configures automated cron job", () => {
   const parsed = JSON.parse(content);
   assert.ok(Array.isArray(parsed.crons), "crons must be an array");
   assert.equal(parsed.crons[0].path, "/api/cron/expire-requests");
+  assert.equal(parsed.crons[0].schedule, "0 0 * * *", "Cron schedule must be daily for Vercel Hobby");
 });
 
 // -----------------------------------------------------------------
@@ -116,6 +117,8 @@ test("/api/cron/expire-requests enforces CRON_SECRET and handles idempotent upda
   assert.ok(routeCode.includes("CRON_SECRET"), "Must check CRON_SECRET");
   assert.ok(routeCode.includes("sevenDaysAgoIso"), "Must calculate 7-day cutoff for blood requests");
   assert.ok(routeCode.includes("fortyEightHoursAgoIso"), "Must calculate 48-hour cutoff for contact requests");
+  assert.ok(routeCode.includes("data.expiresAt"), "Must evaluate reliable expiresAt");
+  assert.ok(routeCode.includes("commitBatchIfFull"), "Must support safe chunked batch commits");
   assert.ok(routeCode.includes("status: \"expired\""), "Must transition blood requests to expired");
   assert.ok(routeCode.includes("status: \"EXPIRED\""), "Must transition contact requests to EXPIRED");
 });

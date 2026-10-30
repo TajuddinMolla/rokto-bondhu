@@ -491,6 +491,34 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      // Check if blood request is expired (stored status or virtual expiry)
+      const nowMs = Date.now();
+      let isExpired = bloodData.status === "expired";
+      if (!isExpired && bloodData.expiresAt) {
+        const expMs =
+          typeof bloodData.expiresAt.toMillis === "function"
+            ? bloodData.expiresAt.toMillis()
+            : new Date(bloodData.expiresAt).getTime();
+        if (!isNaN(expMs) && expMs <= nowMs) {
+          isExpired = true;
+        }
+      } else if (!isExpired && bloodData.createdAt) {
+        const createdMs =
+          typeof bloodData.createdAt.toMillis === "function"
+            ? bloodData.createdAt.toMillis()
+            : new Date(bloodData.createdAt).getTime();
+        if (!isNaN(createdMs) && createdMs + 7 * 24 * 60 * 60 * 1000 <= nowMs) {
+          isExpired = true;
+        }
+      }
+
+      if (isExpired && event === "BLOOD_REQUEST_CREATED") {
+        return NextResponse.json(
+          { error: "Cannot dispatch notifications for an expired blood request", skipped: true },
+          { status: 400 }
+        );
+      }
+
       // Event: BLOOD_REQUEST_CREATED
       if (event === "BLOOD_REQUEST_CREATED") {
         // 1. Create confirmation notification for requester

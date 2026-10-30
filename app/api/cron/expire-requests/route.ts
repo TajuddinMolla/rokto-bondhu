@@ -45,19 +45,31 @@ async function handleExpireRequests(req: NextRequest) {
     const nowMs = Date.now();
     const sevenDaysAgoIso = new Date(nowMs - 7 * 24 * 60 * 60 * 1000).toISOString();
     const fortyEightHoursAgoIso = new Date(nowMs - 48 * 60 * 60 * 1000).toISOString();
+    const fortyEightHoursAgoMs = nowMs - 48 * 60 * 60 * 1000;
 
-    const batch = db.batch();
+    let currentBatch = db.batch();
+    let currentBatchOps = 0;
+    const MAX_OPS_PER_BATCH = 200;
+
+    const commitBatchIfFull = async () => {
+      if (currentBatchOps >= MAX_OPS_PER_BATCH) {
+        await currentBatch.commit();
+        currentBatch = db.batch();
+        currentBatchOps = 0;
+      }
+    };
+
     let expiredBloodCount = 0;
     let expiredContactCount = 0;
 
     // -------------------------------------------------------------
-    // 1. Expire Open Blood Requests older than 7 days
+    // 1. Expire Open Blood Requests where expiresAt <= now
+    // (with 7-day fallback for legacy records)
     // -------------------------------------------------------------
     const openBloodSnap = await db
       .collection("bloodRequests")
       .where("status", "==", "open")
-      .where("createdAt", "<=", sevenDaysAgoIso)
-      .limit(100)
+      .limit(200)
       .get();
 
     for (const docSnap of openBloodSnap.docs) {
@@ -66,18 +78,43 @@ async function handleExpireRequests(req: NextRequest) {
       const requesterId = String(data.requesterId || "");
       const bloodGroup = String(data.bloodGroup || "");
 
-      batch.update(docSnap.ref, {
+      // Evaluate expiration reliably: check expiresAt first, then fallback to 7 days from createdAt
+      let isExpired = false;
+      if (data.expiresAt) {
+        const expMs =
+          typeof data.expiresAt.toMillis === "function"
+            ? data.expiresAt.toMillis()
+            : new Date(data.expiresAt).getTime();
+        if (!isNaN(expMs) && expMs <= nowMs) {
+          isExpired = true;
+        }
+      } else if (data.createdAt) {
+        const createdMs =
+          typeof data.createdAt.toMillis === "function"
+            ? data.createdAt.toMillis()
+            : new Date(data.createdAt).getTime();
+        if (!isNaN(createdMs) && createdMs + 7 * 24 * 60 * 60 * 1000 <= nowMs) {
+          isExpired = true;
+        }
+      }
+
+      if (!isExpired) {
+        continue;
+      }
+
+      currentBatch.update(docSnap.ref, {
         status: "expired",
         expiredAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
+      currentBatchOps++;
       expiredBloodCount++;
 
       // Create notification for requester if valid ID exists
       if (requesterId) {
         const notifId = `notif_blood_req_expired_${requestId}`;
         const notifRef = db.collection("notifications").doc(notifId);
-        batch.set(
+        currentBatch.set(
           notifRef,
           {
             recipientId: requesterId,
@@ -100,7 +137,10 @@ async function handleExpireRequests(req: NextRequest) {
           },
           { merge: true }
         );
+        currentBatchOps++;
       }
+
+      await commitBatchIfFull();
     }
 
     // -------------------------------------------------------------
@@ -109,8 +149,7 @@ async function handleExpireRequests(req: NextRequest) {
     const pendingContactSnap = await db
       .collection("donorContactRequests")
       .where("status", "==", "PENDING")
-      .where("createdAt", "<=", fortyEightHoursAgoIso)
-      .limit(100)
+      .limit(200)
       .get();
 
     for (const docSnap of pendingContactSnap.docs) {
@@ -119,18 +158,34 @@ async function handleExpireRequests(req: NextRequest) {
       const requesterId = String(data.requesterId || "");
       const donorName = String(data.donorName || "রক্তদাতা");
 
-      batch.update(docSnap.ref, {
+      let isExpired = false;
+      if (data.createdAt) {
+        const createdMs =
+          typeof data.createdAt.toMillis === "function"
+            ? data.createdAt.toMillis()
+            : new Date(data.createdAt).getTime();
+        if (!isNaN(createdMs) && createdMs <= fortyEightHoursAgoMs) {
+          isExpired = true;
+        }
+      }
+
+      if (!isExpired) {
+        continue;
+      }
+
+      currentBatch.update(docSnap.ref, {
         status: "EXPIRED",
         expiredAt: FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
       });
+      currentBatchOps++;
       expiredContactCount++;
 
       // Create notification for requester to alert them to find other donors
       if (requesterId) {
         const notifId = `notif_contact_req_expired_${contactRequestId}`;
         const notifRef = db.collection("notifications").doc(notifId);
-        batch.set(
+        currentBatch.set(
           notifRef,
           {
             recipientId: requesterId,
@@ -153,15 +208,18 @@ async function handleExpireRequests(req: NextRequest) {
           },
           { merge: true }
         );
+        currentBatchOps++;
       }
+
+      await commitBatchIfFull();
     }
 
-    if (expiredBloodCount > 0 || expiredContactCount > 0) {
-      await batch.commit();
+    if (currentBatchOps > 0) {
+      await currentBatch.commit();
     }
 
     console.info(
-      `[Cron Expire] Processed expiry: ${expiredBloodCount} blood requests, ${expiredContactCount} contact requests`
+      `[Cron Expire] Cutoffs: 7d=${sevenDaysAgoIso}, 48h=${fortyEightHoursAgoIso}. Processed expiry: ${expiredBloodCount} blood requests, ${expiredContactCount} contact requests`
     );
 
     return NextResponse.json({

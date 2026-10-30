@@ -43,6 +43,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getTranslations } from "@/i18n/translations";
+import { isBloodRequestExpired } from "@/services/blood-request.service";
 import { FacebookIcon, WhatsAppIcon } from "@/components/shared/social-icons";
 import type { Locale } from "@/i18n/config";
 import type {
@@ -312,7 +313,9 @@ export function RequestMatchingView({
     locale
   );
 
-  const isClosed = bloodRequest.status !== "open";
+  const isExpired = isBloodRequestExpired(bloodRequest);
+  const isClosed = bloodRequest.status !== "open" || isExpired;
+  const effectiveStatus: RequestStatus = isExpired ? "expired" : bloodRequest.status;
   const urgencyLabel = t.domain.requestUrgency[bloodRequest.urgency] || bloodRequest.urgency;
 
   const urgencyStyles =
@@ -372,7 +375,7 @@ export function RequestMatchingView({
                 <span>{urgencyLabel}</span>
               </span>
 
-              <StatusBadge status={bloodRequest.status} locale={locale} />
+              <StatusBadge status={effectiveStatus} locale={locale} />
 
               {bloodRequest.scope === "GLOBAL" && (
                 <Badge variant="outline" className="text-[11px] font-bold border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/10 px-2.5 py-0.5">
@@ -552,16 +555,24 @@ export function RequestMatchingView({
             </CardHeader>
 
             <CardContent className="p-5 sm:p-6 space-y-5">
-              {/* Closed Warning if not active */}
+              {/* Closed / Expired Warning if not active */}
               {isClosed && (
                 <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-3">
                   <AlertCircle className="size-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
                     <strong className="font-bold block">
-                      {t.matchingDonors.closedNoticeTitle}
+                      {isExpired
+                        ? locale === "en"
+                          ? "This Blood Request Has Expired"
+                          : "এই রক্তের অনুরোধের মেয়াদ শেষ হয়েছে"
+                        : t.matchingDonors.closedNoticeTitle}
                     </strong>
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      {t.matchingDonors.closedNoticeDesc}
+                      {isExpired
+                        ? locale === "en"
+                          ? "This requisition is no longer active as its validity period has passed. If you still need blood, please broadcast an updated request."
+                          : "এই রক্তের অনুরোধটির সক্রিয় সময়সীমা শেষ হওয়ায় এটি আর কার্যকর নয়। প্রয়োজন থাকলে অনুগ্রহ করে নতুন অনুরোধ তৈরি করুন।"
+                        : t.matchingDonors.closedNoticeDesc}
                     </p>
                   </div>
                 </div>
@@ -989,6 +1000,14 @@ function StatusBadge({
     return (
       <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
         {locale === "en" ? "Fulfilled" : "সম্পন্ন"}
+      </Badge>
+    );
+  }
+  if (status === "expired") {
+    return (
+      <Badge className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+        <Clock className="size-3 mr-1" />
+        <span>{locale === "en" ? "Expired" : "মেয়াদোত্তীর্ণ"}</span>
       </Badge>
     );
   }
