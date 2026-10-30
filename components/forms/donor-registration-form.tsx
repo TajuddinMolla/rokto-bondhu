@@ -107,6 +107,7 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
   });
 
   // Watch location fields for cascading dependencies
+  const watchedBloodGroup = useWatch({ control, name: "bloodGroup" });
   const watchedDivisionId = useWatch({ control, name: "divisionId" });
   const watchedDistrictId = useWatch({ control, name: "districtId" });
   const watchedAvailabilityStatus = useWatch({ control, name: "availabilityStatus" });
@@ -491,19 +492,52 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
                   required
                   error={errors.bloodGroup?.message}
                 >
-                  <Select
-                    id={`${formId}-bloodGroup`}
-                    aria-invalid={Boolean(errors.bloodGroup)}
-                    aria-describedby={errors.bloodGroup ? `${formId}-bloodGroup-error` : undefined}
-                    {...register("bloodGroup")}
-                  >
-                    <option value="">{t.registrationPage.form.bloodGroupPlaceholder}</option>
-                    {BLOOD_GROUPS.map((group) => (
-                      <option key={group} value={group}>
-                        {group}
-                      </option>
-                    ))}
-                  </Select>
+                  <div className="space-y-2">
+                    {/* 8-Group Quick Selection Matrix */}
+                    <div
+                      role="group"
+                      aria-label={t.registrationPage.form.bloodGroupLabel}
+                      className="grid grid-cols-4 gap-1.5"
+                    >
+                      {BLOOD_GROUPS.map((group) => {
+                        const isSelected = watchedBloodGroup === group;
+                        return (
+                          <button
+                            key={group}
+                            type="button"
+                            onClick={() =>
+                              setValue("bloodGroup", group as DonorInput["bloodGroup"], {
+                                shouldValidate: true,
+                              })
+                            }
+                            aria-pressed={isSelected}
+                            className={`flex items-center justify-center h-10 rounded-xl border text-xs font-black transition-all cursor-pointer min-h-[40px] touch-manipulation ${
+                              isSelected
+                                ? "border-primary bg-primary text-primary-foreground shadow-2xs scale-[1.02]"
+                                : "border-border bg-surface text-foreground hover:border-primary/50 hover:bg-primary-subtle"
+                            }`}
+                          >
+                            <span>{group}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <Select
+                      id={`${formId}-bloodGroup`}
+                      aria-invalid={Boolean(errors.bloodGroup)}
+                      aria-describedby={errors.bloodGroup ? `${formId}-bloodGroup-error` : undefined}
+                      className="min-h-[44px]"
+                      {...register("bloodGroup")}
+                    >
+                      <option value="">{t.registrationPage.form.bloodGroupPlaceholder}</option>
+                      {BLOOD_GROUPS.map((group) => (
+                        <option key={group} value={group}>
+                          {group}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
                 </FormField>
               </div>
 

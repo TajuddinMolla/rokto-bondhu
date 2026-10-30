@@ -26,7 +26,11 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-import { BLOOD_GROUPS } from "@/constants/blood-groups";
+import {
+  BLOOD_GROUPS,
+  getCompatibleDonorGroups,
+  isBloodGroup,
+} from "@/constants/blood-groups";
 import {
   getDivisions,
   getDistricts,
@@ -622,48 +626,105 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
                   </h3>
                 </div>
 
-                {/* 1.1 Blood Group & Units Needed (2 Selects Side-by-Side) */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Blood Group Select */}
+                {/* 1.1 Blood Group & Units Needed */}
+                <div className="space-y-4">
+                  {/* Blood Group with 1-Tap 8-Group Button Grid */}
                   <FormField
                     id={`${formId}-bloodGroup`}
                     label={t.bloodRequestCreatePage.form.bloodGroupLabel}
                     required
                     error={errors.bloodGroup?.message}
                   >
-                    <Select
-                      id={`${formId}-bloodGroup`}
-                      className="min-h-[46px] rounded-xl text-sm font-semibold"
-                      value={watchedBloodGroup || ""}
-                      onChange={(e) =>
-                        setValue(
-                          "bloodGroup",
-                          e.target.value as BloodRequestInput["bloodGroup"],
-                          { shouldValidate: true }
-                        )
-                      }
-                      aria-invalid={Boolean(errors.bloodGroup)}
-                      aria-describedby={
-                        errors.bloodGroup
-                          ? `${formId}-bloodGroup-error`
-                          : undefined
-                      }
-                    >
-                      <option value="">
-                        {t.bloodRequestCreatePage.form.bloodGroupPlaceholder}
-                      </option>
-                      {BLOOD_GROUPS.map((group) => (
-                        <option key={group} value={group}>
-                          {group} {locale === "en" ? "Group" : "গ্রুপ"}
+                    <div className="space-y-2">
+                      {/* 8-Group Quick Selection Matrix */}
+                      <div
+                        role="group"
+                        aria-label={t.bloodRequestCreatePage.form.bloodGroupLabel}
+                        className="grid grid-cols-4 sm:grid-cols-8 gap-2"
+                      >
+                        {BLOOD_GROUPS.map((group) => {
+                          const isSelected = watchedBloodGroup === group;
+                          return (
+                            <button
+                              key={group}
+                              type="button"
+                              onClick={() =>
+                                setValue(
+                                  "bloodGroup",
+                                  group as BloodRequestInput["bloodGroup"],
+                                  { shouldValidate: true }
+                                )
+                              }
+                              aria-pressed={isSelected}
+                              className={`flex items-center justify-center h-11 rounded-xl border text-sm font-black transition-all cursor-pointer min-h-[44px] touch-manipulation ${
+                                isSelected
+                                  ? "border-primary bg-primary text-primary-foreground shadow-sm scale-[1.03]"
+                                  : "border-border bg-surface text-foreground hover:border-primary/50 hover:bg-primary-subtle"
+                              }`}
+                            >
+                              <span>{group}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Dropdown fallback for accessibility / form standards */}
+                      <Select
+                        id={`${formId}-bloodGroup`}
+                        className="min-h-[46px] rounded-xl text-sm font-semibold"
+                        value={watchedBloodGroup || ""}
+                        onChange={(e) =>
+                          setValue(
+                            "bloodGroup",
+                            e.target.value as BloodRequestInput["bloodGroup"],
+                            { shouldValidate: true }
+                          )
+                        }
+                        aria-invalid={Boolean(errors.bloodGroup)}
+                        aria-describedby={
+                          errors.bloodGroup
+                            ? `${formId}-bloodGroup-error`
+                            : undefined
+                        }
+                      >
+                        <option value="">
+                          {t.bloodRequestCreatePage.form.bloodGroupPlaceholder}
                         </option>
-                      ))}
-                    </Select>
+                        {BLOOD_GROUPS.map((group) => (
+                          <option key={group} value={group}>
+                            {group} {locale === "en" ? "Group" : "গ্রুপ"}
+                          </option>
+                        ))}
+                      </Select>
+
+                      {/* Live Compatibility Assistant Helper */}
+                      {watchedBloodGroup && isBloodGroup(watchedBloodGroup) ? (
+                        <div className="p-3 rounded-xl border border-primary/20 bg-primary/[0.04] text-xs flex items-center justify-between gap-2 flex-wrap">
+                          <span className="text-muted-foreground font-medium">
+                            {locale === "en"
+                              ? "Eligible Donor Blood Groups:"
+                              : "এই রোগীর জন্য উপযুক্ত রক্তদাতার গ্রুপ:"}
+                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {getCompatibleDonorGroups(watchedBloodGroup).map((grp) => (
+                              <span
+                                key={grp}
+                                className="px-2 py-0.5 rounded-md bg-surface border border-primary/30 text-primary font-black text-xs"
+                              >
+                                {grp}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                   </FormField>
 
-                  {/* Units Needed Select */}
-                  <FormField
-                    id={`${formId}-unitsNeeded`}
-                    label={t.bloodRequestCreatePage.form.unitsLabel}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Units Needed Select */}
+                    <FormField
+                      id={`${formId}-unitsNeeded`}
+                      label={t.bloodRequestCreatePage.form.unitsLabel}
                     required
                     error={errors.unitsNeeded?.message}
                   >
@@ -716,6 +777,7 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
                     </Select>
                   </FormField>
                 </div>
+              </div>
 
                 {/* 1.2 Urgency Level & Broadcast Scope (2 Selects Side-by-Side) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

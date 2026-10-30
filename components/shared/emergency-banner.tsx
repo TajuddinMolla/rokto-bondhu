@@ -70,16 +70,26 @@ export function EmergencyBanner({ locale, className }: EmergencyBannerProps) {
           </div>
         </div>
 
-        {/* Right Side: CTA Button */}
-        <div className="shrink-0 self-start md:self-auto w-full md:w-auto pt-1 md:pt-0">
+        {/* Right Side: CTA Buttons */}
+        <div className="shrink-0 flex flex-wrap items-center gap-2.5 self-start md:self-auto w-full md:w-auto pt-1 md:pt-0">
           <Button
             asChild
             size="default"
-            className="w-full md:w-auto min-h-[46px] px-6 rounded-xl font-black text-sm shadow-sm bg-gradient-to-r from-primary to-rose-700 hover:from-primary-hover hover:to-rose-800 text-white gap-2 active:scale-95 transition-all"
+            className="flex-1 md:flex-initial min-h-[46px] px-6 rounded-xl font-black text-sm shadow-sm bg-gradient-to-r from-primary to-rose-700 hover:from-primary-hover hover:to-rose-800 text-white gap-2 active:scale-95 transition-all cursor-pointer"
           >
             <Link href={requestCreateHref}>
               <span>{locale === "en" ? "Post Blood Request" : "রক্তের আবেদন করুন"}</span>
               <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+            </Link>
+          </Button>
+          <Button
+            asChild
+            variant="outline"
+            size="default"
+            className="flex-1 md:flex-initial min-h-[46px] px-5 rounded-xl font-bold text-xs sm:text-sm border-border/80 hover:bg-muted text-foreground cursor-pointer"
+          >
+            <Link href={`${prefix}/donors/register`}>
+              <span>{locale === "en" ? "Become a Donor" : "রক্তদাতা হোন"}</span>
             </Link>
           </Button>
         </div>

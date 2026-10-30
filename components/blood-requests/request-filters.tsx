@@ -111,6 +111,18 @@ export function RequestFilters({ locale }: RequestFiltersProps) {
   );
 
   // Change handlers with cascade resets
+  const handleBloodGroupSelect = (group: string) => {
+    const nextGroup = group === bloodGroup ? "" : group;
+    setBloodGroup(nextGroup);
+    updateUrl({
+      bloodGroup: nextGroup,
+      division: divisionId,
+      district: districtId,
+      upazila: upazilaId,
+      urgency,
+    });
+  };
+
   const handleBloodGroupChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     setBloodGroup(val);
@@ -222,17 +234,45 @@ export function RequestFilters({ locale }: RequestFiltersProps) {
 
       <CardContent className="space-y-4">
         {/* Blood Group */}
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <label
             htmlFor={`${formId}-blood-group`}
-            className="block text-xs font-semibold text-foreground uppercase tracking-wider"
+            className="block text-xs font-bold text-foreground uppercase tracking-wider"
           >
             {t.bloodRequestsPage.filters.bloodGroupLabel}
           </label>
+
+          {/* 8 Blood Groups Pill Matrix */}
+          <div
+            role="group"
+            aria-label={t.bloodRequestsPage.filters.bloodGroupLabel}
+            className="grid grid-cols-4 gap-1.5"
+          >
+            {BLOOD_GROUPS.map((group) => {
+              const isSelected = bloodGroup === group;
+              return (
+                <button
+                  key={group}
+                  type="button"
+                  onClick={() => handleBloodGroupSelect(group)}
+                  aria-pressed={isSelected}
+                  className={`flex items-center justify-center h-10 rounded-xl border text-xs font-black transition-all cursor-pointer min-h-[40px] touch-manipulation ${
+                    isSelected
+                      ? "border-primary bg-primary text-primary-foreground shadow-2xs scale-[1.02]"
+                      : "border-border bg-surface text-foreground hover:border-primary/50 hover:bg-primary-subtle"
+                  }`}
+                >
+                  <span>{group}</span>
+                </button>
+              );
+            })}
+          </div>
+
           <Select
             id={`${formId}-blood-group`}
             value={bloodGroup}
             onChange={handleBloodGroupChange}
+            className="min-h-[44px] mt-1"
           >
             <option value="">{t.bloodRequestsPage.filters.allBloodGroups}</option>
             {BLOOD_GROUPS.map((group) => (
