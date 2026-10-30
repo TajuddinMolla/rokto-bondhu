@@ -22,7 +22,13 @@ import { useMarkAllNotificationsAsRead } from "@/hooks/mutations/use-notificatio
 import { NotificationItem } from "@/components/notifications/notification-item";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Locale } from "@/i18n/config";
 
@@ -90,11 +96,16 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
               <div className="flex items-center gap-2">
                 <Filter className="size-4 text-primary" aria-hidden="true" />
                 <CardTitle className="text-base font-bold text-foreground">
-                  {locale === "en" ? "Filter Notifications" : "ফিল্টার ও নিয়ন্ত্রণ"}
+                  {locale === "en"
+                    ? "Filter Notifications"
+                    : "ফিল্টার ও নিয়ন্ত্রণ"}
                 </CardTitle>
               </div>
               {unreadCount > 0 && (
-                <Badge variant="default" className="text-xs font-bold px-2 py-0.5">
+                <Badge
+                  variant="default"
+                  className="text-xs font-bold px-2 py-0.5"
+                >
                   {unreadCount} {locale === "en" ? "unread" : "না পড়া"}
                 </Badge>
               )}
@@ -117,7 +128,9 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
                     : "bg-muted/40 text-muted-foreground border-border/60 hover:text-foreground hover:bg-muted"
                 }`}
               >
-                <span>{locale === "en" ? "All Notifications" : "সকল বিজ্ঞপ্তি"}</span>
+                <span>
+                  {locale === "en" ? "All Notifications" : "সকল বিজ্ঞপ্তি"}
+                </span>
                 <span className="text-[11px] opacity-80">
                   {notifications.length}
                 </span>
@@ -131,7 +144,9 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
                     : "bg-muted/40 text-muted-foreground border-border/60 hover:text-foreground hover:bg-muted"
                 }`}
               >
-                <span>{locale === "en" ? "Unread Only" : "অপঠিত বিজ্ঞপ্তি"}</span>
+                <span>
+                  {locale === "en" ? "Unread Only" : "অপঠিত বিজ্ঞপ্তি"}
+                </span>
                 <span
                   className={`text-[11px] font-bold px-1.5 py-0.5 rounded-full ${
                     unreadCount > 0
@@ -161,7 +176,9 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
                   <CheckCheck className="size-3.5 text-primary" />
                 )}
                 <span>
-                  {locale === "en" ? "Mark All as Read" : "সবগুলো পড়া হয়েছে চিহ্নিত করুন"}
+                  {locale === "en"
+                    ? "Mark All as Read"
+                    : "সবগুলো পড়া হয়েছে চিহ্নিত করুন"}
                 </span>
               </Button>
             )}
@@ -175,7 +192,9 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
               <div className="flex items-center gap-2">
                 <Bell className="size-4 text-primary" aria-hidden="true" />
                 <CardTitle className="text-sm font-bold text-foreground">
-                  {locale === "en" ? "Browser Push Alerts" : "ব্রাউজার পুশ নোটিফিকেশন"}
+                  {locale === "en"
+                    ? "Browser Push Alerts"
+                    : "ব্রাউজার পুশ নোটিফিকেশন"}
                 </CardTitle>
               </div>
               <Badge
@@ -183,8 +202,8 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
                   pushState.isSubscribed
                     ? "default"
                     : pushState.status === "denied"
-                    ? "destructive"
-                    : "outline"
+                      ? "destructive"
+                      : "outline"
                 }
                 className="text-[10px] font-semibold"
               >
@@ -193,16 +212,16 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
                     ? "Active"
                     : "সক্রিয়"
                   : pushState.status === "denied"
-                  ? locale === "en"
-                    ? "Blocked"
-                    : "ব্লকড"
-                  : pushState.status === "unsupported"
-                  ? locale === "en"
-                    ? "Unsupported"
-                    : "সমর্থিত নয়"
-                  : locale === "en"
-                  ? "Inactive"
-                  : "নিষ্ক্রিয়"}
+                    ? locale === "en"
+                      ? "Blocked"
+                      : "ব্লকড"
+                    : pushState.status === "unsupported"
+                      ? locale === "en"
+                        ? "Unsupported"
+                        : "সমর্থিত নয়"
+                      : locale === "en"
+                        ? "Inactive"
+                        : "নিষ্ক্রিয়"}
               </Badge>
             </div>
           </CardHeader>
@@ -226,7 +245,11 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
                   {pushState.isLoading ? (
                     <Loader2 className="size-3 animate-spin mr-1.5" />
                   ) : null}
-                  <span>{locale === "en" ? "Disable Push Alerts" : "পুশ নোটিফিকেশন বন্ধ করুন"}</span>
+                  <span>
+                    {locale === "en"
+                      ? "Disable Push Alerts"
+                      : "পুশ নোটিফিকেশন বন্ধ করুন"}
+                  </span>
                 </Button>
               ) : pushState.status === "denied" ? (
                 <span className="text-[11px] text-destructive flex items-center gap-1.5">
@@ -237,7 +260,9 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
                 </span>
               ) : pushState.status === "unsupported" ? (
                 <span className="text-[11px] text-muted-foreground">
-                  {locale === "en" ? "Not supported on this device" : "এই ডিভাইসে সমর্থিত নয়"}
+                  {locale === "en"
+                    ? "Not supported on this device"
+                    : "এই ডিভাইসে সমর্থিত নয়"}
                 </span>
               ) : (
                 <Button
@@ -252,7 +277,11 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
                   ) : (
                     <Sparkles className="size-3 text-primary-foreground" />
                   )}
-                  <span>{locale === "en" ? "Enable Push Alerts" : "পুশ নোটিফিকেশন চালু করুন"}</span>
+                  <span>
+                    {locale === "en"
+                      ? "Enable Push Alerts"
+                      : "পুশ নোটিফিকেশন চালু করুন"}
+                  </span>
                 </Button>
               )}
             </div>
@@ -278,8 +307,8 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
                     ? "Unread Notifications"
                     : "অপঠিত বিজ্ঞপ্তিসমূহ"
                   : locale === "en"
-                  ? "Recent Notifications"
-                  : "সাম্প্রতিক বিজ্ঞপ্তিসমূহ"}
+                    ? "Recent Notifications"
+                    : "সাম্প্রতিক বিজ্ঞপ্তিসমূহ"}
               </CardTitle>
             </div>
             <span className="text-xs text-muted-foreground font-medium">
@@ -292,22 +321,33 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
               <div className="py-20 flex flex-col items-center justify-center gap-3 text-muted-foreground">
                 <Loader2 className="size-7 animate-spin text-primary" />
                 <p className="text-sm font-medium animate-pulse">
-                  {locale === "en" ? "Loading your notifications..." : "বিজ্ঞপ্তি লোড হচ্ছে..."}
+                  {locale === "en"
+                    ? "Loading your notifications..."
+                    : "বিজ্ঞপ্তি লোড হচ্ছে..."}
                 </p>
               </div>
             ) : isError ? (
               <div className="py-16 text-center space-y-3">
                 <AlertCircle className="size-8 text-destructive mx-auto" />
                 <h3 className="text-base font-bold text-foreground">
-                  {locale === "en" ? "Failed to Load Notifications" : "বিজ্ঞপ্তি লোড করা সম্ভব হয়নি"}
+                  {locale === "en"
+                    ? "Failed to Load Notifications"
+                    : "বিজ্ঞপ্তি লোড করা সম্ভব হয়নি"}
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto">
                   {locale === "en"
                     ? "A temporary error occurred while retrieving your notification history."
                     : "আপনার বিজ্ঞপ্তির ইতিহাস আনার সময় একটি সাময়িক ত্রুটি ঘটেছে।"}
                 </p>
-                <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-1.5 shadow-xs">
-                  <span>{locale === "en" ? "Try Again" : "পুনরায় চেষ্টা করুন"}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => refetch()}
+                  className="gap-1.5 shadow-xs"
+                >
+                  <span>
+                    {locale === "en" ? "Try Again" : "পুনরায় চেষ্টা করুন"}
+                  </span>
                 </Button>
               </div>
             ) : notifications.length === 0 ? (
@@ -321,8 +361,8 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
                       ? "No Unread Notifications"
                       : "কোনো অপঠিত বিজ্ঞপ্তি নেই"
                     : locale === "en"
-                    ? "No Notifications Yet"
-                    : "এখনও কোনো বিজ্ঞপ্তি নেই"}
+                      ? "No Notifications Yet"
+                      : "এখনও কোনো বিজ্ঞপ্তি নেই"}
                 </h3>
                 <p className="text-xs sm:text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
                   {unreadOnly
@@ -330,13 +370,13 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
                       ? "You are all caught up! Switch to 'All Notifications' to review past alerts."
                       : "আপনার সব বিজ্ঞপ্তি পড়া সম্পন্ন হয়েছে! পূর্বের বিজ্ঞপ্তি দেখতে 'সকল বিজ্ঞপ্তি' নির্বাচন করুন।"
                     : locale === "en"
-                    ? "When you send or receive contact requests or create blood requests, updates will appear here."
-                    : "আপনি যোগাযোগের অনুরোধ পাঠালে, গ্রহণ করলে অথবা রক্তের অনুরোধ তৈরি করলে এখানে তার আপডেট দেখতে পাবেন।"}
+                      ? "When you send or receive contact requests or create blood requests, updates will appear here."
+                      : "আপনি যোগাযোগের অনুরোধ পাঠালে, গ্রহণ করলে অথবা রক্তের অনুরোধ তৈরি করলে এখানে তার আপডেট দেখতে পাবেন।"}
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="divide-y divide-border/60">
+                <div className=" space-y-4">
                   {notifications.map((notification) => (
                     <NotificationItem
                       key={notification.id}
@@ -367,8 +407,8 @@ export function NotificationsView({ locale }: NotificationsViewProps) {
                             ? "Loading more..."
                             : "আরও লোড হচ্ছে..."
                           : locale === "en"
-                          ? "Load More Notifications"
-                          : "পূর্বের আরও বিজ্ঞপ্তি দেখুন"}
+                            ? "Load More Notifications"
+                            : "পূর্বের আরও বিজ্ঞপ্তি দেখুন"}
                       </span>
                     </Button>
                   </div>
