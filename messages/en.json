@@ -609,7 +609,12 @@
     "submitting": "Sending...",
     "successTitle": "Contact Request Sent!",
     "successDesc": "Your request has been delivered to the donor's dashboard. You will be able to see their contact number as soon as they review and consent to share.",
-    "trackAction": "Track in Outgoing Requests"
+    "trackAction": "Track in Outgoing Requests",
+    "shareFacebook": "Share on Facebook",
+    "shareWhatsApp": "Share on WhatsApp",
+    "copyLink": "Copy Link",
+    "copied": "Link Copied!",
+    "callRequesterNow": "Call Requester Now"
   },
   "contactModeSettings": {
     "title": "Contact Visibility & Privacy",
@@ -676,6 +681,7 @@
     "scopeLocal": "Local Area",
     "scopeGlobal": "All Bangladesh",
     "shareWhatsApp": "Share on WhatsApp",
+    "shareFacebook": "Share on Facebook",
     "copyLink": "Copy Link",
     "compatibilityTitle": "Blood Compatibility",
     "compatibilitySubtitle": "Blood groups compatible for this patient",

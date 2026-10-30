@@ -18,7 +18,13 @@ import {
   Send,
   Phone,
   Hospital,
+  Droplet,
+  HeartHandshake,
+  User,
+  Share2,
 } from "lucide-react";
+
+import { FacebookIcon, WhatsAppIcon } from "@/components/shared/social-icons";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useUserProfile } from "@/hooks/queries/use-user-profile";
@@ -529,188 +535,350 @@ function ContactRequestCard({
   isActionLoading,
 }: ContactRequestCardProps) {
   const t = getTranslations(locale);
+  const [isCopied, setIsCopied] = React.useState(false);
 
   const urgencyVariant =
     request.urgency === "critical"
-      ? "bg-destructive/10 text-destructive border-destructive/20"
+      ? "bg-destructive/15 text-destructive border-destructive/30 animate-pulse ring-2 ring-destructive/20"
       : request.urgency === "urgent"
-      ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20"
+      ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
       : "bg-muted text-muted-foreground border-border";
 
+  const shareUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${locale === "en" ? "/en" : ""}/blood-request?bloodGroup=${encodeURIComponent(request.donorBloodGroup)}`
+      : `${locale === "en" ? "/en" : ""}/blood-request?bloodGroup=${encodeURIComponent(request.donorBloodGroup)}`;
+
+  const handleFacebookShare = () => {
+    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+    window.open(fbUrl, "_blank", "noopener,noreferrer,width=600,height=500");
+  };
+
+  const handleWhatsAppShare = () => {
+    const shareText =
+      locale === "en"
+        ? `🚨 URGENT: Blood Needed (${request.donorBloodGroup})\n🏥 Hospital: ${request.hospitalName || "Hospital"}\n👤 Patient: ${request.patientName || "Emergency patient"}\n\n👉 Help or connect with blood donors on RoktoBondhu:\n${shareUrl}\n\n- Shared via RoktoBondhu (রক্তবন্ধু)`
+        : `🚨 জরুরি রক্তের আবেদন (${request.donorBloodGroup})\n🏥 হাসপাতাল: ${request.hospitalName || "হাসপাতাল"}\n👤 রোগী: ${request.patientName || "জরুরি রোগী"}\n\n👉 রক্তদাতা খুঁজতে বা সহযোগিতা করতে রক্তবন্ধু দেখুন:\n${shareUrl}\n\n- রক্তবন্ধু (RoktoBondhu) এর মাধ্যমে প্রচারিত`;
+
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleCopyLink = async () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2500);
+      } catch {
+        // fallback
+      }
+    }
+  };
+
   return (
-    <Card className="border border-border bg-surface p-5 space-y-4 hover:border-primary/30 transition-colors shadow-xs">
-      {/* Top Header: Partner Name & Urgency Status */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black text-sm shrink-0 select-none">
-            {request.donorBloodGroup}
+    <article className="relative overflow-hidden rounded-3xl border border-border/80 bg-surface/95 backdrop-blur-xs p-5 sm:p-7 shadow-xs hover:shadow-xl hover:border-primary/40 transition-all duration-200 group space-y-5">
+      {/* Top hairline highlight that illuminates on card hover */}
+      <div
+        className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+        aria-hidden="true"
+      />
+
+      {/* Top Header: Blood Group Emblem + Partner Info + Live Urgency Status */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="flex items-start gap-4 sm:gap-5 min-w-0">
+          {/* Striking 3D Blood Group Shield */}
+          <div className="relative flex flex-col items-center justify-center size-14 sm:size-16 rounded-2xl bg-gradient-to-br from-rose-600 via-primary to-rose-900 text-white shadow-md shadow-primary/20 shrink-0 select-none overflow-hidden ring-4 ring-primary/10 group-hover:ring-primary/25 transition-all">
+            <Droplet
+              className="absolute -right-2 -bottom-2 size-10 fill-white/10 text-white/10 pointer-events-none"
+              aria-hidden="true"
+            />
+            <span className="relative z-10 text-xl sm:text-2xl font-black leading-none">
+              {request.donorBloodGroup}
+            </span>
+            <span className="relative z-10 text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-white/80 leading-tight mt-0.5">
+              {locale === "en" ? "Group" : "গ্রুপ"}
+            </span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-bold text-base text-foreground leading-tight">
-                {tab === "incoming" ? request.requesterName : request.donorName}
-              </h3>
-              <Badge variant="outline" className={`text-[10px] uppercase font-bold ${urgencyVariant}`}>
+
+          <div className="space-y-1.5 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Request Direction Role Badge */}
+              {tab === "incoming" ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/25 shadow-2xs">
+                  <HeartHandshake className="size-3" />
+                  <span>{locale === "en" ? "Incoming Request for You" : "আপনার কাছে রক্তের অনুরোধ"}</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/25 shadow-2xs">
+                  <Send className="size-3" />
+                  <span>{locale === "en" ? "Your Outgoing Inquiry" : "রক্তদাতার কাছে আপনার আবেদন"}</span>
+                </span>
+              )}
+
+              {/* Urgency Badge */}
+              <Badge variant="outline" className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${urgencyVariant}`}>
                 {t.domain.requestUrgency[request.urgency]}
               </Badge>
             </div>
-            <span className="text-xs text-muted-foreground block">
-              {tab === "incoming"
-                ? `${locale === "en" ? "Requester Phone:" : "রক্তপ্রার্থীর নম্বর:"} ${request.requesterPhone}`
-                : `${request.donorBloodGroup} ${locale === "en" ? "Volunteer Donor" : "স্বেচ্ছাসেবী রক্তদাতা"}`}
-            </span>
+
+            <h3 className="font-black text-base sm:text-lg text-foreground tracking-tight leading-snug">
+              {tab === "incoming" ? request.requesterName : request.donorName}
+            </h3>
+
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              {tab === "incoming" ? (
+                <a
+                  href={`tel:${request.requesterPhone}`}
+                  className="inline-flex items-center gap-1 font-mono text-foreground hover:text-primary transition-colors"
+                  title={locale === "en" ? "Call requester" : "রক্তপ্রার্থীকে কল করুন"}
+                >
+                  <Phone className="size-3.5 text-primary shrink-0" />
+                  <span>{request.requesterPhone}</span>
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-1">
+                  <User className="size-3.5 text-primary shrink-0" />
+                  <span>{request.donorBloodGroup} {locale === "en" ? "Volunteer Donor" : "স্বেচ্ছাসেবী রক্তদাতা"}</span>
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Status Badge */}
-        <StatusPill status={request.status} locale={locale} />
+        <div className="self-start sm:self-auto shrink-0">
+          <StatusPill status={request.status} locale={locale} />
+        </div>
       </div>
 
-      {/* Details Box */}
-      <div className="p-3.5 rounded-xl border border-border/80 bg-muted/20 text-xs space-y-2">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-muted-foreground">
+      {/* Details Box: Clinical Info & Hospital */}
+      <div className="p-4 rounded-2xl border border-border/80 bg-muted/20 text-xs space-y-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-muted-foreground">
           {request.patientName && (
-            <div>
-              <span className="font-semibold text-foreground">
-                {locale === "en" ? "Patient: " : "রোগী: "}
+            <div className="flex items-center gap-1.5">
+              <User className="size-3.5 text-primary shrink-0" />
+              <span className="font-medium text-foreground">
+                {locale === "en" ? "Patient:" : "রোগী:"}{" "}
+                <strong className="text-foreground">{request.patientName}</strong>
               </span>
-              <span>{request.patientName}</span>
             </div>
           )}
           {request.hospitalName && (
             <div className="flex items-center gap-1.5 truncate">
-              <Hospital className="size-3 text-primary shrink-0" />
-              <span className="truncate">{request.hospitalName}</span>
+              <Hospital className="size-3.5 text-primary shrink-0" />
+              <span className="truncate font-medium text-foreground">{request.hospitalName}</span>
             </div>
           )}
-          <div>
-            <span className="font-semibold text-foreground">
-              {locale === "en" ? "Requested: " : "অনুরোধের তারিখ: "}
+          <div className="flex items-center gap-1.5">
+            <Clock className="size-3.5 text-primary shrink-0" />
+            <span>
+              {new Date(request.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "bn-BD", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
             </span>
-            <span>{new Date(request.createdAt).toLocaleDateString(locale === "en" ? "en-US" : "bn-BD")}</span>
           </div>
         </div>
 
         {request.message && (
-          <p className="text-muted-foreground italic border-t border-border/60 pt-2 leading-relaxed">
+          <div className="border-t border-border/60 pt-2 text-foreground/90 leading-relaxed italic bg-surface/50 p-2.5 rounded-xl">
             &ldquo;{request.message}&rdquo;
-          </p>
+          </div>
         )}
       </div>
 
       {/* Step 2 Consent Disclosure Box (When Donor has shared Phone) */}
       {request.status === "ACCEPTED" && request.donorConsentGiven && request.sharedContactDetails && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-xs">
-          <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-medium">
-            <PhoneCall className="size-4 shrink-0" />
-            <span>
-              {tab === "outgoing"
-                ? `${locale === "en" ? "Donor Phone:" : "রক্তদাতার ফোন নম্বর:"} `
-                : `${t.contactRequests.phoneSharedBadge}: `}
-              <strong className="font-mono text-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-xs shadow-2xs">
+          <div className="flex items-center gap-2.5 text-emerald-800 dark:text-emerald-300 font-semibold">
+            <div className="flex size-8 items-center justify-center rounded-xl bg-emerald-600 text-white shrink-0">
+              <PhoneCall className="size-4 animate-bounce" />
+            </div>
+            <div>
+              <span className="text-[11px] block font-normal opacity-90">
+                {tab === "outgoing"
+                  ? locale === "en"
+                    ? "Donor Verified Phone Number:"
+                    : "রক্তদাতার ভেরিফাইড ফোন নম্বর:"
+                  : `${t.contactRequests.phoneSharedBadge}: `}
+              </span>
+              <strong className="font-mono text-sm sm:text-base font-black tracking-wide text-foreground">
                 {request.sharedContactDetails.phoneNumber}
               </strong>
-            </span>
+            </div>
           </div>
 
-          {tab === "outgoing" && (
-            <Button asChild size="sm" className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-xs">
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              asChild
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 rounded-xl font-bold shadow-xs px-3.5 h-9"
+            >
               <a href={`tel:${request.sharedContactDetails.phoneNumber}`}>
                 <PhoneCall className="size-3.5" />
                 <span>{t.contactRequests.callDonorNow}</span>
               </a>
             </Button>
-          )}
+
+            <Button
+              asChild
+              size="sm"
+              className="bg-[#25D366] hover:bg-[#20ba59] text-white gap-1.5 rounded-xl font-bold shadow-xs px-3.5 h-9"
+            >
+              <a
+                href={`https://wa.me/${request.sharedContactDetails.phoneNumber.replace(/[^0-9]/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <WhatsAppIcon className="size-3.5" />
+                <span>WhatsApp</span>
+              </a>
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* Action Buttons Bar */}
-      <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-border">
-        {/* INCOMING ACTIONS (DONOR) */}
-        {tab === "incoming" && request.status === "PENDING" && (
-          <>
+      {/* Bottom Toolbar: Social Sharing (Facebook, WhatsApp, Copy Link) & Workflow Actions */}
+      <div className="pt-4 border-t border-border/70 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        {/* Social Emergency Sharing Buttons */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Facebook Share Button */}
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleFacebookShare}
+            className="h-9 px-3 rounded-xl text-xs gap-1.5 font-bold bg-[#1877F2] hover:bg-[#166fe5] text-white shadow-2xs transition-transform active:scale-95"
+            title={locale === "en" ? "Share emergency on Facebook" : "জরুরি আবেদন ফেসবুকে শেয়ার করুন"}
+          >
+            <FacebookIcon className="size-3.5" />
+            <span>Facebook</span>
+          </Button>
+
+          {/* WhatsApp Share Button */}
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleWhatsAppShare}
+            className="h-9 px-3 rounded-xl text-xs gap-1.5 font-bold bg-[#25D366] hover:bg-[#20ba59] text-white shadow-2xs transition-transform active:scale-95"
+            title={locale === "en" ? "Share emergency on WhatsApp" : "জরুরি আবেদন হোয়াটসঅ্যাপে শেয়ার করুন"}
+          >
+            <WhatsAppIcon className="size-3.5" />
+            <span>WhatsApp</span>
+          </Button>
+
+          {/* Copy Link Button */}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={handleCopyLink}
+            className="h-9 px-3 rounded-xl text-xs gap-1.5 font-semibold border-border hover:border-primary/50"
+            title={locale === "en" ? "Copy directory link" : "লিংক কপি করুন"}
+          >
+            {isCopied ? (
+              <>
+                <Check className="size-3.5 text-emerald-600" />
+                <span className="text-emerald-600 font-bold">{locale === "en" ? "Copied!" : "কপি হয়েছে!"}</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="size-3.5 text-muted-foreground" />
+                <span>{locale === "en" ? "Copy Link" : "লিংক কপি"}</span>
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Action Buttons Bar */}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {/* INCOMING ACTIONS (DONOR) */}
+          {tab === "incoming" && request.status === "PENDING" && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDecline}
+                disabled={isActionLoading}
+                className="h-9 px-3 text-xs gap-1.5 text-destructive hover:bg-destructive/10 rounded-xl font-medium"
+              >
+                <X className="size-3.5" />
+                <span>{t.contactRequests.declineAction}</span>
+              </Button>
+              <Button
+                size="sm"
+                onClick={onAccept}
+                disabled={isActionLoading}
+                className="h-9 px-3.5 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-xs transition-transform active:scale-95"
+              >
+                <Check className="size-3.5" />
+                <span>{t.contactRequests.acceptAction}</span>
+              </Button>
+            </>
+          )}
+
+          {/* Step 2 Consent Action: When Accepted but Phone not shared yet */}
+          {tab === "incoming" &&
+            request.status === "ACCEPTED" &&
+            !request.donorConsentGiven && (
+              <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl border border-amber-500/25 bg-amber-500/10 text-xs">
+                <span className="text-amber-800 dark:text-amber-300 font-medium">
+                  {locale === "en"
+                    ? "✓ You accepted. Click to share your phone number with this requester."
+                    : "✓ অনুরোধ গ্রহণ করেছেন। রক্তপ্রার্থীর সাথে ফোন নম্বর শেয়ার করতে ক্লিক করুন।"}
+                </span>
+                <Button
+                  size="sm"
+                  onClick={onOpenConsentDialog}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 rounded-xl font-bold shadow-xs px-3.5 h-9 shrink-0"
+                >
+                  <Phone className="size-3.5" />
+                  <span>{t.contactRequests.shareConsentAction}</span>
+                </Button>
+              </div>
+            )}
+
+          {/* Mark Completed */}
+          {request.status === "ACCEPTED" && request.donorConsentGiven && (
             <Button
               variant="outline"
               size="sm"
-              onClick={onDecline}
+              onClick={onComplete}
               disabled={isActionLoading}
-              className="text-xs text-destructive hover:bg-destructive/10"
+              className="h-9 px-3 text-xs gap-1.5 rounded-xl font-semibold border-border hover:border-primary/50"
             >
-              <X className="size-3.5 mr-1" />
-              <span>{t.contactRequests.declineAction}</span>
+              <CheckCircle2 className="size-3.5 text-emerald-600" />
+              <span>{t.contactRequests.completeAction}</span>
             </Button>
+          )}
+
+          {/* OUTGOING ACTIONS (REQUESTER) */}
+          {tab === "outgoing" && request.status === "PENDING" && (
             <Button
+              variant="outline"
               size="sm"
-              onClick={onAccept}
+              onClick={onCancel}
               disabled={isActionLoading}
-              className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+              className="h-9 px-3 text-xs gap-1 text-destructive hover:bg-destructive/10 rounded-xl font-medium"
             >
-              <Check className="size-3.5 mr-1" />
-              <span>{t.contactRequests.acceptAction}</span>
+              <XCircle className="size-3.5" />
+              <span>{t.contactRequests.cancelAction}</span>
             </Button>
-          </>
-        )}
+          )}
 
-        {/* Step 2 Consent Action: When Accepted but Phone not shared yet */}
-        {tab === "incoming" &&
-          request.status === "ACCEPTED" &&
-          !request.donorConsentGiven && (
-            <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-lg border border-amber-500/20 bg-amber-500/10 text-xs">
-              <span className="text-amber-700 dark:text-amber-400 font-medium">
+          {tab === "outgoing" &&
+            request.status === "ACCEPTED" &&
+            !request.donorConsentGiven && (
+              <span className="text-xs text-amber-700 dark:text-amber-400 font-medium italic">
                 {locale === "en"
-                  ? "Accepted. Phone number is still private."
-                  : "গৃহীত। ফোন নম্বর এখনও গোপন রয়েছে।"}
+                  ? "✓ Donor accepted! Waiting for donor to authorize contact sharing..."
+                  : "✓ রক্তদাতা অনুরোধ গ্রহণ করেছেন। যোগাযোগের অনুমতির অপেক্ষায়..."}
               </span>
-              <Button
-                size="sm"
-                onClick={onOpenConsentDialog}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 shadow-xs shrink-0"
-              >
-                <Phone className="size-3.5" />
-                <span>{t.contactRequests.shareConsentAction}</span>
-              </Button>
-            </div>
-          )}
-
-        {/* Mark Completed */}
-        {request.status === "ACCEPTED" && request.donorConsentGiven && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onComplete}
-            disabled={isActionLoading}
-            className="text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-          >
-            <CheckCircle2 className="size-3.5" />
-            <span>{t.contactRequests.completeAction}</span>
-          </Button>
-        )}
-
-        {/* OUTGOING ACTIONS (REQUESTER) */}
-        {tab === "outgoing" && request.status === "PENDING" && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onCancel}
-            disabled={isActionLoading}
-            className="text-xs text-destructive hover:bg-destructive/10"
-          >
-            <XCircle className="size-3.5 mr-1" />
-            <span>{t.contactRequests.cancelAction}</span>
-          </Button>
-        )}
-
-        {tab === "outgoing" &&
-          request.status === "ACCEPTED" &&
-          !request.donorConsentGiven && (
-            <span className="text-xs text-muted-foreground italic">
-              {locale === "en"
-                ? "Donor accepted! Waiting for donor to authorize contact sharing..."
-                : "রক্তদাতা অনুরোধ গ্রহণ করেছেন। যোগাযোগের অনুমতির অপেক্ষায়..."}
-            </span>
-          )}
+            )}
+        </div>
       </div>
-    </Card>
+    </article>
   );
 }
 
@@ -725,48 +893,54 @@ function StatusPill({
 
   if (status === "PENDING") {
     return (
-      <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-semibold">
-        <Clock className="size-3 mr-1" />
+      <span className="inline-flex items-center gap-1.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/25 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-2xs">
+        <span className="relative flex size-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+          <span className="relative inline-flex rounded-full size-2 bg-amber-500" />
+        </span>
         <span>{t.contactRequests.statusPending}</span>
-      </Badge>
+      </span>
     );
   }
   if (status === "ACCEPTED") {
     return (
-      <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-xs font-semibold">
-        <CheckCircle2 className="size-3 mr-1" />
+      <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-2xs">
+        <span className="relative flex size-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
+        </span>
         <span>{t.contactRequests.statusAccepted}</span>
-      </Badge>
+      </span>
     );
   }
   if (status === "COMPLETED") {
     return (
-      <Badge className="bg-blue-500/10 text-blue-600 border border-blue-500/20 text-xs font-semibold">
-        <Check className="size-3 mr-1" />
+      <span className="inline-flex items-center gap-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/25 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-2xs">
+        <Check className="size-3" />
         <span>{t.contactRequests.statusCompleted}</span>
-      </Badge>
+      </span>
     );
   }
   if (status === "DECLINED") {
     return (
-      <Badge variant="outline" className="border-destructive/30 text-destructive text-xs font-semibold">
-        <X className="size-3 mr-1" />
+      <span className="inline-flex items-center gap-1.5 bg-destructive/10 text-destructive border border-destructive/25 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+        <X className="size-3" />
         <span>{t.contactRequests.statusDeclined}</span>
-      </Badge>
+      </span>
     );
   }
   if (status === "EXPIRED") {
     return (
-      <Badge variant="outline" className="border-border text-muted-foreground bg-muted/30 text-xs font-semibold">
-        <Clock className="size-3 mr-1" />
+      <span className="inline-flex items-center gap-1.5 bg-muted text-muted-foreground border border-border px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+        <Clock className="size-3" />
         <span>{t.contactRequests.statusExpired}</span>
-      </Badge>
+      </span>
     );
   }
   return (
-    <Badge variant="outline" className="text-muted-foreground text-xs font-semibold">
-      <XCircle className="size-3 mr-1" />
+    <span className="inline-flex items-center gap-1.5 bg-muted text-muted-foreground border border-border px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+      <XCircle className="size-3" />
       <span>{t.contactRequests.statusCancelled}</span>
-    </Badge>
+    </span>
   );
 }

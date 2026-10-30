@@ -19,7 +19,13 @@ import {
   Phone,
   FileText,
   Search,
+  Share2,
+  Check,
+  Clock,
+  ExternalLink,
 } from "lucide-react";
+
+import { FacebookIcon, WhatsAppIcon } from "@/components/shared/social-icons";
 
 import { useAuth } from "@/hooks/use-auth";
 import { useMyBloodRequests } from "@/hooks/queries/use-my-blood-requests";
@@ -429,6 +435,7 @@ interface RequestCardProps {
 }
 
 function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: RequestCardProps) {
+  const [isCopied, setIsCopied] = React.useState(false);
   const divObj = getDivisionById(request.divisionId);
   const distObj = getDistrictById(request.districtId);
   const upaObj = getUpazilaById(request.upazilaId);
@@ -447,40 +454,79 @@ function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: Requ
     now > 0 &&
     new Date(request.neededAt).getTime() < now;
 
+  const requestHref = `${locale === "en" ? "/en" : ""}/blood-request/${request.id}`;
+
+  const handleFacebookShare = () => {
+    const shareUrl = typeof window !== "undefined" ? `${window.location.origin}${requestHref}` : requestHref;
+    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+    window.open(fbUrl, "_blank", "noopener,noreferrer,width=600,height=500");
+  };
+
+  const handleWhatsAppShare = () => {
+    const shareUrl = typeof window !== "undefined" ? `${window.location.origin}${requestHref}` : requestHref;
+    const shareText =
+      locale === "en"
+        ? `🚨 EMERGENCY BLOOD REQUEST\n🩸 Blood Group: ${request.bloodGroup} (${request.unitsNeeded} ${request.unitsNeeded > 1 ? "Bags" : "Bag"})\n🏥 Hospital: ${request.hospitalName || "Not specified"}\n📍 Location: ${locationText}\n⏰ Needed By: ${request.neededAt}\n📞 Contact: ${request.contactNumber} (${request.requesterName})\n\n👉 View details & matching donors:\n${shareUrl}\n\n- Shared via RoktoBondhu (রক্তবন্ধু)`
+        : `🚨 জরুরি রক্তের আবেদন!\n🩸 রক্তের গ্রুপ: ${request.bloodGroup} (${request.unitsNeeded} ব্যাগ)\n🏥 হাসপাতাল: ${request.hospitalName || "নির্দিষ্ট করা নেই"}\n📍 এলাকা: ${locationText}\n⏰ প্রয়োজনের সময়: ${request.neededAt}\n📞 যোগাযোগ: ${request.contactNumber} (${request.requesterName})\n\n👉 বিস্তারিত ও রক্তদাতা দেখতে ক্লিক করুন:\n${shareUrl}\n\n- রক্তবন্ধু (RoktoBondhu) এর মাধ্যমে প্রচারিত`;
+
+    const waUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+    window.open(waUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const handleCopyLink = async () => {
+    const shareUrl = typeof window !== "undefined" ? `${window.location.origin}${requestHref}` : requestHref;
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2500);
+      } catch {
+        // silent fallback
+      }
+    }
+  };
+
   return (
-    <article className="relative overflow-hidden rounded-3xl border border-border/80 bg-surface/95 backdrop-blur-xs p-5 sm:p-6 shadow-xs hover:shadow-lg hover:border-primary/40 transition-all group space-y-4">
+    <article className="relative overflow-hidden rounded-3xl border border-border/80 bg-surface/95 backdrop-blur-xs p-5 sm:p-7 shadow-xs hover:shadow-xl hover:border-primary/40 transition-all duration-200 group space-y-5">
       {/* Top subtle highlight hairline that illuminates on card hover */}
       <div
         className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
         aria-hidden="true"
       />
 
-      <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-        {/* Left: Blood Group Shield & Information */}
-        <div className="flex items-start gap-4">
-          {/* Striking Blood Group Shield */}
-          <div className="relative flex flex-col items-center justify-center size-16 rounded-2xl bg-gradient-to-br from-rose-600 via-primary to-rose-900 text-white shadow-md shadow-primary/20 shrink-0 select-none overflow-hidden ring-4 ring-primary/10 group-hover:ring-primary/25 transition-all">
+      {/* Main Details Tier */}
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-5">
+        {/* Left: Blood Group Shield & Key Info */}
+        <div className="flex items-start gap-4 sm:gap-5 min-w-0 flex-1">
+          {/* Striking 3D Blood Group Shield */}
+          <div className="relative flex flex-col items-center justify-center size-16 sm:size-20 rounded-2xl bg-gradient-to-br from-rose-600 via-primary to-rose-900 text-white shadow-md shadow-primary/20 shrink-0 select-none overflow-hidden ring-4 ring-primary/10 group-hover:ring-primary/25 transition-all">
             <Droplet
-              className="absolute -right-2 -bottom-2 size-10 fill-white/10 text-white/10 pointer-events-none"
+              className="absolute -right-2 -bottom-2 size-12 fill-white/10 text-white/10 pointer-events-none"
               aria-hidden="true"
             />
-            <span className="relative z-10 text-2xl font-black leading-none">
+            <span className="relative z-10 text-2xl sm:text-3xl font-black leading-none">
               {request.bloodGroup}
             </span>
-            <span className="relative z-10 text-[9px] font-black uppercase tracking-widest text-white/80 leading-tight mt-0.5">
-              {request.unitsNeeded} {locale === "en" ? "bag" : "ব্যাগ"}
+            <span className="relative z-10 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-white/80 leading-tight mt-0.5">
+              {request.unitsNeeded} {locale === "en" ? (request.unitsNeeded > 1 ? "Bags" : "Bag") : "ব্যাগ"}
             </span>
           </div>
 
-          <div className="space-y-1.5 min-w-0">
+          <div className="space-y-2 min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-foreground">
+              <h2 className="text-base sm:text-xl font-black text-foreground tracking-tight leading-snug">
                 {request.requesterName}
               </h2>
               {/* Urgency Badge */}
               <Badge
                 variant={request.urgency === "critical" ? "destructive" : "default"}
-                className="text-[10px] uppercase font-bold"
+                className={`text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full ${
+                  request.urgency === "critical"
+                    ? "bg-destructive text-destructive-foreground shadow-2xs ring-2 ring-destructive/20 animate-pulse"
+                    : request.urgency === "urgent"
+                    ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/30"
+                    : "bg-primary/10 text-primary border border-primary/20"
+                }`}
               >
                 {request.urgency}
               </Badge>
@@ -488,96 +534,163 @@ function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: Requ
               <StatusBadge status={request.status} locale={locale} />
               {/* Past Due Warning */}
               {isPastDue ? (
-                <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-600 bg-amber-500/10">
-                  {locale === "en" ? "Past Due" : "সময় অতিক্রান্ত"}
-                </Badge>
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold border border-amber-500/30 text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full">
+                  <Clock className="size-3" />
+                  <span>{locale === "en" ? "Past Due" : "সময় অতিক্রান্ত"}</span>
+                </span>
               ) : null}
             </div>
 
-            {/* Location & Hospital */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            {/* Location & Hospital Chips */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
               {request.hospitalName ? (
-                <span className="inline-flex items-center gap-1 font-medium text-foreground/90">
-                  <Hospital className="size-3.5 text-primary shrink-0" />
-                  <span>{request.hospitalName}</span>
+                <span className="inline-flex items-center gap-1.5 font-bold text-foreground">
+                  <Hospital className="size-4 text-primary shrink-0" />
+                  <span className="truncate">{request.hospitalName}</span>
                 </span>
               ) : null}
-              <span className="inline-flex items-center gap-1">
+              <span className="inline-flex items-center gap-1.5">
                 <MapPin className="size-3.5 text-primary shrink-0" />
                 <span>{locationText || "—"}</span>
               </span>
-              <span className="inline-flex items-center gap-1 font-mono">
-                <Phone className="size-3.5 text-muted-foreground shrink-0" />
+              <a
+                href={`tel:${request.contactNumber}`}
+                className="inline-flex items-center gap-1.5 font-mono font-medium text-foreground hover:text-primary transition-colors"
+                title={locale === "en" ? "Click to call" : "কল করতে ক্লিক করুন"}
+              >
+                <Phone className="size-3.5 text-primary shrink-0" />
                 <span>{request.contactNumber}</span>
-              </span>
+              </a>
             </div>
 
-            {/* Needed Date */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground pt-0.5">
-              <Calendar className="size-3.5 text-primary shrink-0" />
-              <span>
-                {locale === "en" ? "Needed at:" : "প্রয়োজনীয় সময়:"}{" "}
-                <strong className="text-foreground">{request.neededAt}</strong>
+            {/* Needed Date & Instructions */}
+            <div className="flex flex-wrap items-center gap-3 text-xs pt-0.5">
+              <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                <Calendar className="size-3.5 text-primary shrink-0" />
+                <span>
+                  {locale === "en" ? "Needed by:" : "প্রয়োজনীয় সময়:"}{" "}
+                  <strong className="text-foreground font-semibold">{request.neededAt}</strong>
+                </span>
               </span>
+
+              {request.additionalNotes && (
+                <span className="text-[11px] text-muted-foreground italic truncate max-w-md">
+                  &ldquo;{request.additionalNotes}&rdquo;
+                </span>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Right: Actions */}
-        {request.status === "open" ? (
-          <div className="flex flex-wrap sm:flex-col items-center sm:items-end gap-2 w-full sm:w-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
-            <Button
-              asChild
-              size="sm"
-              className="gap-1.5 text-xs h-8 bg-primary hover:bg-primary/90 text-primary-foreground flex-1 sm:flex-initial shadow-xs font-semibold rounded-lg"
-            >
-              <Link href={`${locale === "en" ? "/en" : ""}/blood-request/${request.id}`}>
-                <Search className="size-3.5" />
-                <span>{locale === "en" ? "Find Donors" : "রক্তদাতা খুঁজুন"}</span>
-              </Link>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onEdit}
-              className="gap-1.5 text-xs h-8 flex-1 sm:flex-initial rounded-lg font-medium"
-            >
-              <Edit3 className="size-3.5" />
-              <span>{locale === "en" ? "Edit" : "সম্পাদনা"}</span>
-            </Button>
-            <Button
-              size="sm"
-              onClick={onFulfill}
-              className="gap-1.5 text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white flex-1 sm:flex-initial rounded-lg font-medium"
-            >
-              <CheckCircle2 className="size-3.5" />
-              <span>{locale === "en" ? "Fulfilled" : "সম্পন্ন"}</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onCancel}
-              className="gap-1.5 text-xs h-8 text-destructive hover:bg-destructive/10 flex-1 sm:flex-initial rounded-lg font-medium"
-            >
-              <XCircle className="size-3.5" />
-              <span>{locale === "en" ? "Cancel" : "বাতিল"}</span>
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-xs h-8 flex-1 sm:flex-initial rounded-lg font-medium"
-            >
-              <Link href={`${locale === "en" ? "/en" : ""}/blood-request/${request.id}`}>
-                <Search className="size-3.5" />
-                <span>{locale === "en" ? "View Details" : "বিস্তারিত ও ম্যাচ"}</span>
-              </Link>
-            </Button>
-          </div>
-        )}
+        {/* Right / Top-Right: Primary Find Donors Action */}
+        <div className="flex items-center gap-2 self-start md:self-auto shrink-0 w-full md:w-auto">
+          <Button
+            asChild
+            size="sm"
+            className="w-full md:w-auto gap-2 text-xs font-bold h-10 px-4 rounded-xl shadow-xs bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            <Link href={requestHref}>
+              <Search className="size-4" />
+              <span>{locale === "en" ? "Find Matching Donors" : "উপযুক্ত রক্তদাতা খুঁজুন"}</span>
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      {/* Bottom Toolbar: Social Sharing (Facebook, WhatsApp, Copy) & State Actions */}
+      <div className="pt-4 border-t border-border/70 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        {/* Social Emergency Broadcast Buttons (Facebook, WhatsApp, Copy Link) */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Facebook Share Button */}
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleFacebookShare}
+            className="h-9 px-3 rounded-xl text-xs gap-1.5 font-bold bg-[#1877F2] hover:bg-[#166fe5] text-white shadow-2xs transition-transform active:scale-95"
+            title={locale === "en" ? "Share request on Facebook" : "অনুরোধটি ফেসবুকে শেয়ার করুন"}
+          >
+            <FacebookIcon className="size-3.5" />
+            <span>Facebook</span>
+          </Button>
+
+          {/* WhatsApp Share Button */}
+          <Button
+            type="button"
+            size="sm"
+            onClick={handleWhatsAppShare}
+            className="h-9 px-3 rounded-xl text-xs gap-1.5 font-bold bg-[#25D366] hover:bg-[#20ba59] text-white shadow-2xs transition-transform active:scale-95"
+            title={locale === "en" ? "Share request on WhatsApp" : "অনুরোধটি হোয়াটসঅ্যাপে শেয়ার করুন"}
+          >
+            <WhatsAppIcon className="size-3.5" />
+            <span>WhatsApp</span>
+          </Button>
+
+          {/* Copy Link Button */}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={handleCopyLink}
+            className="h-9 px-3 rounded-xl text-xs gap-1.5 font-semibold border-border hover:border-primary/50"
+            title={locale === "en" ? "Copy requisition link" : "অনুরোধের লিংক কপি করুন"}
+          >
+            {isCopied ? (
+              <>
+                <Check className="size-3.5 text-emerald-600" />
+                <span className="text-emerald-600 font-bold">{locale === "en" ? "Copied!" : "কপি হয়েছে!"}</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="size-3.5 text-muted-foreground" />
+                <span>{locale === "en" ? "Copy Link" : "লিংক কপি"}</span>
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Workflow State Buttons: Edit, Fulfill, Cancel */}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {request.status === "open" ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onEdit}
+                className="h-9 px-3 text-xs gap-1.5 rounded-xl font-semibold border-border hover:border-primary/50"
+              >
+                <Edit3 className="size-3.5 text-muted-foreground" />
+                <span>{locale === "en" ? "Edit Details" : "বিবরণ সম্পাদনা"}</span>
+              </Button>
+              <Button
+                size="sm"
+                onClick={onFulfill}
+                className="h-9 px-3.5 text-xs gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-xs transition-transform active:scale-95"
+              >
+                <CheckCircle2 className="size-3.5" />
+                <span>{locale === "en" ? "Mark Fulfilled" : "রক্ত পেয়েছি (সম্পন্ন)"}</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onCancel}
+                className="h-9 px-2.5 text-xs gap-1 text-destructive hover:bg-destructive/10 rounded-xl font-medium"
+              >
+                <XCircle className="size-3.5" />
+                <span>{locale === "en" ? "Cancel" : "বাতিল"}</span>
+              </Button>
+            </>
+          ) : (
+            <span className="text-xs text-muted-foreground font-medium italic">
+              {request.status === "fulfilled"
+                ? locale === "en"
+                  ? "✓ Blood arranged successfully"
+                  : "✓ রক্ত সংগ্রহ সফলভাবে সম্পন্ন হয়েছে"
+                : locale === "en"
+                ? "✕ Request cancelled"
+                : "✕ অনুরোধটি বাতিল করা হয়েছে"}
+            </span>
+          )}
+        </div>
       </div>
     </article>
   );
@@ -586,22 +699,28 @@ function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: Requ
 function StatusBadge({ status, locale }: { status: RequestStatus; locale: Locale }) {
   if (status === "open") {
     return (
-      <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 text-[10px] font-semibold">
-        {locale === "en" ? "Open" : "সক্রিয়"}
-      </Badge>
+      <span className="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-2xs">
+        <span className="relative flex size-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+          <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
+        </span>
+        <span>{locale === "en" ? "Active" : "সক্রিয়"}</span>
+      </span>
     );
   }
   if (status === "fulfilled") {
     return (
-      <Badge className="bg-blue-500/10 text-blue-600 border border-blue-500/20 text-[10px] font-semibold">
-        {locale === "en" ? "Fulfilled" : "সম্পন্ন"}
-      </Badge>
+      <span className="inline-flex items-center gap-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/25 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-2xs">
+        <CheckCircle2 className="size-3" />
+        <span>{locale === "en" ? "Fulfilled" : "সম্পন্ন"}</span>
+      </span>
     );
   }
   return (
-    <Badge variant="outline" className="text-muted-foreground text-[10px] font-semibold">
-      {locale === "en" ? "Cancelled" : "বাতিল"}
-    </Badge>
+    <span className="inline-flex items-center gap-1.5 bg-muted text-muted-foreground border border-border px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider">
+      <XCircle className="size-3" />
+      <span>{locale === "en" ? "Cancelled" : "বাতিল"}</span>
+    </span>
   );
 }
 
