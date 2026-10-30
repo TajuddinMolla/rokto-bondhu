@@ -5,6 +5,7 @@ import {
   updateDoc,
   deleteDoc,
   deleteField,
+  writeBatch,
   serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
@@ -287,10 +288,11 @@ export async function updateDonorContactMode(
     throw new Error("Donor profile not found");
   }
 
-  const existingData = existingSnap.data();
+  const existingData = existingSnap.data() || {};
   const isPublic = mode === "PUBLIC";
 
   const privateUpdates: Record<string, unknown> = {
+    userId: uid,
     contactMode: mode,
     phoneVisibility: mode,
     isPhonePublic: isPublic,
@@ -298,10 +300,20 @@ export async function updateDonorContactMode(
   };
 
   const publicUpdates: Record<string, unknown> = {
+    userId: uid,
     contactMode: mode,
     phoneVisibility: mode,
     updatedAt: serverTimestamp(),
   };
+
+  // Ensure public projection retains vital donor discovery attributes
+  if (existingData.displayName) publicUpdates.displayName = existingData.displayName;
+  if (existingData.bloodGroup) publicUpdates.bloodGroup = existingData.bloodGroup;
+  if (existingData.divisionId) publicUpdates.divisionId = existingData.divisionId;
+  if (existingData.districtId) publicUpdates.districtId = existingData.districtId;
+  if (existingData.upazilaId) publicUpdates.upazilaId = existingData.upazilaId;
+  if (existingData.availabilityStatus) publicUpdates.availabilityStatus = existingData.availabilityStatus;
+  if (existingData.area) publicUpdates.area = existingData.area;
 
   if (isPublic) {
     publicUpdates.phoneNumber = existingData.phoneNumber || "";
@@ -309,10 +321,10 @@ export async function updateDonorContactMode(
     publicUpdates.phoneNumber = deleteField();
   }
 
-  await Promise.all([
-    updateDoc(docRef, privateUpdates),
-    setDoc(publicDocRef, publicUpdates, { merge: true }),
-  ]);
+  const batch = writeBatch(db);
+  batch.set(docRef, privateUpdates, { merge: true });
+  batch.set(publicDocRef, publicUpdates, { merge: true });
+  await batch.commit();
 }
 
 /**

@@ -448,18 +448,31 @@ function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: Requ
     new Date(request.neededAt).getTime() < now;
 
   return (
-    <Card className="border border-border bg-surface shadow-xs hover:border-primary/30 transition-all overflow-hidden">
-      <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-start justify-between gap-4">
-        {/* Left: Blood Group Badge & Core Information */}
+    <article className="relative overflow-hidden rounded-3xl border border-border/80 bg-surface/95 backdrop-blur-xs p-5 sm:p-6 shadow-xs hover:shadow-lg hover:border-primary/40 transition-all group space-y-4">
+      {/* Top subtle highlight hairline that illuminates on card hover */}
+      <div
+        className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+        aria-hidden="true"
+      />
+
+      <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+        {/* Left: Blood Group Shield & Information */}
         <div className="flex items-start gap-4">
-          <div className="flex flex-col items-center justify-center size-14 sm:size-16 rounded-2xl bg-primary/10 text-primary border border-primary/20 shrink-0">
-            <span className="text-xl sm:text-2xl font-black">{request.bloodGroup}</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          {/* Striking Blood Group Shield */}
+          <div className="relative flex flex-col items-center justify-center size-16 rounded-2xl bg-gradient-to-br from-rose-600 via-primary to-rose-900 text-white shadow-md shadow-primary/20 shrink-0 select-none overflow-hidden ring-4 ring-primary/10 group-hover:ring-primary/25 transition-all">
+            <Droplet
+              className="absolute -right-2 -bottom-2 size-10 fill-white/10 text-white/10 pointer-events-none"
+              aria-hidden="true"
+            />
+            <span className="relative z-10 text-2xl font-black leading-none">
+              {request.bloodGroup}
+            </span>
+            <span className="relative z-10 text-[9px] font-black uppercase tracking-widest text-white/80 leading-tight mt-0.5">
               {request.unitsNeeded} {locale === "en" ? "bag" : "ব্যাগ"}
             </span>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-base sm:text-lg font-bold text-foreground">
                 {request.requesterName}
@@ -484,13 +497,13 @@ function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: Requ
             {/* Location & Hospital */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
               {request.hospitalName ? (
-                <span className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-1 font-medium text-foreground/90">
                   <Hospital className="size-3.5 text-primary shrink-0" />
                   <span>{request.hospitalName}</span>
                 </span>
               ) : null}
               <span className="inline-flex items-center gap-1">
-                <MapPin className="size-3.5 text-muted-foreground shrink-0" />
+                <MapPin className="size-3.5 text-primary shrink-0" />
                 <span>{locationText || "—"}</span>
               </span>
               <span className="inline-flex items-center gap-1 font-mono">
@@ -501,7 +514,7 @@ function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: Requ
 
             {/* Needed Date */}
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-0.5">
-              <Calendar className="size-3.5 text-muted-foreground shrink-0" />
+              <Calendar className="size-3.5 text-primary shrink-0" />
               <span>
                 {locale === "en" ? "Needed at:" : "প্রয়োজনীয় সময়:"}{" "}
                 <strong className="text-foreground">{request.neededAt}</strong>
@@ -516,7 +529,7 @@ function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: Requ
             <Button
               asChild
               size="sm"
-              className="gap-1.5 text-xs h-8 bg-primary hover:bg-primary/90 text-primary-foreground flex-1 sm:flex-initial shadow-xs"
+              className="gap-1.5 text-xs h-8 bg-primary hover:bg-primary/90 text-primary-foreground flex-1 sm:flex-initial shadow-xs font-semibold rounded-lg"
             >
               <Link href={`${locale === "en" ? "/en" : ""}/blood-request/${request.id}`}>
                 <Search className="size-3.5" />
@@ -527,7 +540,7 @@ function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: Requ
               variant="outline"
               size="sm"
               onClick={onEdit}
-              className="gap-1.5 text-xs h-8 flex-1 sm:flex-initial"
+              className="gap-1.5 text-xs h-8 flex-1 sm:flex-initial rounded-lg font-medium"
             >
               <Edit3 className="size-3.5" />
               <span>{locale === "en" ? "Edit" : "সম্পাদনা"}</span>
@@ -535,7 +548,7 @@ function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: Requ
             <Button
               size="sm"
               onClick={onFulfill}
-              className="gap-1.5 text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white flex-1 sm:flex-initial"
+              className="gap-1.5 text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white flex-1 sm:flex-initial rounded-lg font-medium"
             >
               <CheckCircle2 className="size-3.5" />
               <span>{locale === "en" ? "Fulfilled" : "সম্পন্ন"}</span>
@@ -544,7 +557,7 @@ function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: Requ
               variant="ghost"
               size="sm"
               onClick={onCancel}
-              className="gap-1.5 text-xs h-8 text-destructive hover:bg-destructive/10 flex-1 sm:flex-initial"
+              className="gap-1.5 text-xs h-8 text-destructive hover:bg-destructive/10 flex-1 sm:flex-initial rounded-lg font-medium"
             >
               <XCircle className="size-3.5" />
               <span>{locale === "en" ? "Cancel" : "বাতিল"}</span>
@@ -556,7 +569,7 @@ function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: Requ
               asChild
               variant="outline"
               size="sm"
-              className="gap-1.5 text-xs h-8 flex-1 sm:flex-initial"
+              className="gap-1.5 text-xs h-8 flex-1 sm:flex-initial rounded-lg font-medium"
             >
               <Link href={`${locale === "en" ? "/en" : ""}/blood-request/${request.id}`}>
                 <Search className="size-3.5" />
@@ -566,7 +579,7 @@ function RequestCard({ request, locale, now, onEdit, onCancel, onFulfill }: Requ
           </div>
         )}
       </div>
-    </Card>
+    </article>
   );
 }
 

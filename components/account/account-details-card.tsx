@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@/lib/validations/zod-resolver";
 import { z } from "zod";
@@ -14,8 +15,13 @@ import {
   Mail,
   Phone,
   Calendar,
+  Shield,
+  Sparkles,
+  ExternalLink,
+  RefreshCw,
 } from "lucide-react";
 
+import { useAuth } from "@/hooks/use-auth";
 import { BD_PHONE_REGEX } from "@/lib/validations/donor";
 import type { UserProfile } from "@/types/user";
 import type { AuthUser } from "@/types/auth";
@@ -46,8 +52,42 @@ export function AccountDetailsCard({
   onLogout,
   locale,
 }: AccountDetailsCardProps) {
+  const { claimAdmin } = useAuth();
   const [isEditing, setIsEditing] = React.useState(false);
   const [isLoggingOut, setIsLoggingOut] = React.useState(false);
+  const [isClaimingAdmin, setIsClaimingAdmin] = React.useState(false);
+  const [claimFeedback, setClaimFeedback] = React.useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  const handleClaimAdminClick = async () => {
+    setIsClaimingAdmin(true);
+    setClaimFeedback(null);
+    try {
+      if (claimAdmin) {
+        const res = await claimAdmin();
+        setClaimFeedback({
+          type: "success",
+          message:
+            locale === "en"
+              ? res.message || "Administrative privileges successfully claimed!"
+              : "অভিনন্দন! আপনার অ্যাকাউন্টে অ্যাডমিন ও সকল প্ল্যাটফর্ম পারমিশন সফলভাবে সক্রিয় করা হয়েছে।",
+        });
+      }
+    } catch (err) {
+      setClaimFeedback({
+        type: "error",
+        message:
+          (err as Error)?.message ||
+          (locale === "en"
+            ? "Failed to activate administrative privileges."
+            : "অ্যাডমিন পারমিশন সক্রিয় করতে ব্যর্থ হয়েছে।"),
+      });
+    } finally {
+      setIsClaimingAdmin(false);
+    }
+  };
 
   const accountSchema = React.useMemo(() => {
     return z.object({
@@ -168,6 +208,132 @@ export function AccountDetailsCard({
             </Badge>
           )}
         </div>
+
+        {/* Administrative Status & Capability Controls */}
+        {user.isAdmin ? (
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/10 via-rose-500/10 to-amber-500/10 border border-primary/30 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-white shadow-xs shrink-0 mt-0.5">
+                  <ShieldCheck className="size-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs sm:text-sm text-foreground flex items-center gap-1.5 flex-wrap">
+                    <span>{locale === "en" ? "System Administrator" : "সিস্টেম অ্যাডমিনিস্ট্রেটর"}</span>
+                    <Badge variant="default" className="text-[10px] font-black px-1.5 py-0 bg-primary text-white">
+                      FULL ACCESS
+                    </Badge>
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {locale === "en"
+                      ? "Full authority to manage donors, requests, users, reports, and site data."
+                      : "রক্তদাতা, রক্তের অনুরোধ, ব্যবহারকারী, রিপোর্ট ও সাইট সেটিংস পরিচালনার পূর্ণ ক্ষমতা সক্রিয়।"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Button
+                asChild
+                size="sm"
+                className="font-bold gap-1.5 rounded-xl shadow-xs text-xs h-8 flex-1"
+              >
+                <Link href={locale === "en" ? "/en/admin" : "/admin"}>
+                  <ExternalLink className="size-3.5" />
+                  <span>{locale === "en" ? "Admin Panel" : "অ্যাডমিন প্যানেল"}</span>
+                </Link>
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleClaimAdminClick}
+                disabled={isClaimingAdmin}
+                className="text-xs h-8 gap-1.5 rounded-xl font-semibold cursor-pointer"
+              >
+                {isClaimingAdmin ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="size-3" />
+                )}
+                <span>{locale === "en" ? "Sync Privileges" : "পারমিশন রিফ্রেশ"}</span>
+              </Button>
+            </div>
+
+            {claimFeedback && (
+              <div
+                className={`p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+                  claimFeedback.type === "success"
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                    : "bg-destructive/15 text-destructive border border-destructive/30"
+                }`}
+              >
+                {claimFeedback.type === "success" ? (
+                  <CheckCircle2 className="size-3.5 shrink-0" />
+                ) : (
+                  <AlertCircle className="size-3.5 shrink-0" />
+                )}
+                <span>{claimFeedback.message}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+            <div className="flex items-start gap-2.5">
+              <div className="flex size-8 items-center justify-center rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5">
+                <Shield className="size-4" />
+              </div>
+              <div>
+                <h4 className="font-bold text-xs sm:text-sm text-foreground">
+                  {locale === "en" ? "Activate Full Administrator Rights" : "অ্যাডমিন ও পূর্ণ পারমিশন সক্রিয় করুন"}
+                </h4>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {locale === "en"
+                    ? "Gain complete administrative and moderation control across all site features."
+                    : "সাইটের যেকোনো ফিচার পরিবর্তন ও পরিচালনার জন্য এক ক্লিকে পূর্ণ প্রশাসনিক ক্ষমতা গ্রহণ করুন।"}
+                </p>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleClaimAdminClick}
+              disabled={isClaimingAdmin}
+              className="w-full font-bold gap-2 rounded-xl shadow-xs text-xs h-9 cursor-pointer"
+            >
+              {isClaimingAdmin ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="size-3.5" />
+              )}
+              <span>
+                {locale === "en"
+                  ? "Claim Full Administrator Privileges"
+                  : "অ্যাডমিন ও সকল পারমিশন সক্রিয় করুন"}
+              </span>
+            </Button>
+
+            {claimFeedback && (
+              <div
+                className={`p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+                  claimFeedback.type === "success"
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
+                    : "bg-destructive/15 text-destructive border border-destructive/30"
+                }`}
+              >
+                {claimFeedback.type === "success" ? (
+                  <CheckCircle2 className="size-3.5 shrink-0" />
+                ) : (
+                  <AlertCircle className="size-3.5 shrink-0" />
+                )}
+                <span>{claimFeedback.message}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* View Mode Fields */}
         {!isEditing ? (

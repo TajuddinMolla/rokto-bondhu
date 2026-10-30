@@ -53,13 +53,9 @@ export function LoginForm({ locale }: LoginFormProps) {
   // Redirect if already authenticated
   React.useEffect(() => {
     if (status === "authenticated" && user) {
-      if (!user.emailVerified) {
-        router.push(`${prefix}/verify-email`);
-      } else {
-        router.push(homeHref);
-      }
+      router.push(homeHref);
     }
-  }, [status, user, router, prefix, homeHref]);
+  }, [status, user, router, homeHref]);
 
   const onSubmit = async (data: LoginInput) => {
     setAuthError(null);
@@ -83,15 +79,10 @@ export function LoginForm({ locale }: LoginFormProps) {
     }
 
     try {
-      const loggedInUser = await login(emailToUse, data.password);
+      await login(emailToUse, data.password);
       // Clean up sensitive state immediately
       reset();
-
-      if (!loggedInUser.emailVerified) {
-        router.push(`${prefix}/verify-email`);
-      } else {
-        router.push(homeHref);
-      }
+      router.push(homeHref);
     } catch (err: unknown) {
       const firebaseError = err as { code?: string; message?: string };
       const errorCode = firebaseError?.code || "auth/generic-error";

@@ -15,7 +15,7 @@ import type {
   CreateContactRequestInput,
   DonorContactRequest,
 } from "@/types/contact-request";
-import type { DonorContactMode } from "@/types/donor";
+import type { DonorContactMode, DonorProfile } from "@/types/donor";
 
 /**
  * Mutation to submit a direct 1-to-1 contact request to a private donor.
@@ -143,10 +143,39 @@ export function useUpdateDonorContactMode() {
   return useMutation<
     void,
     Error,
-    { uid: string; mode: DonorContactMode }
+    { uid: string; mode: DonorContactMode },
+    { previousProfile?: DonorProfile | null }
   >({
     mutationFn: ({ uid, mode }) => updateDonorContactMode(uid, mode),
-    onSuccess: (_, { uid }) => {
+    onMutate: async ({ uid, mode }) => {
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.donors.profile(uid),
+      });
+
+      const previousProfile = queryClient.getQueryData<DonorProfile | null>(
+        queryKeys.donors.profile(uid)
+      );
+
+      if (previousProfile) {
+        queryClient.setQueryData<DonorProfile>(queryKeys.donors.profile(uid), {
+          ...previousProfile,
+          contactMode: mode,
+          phoneVisibility: mode,
+          isPhonePublic: mode === "PUBLIC",
+        });
+      }
+
+      return { previousProfile };
+    },
+    onError: (_err, { uid }, context) => {
+      if (context?.previousProfile !== undefined) {
+        queryClient.setQueryData(
+          queryKeys.donors.profile(uid),
+          context.previousProfile
+        );
+      }
+    },
+    onSettled: (_, __, { uid }) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.donors.profile(uid),
       });

@@ -55,13 +55,9 @@ export function RegisterForm({ locale }: RegisterFormProps) {
   // Redirect if already authenticated
   React.useEffect(() => {
     if (status === "authenticated" && user) {
-      if (!user.emailVerified) {
-        router.push(`${prefix}/verify-email`);
-      } else {
-        router.push(homeHref);
-      }
+      router.push(homeHref);
     }
-  }, [status, user, router, prefix, homeHref]);
+  }, [status, user, router, homeHref]);
 
   const onSubmit = async (data: RegisterInput) => {
     setAuthError(null);

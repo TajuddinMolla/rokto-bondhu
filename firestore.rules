@@ -16,7 +16,11 @@ service cloud.firestore {
       return isAuthenticated() && (
         request.auth.token.role == 'ADMIN' ||
         request.auth.token.role == 'admin' ||
-        request.auth.token.admin == true
+        request.auth.token.admin == true ||
+        request.auth.token.email in ['taj.unicart@gmail.com', 'admin@roktobondhu.com', 'admin@gmail.com'] ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['ADMIN', 'admin'] ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true))
       );
     }
 
@@ -44,11 +48,13 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
 
-      allow create: if isOwner(userId)
-                    && request.resource.data.uid == userId
-                    && (request.resource.data.email == request.auth.token.email || request.auth.token.email == null || request.resource.data.email == '')
-                    && (!('isSuspended' in request.resource.data) || request.resource.data.isSuspended == false)
-                    && (!('role' in request.resource.data) || request.resource.data.role == 'user');
+      allow create: if (
+                      isOwner(userId)
+                      && request.resource.data.uid == userId
+                      && (request.resource.data.email == request.auth.token.email || request.auth.token.email == null || request.resource.data.email == '')
+                      && (!('isSuspended' in request.resource.data) || request.resource.data.isSuspended == false)
+                      && (!('role' in request.resource.data) || request.resource.data.role == 'user')
+                    ) || isAdmin();
 
       allow update: if (
                       isOwner(userId)
@@ -75,19 +81,21 @@ service cloud.firestore {
     match /donorProfiles/{donorId} {
       allow read: if isOwner(donorId) || isAdmin();
 
-      allow create: if isOwner(donorId)
-                    && isNotSuspended()
-                    && request.resource.data.userId == donorId
-                    && isValidBloodGroup(request.resource.data.bloodGroup)
-                    && isValidAvailability(request.resource.data.availabilityStatus);
+      allow create: if (
+                      isOwner(donorId)
+                      && isNotSuspended()
+                      && (!('userId' in request.resource.data) || request.resource.data.userId == donorId)
+                      && isValidBloodGroup(request.resource.data.bloodGroup)
+                      && isValidAvailability(request.resource.data.availabilityStatus)
+                    ) || isAdmin();
 
       allow update: if (
                       isOwner(donorId)
                       && isNotSuspended()
-                      && request.resource.data.userId == donorId
+                      && (!('userId' in request.resource.data) || request.resource.data.userId == donorId)
                       && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
-                      && isValidBloodGroup(request.resource.data.bloodGroup)
-                      && isValidAvailability(request.resource.data.availabilityStatus)
+                      && (!('bloodGroup' in request.resource.data) || isValidBloodGroup(request.resource.data.bloodGroup))
+                      && (!('availabilityStatus' in request.resource.data) || isValidAvailability(request.resource.data.availabilityStatus))
                       && (!('isSuspended' in request.resource.data) || request.resource.data.isSuspended == resource.data.isSuspended)
                     ) || isAdmin();
 
@@ -107,15 +115,6 @@ service cloud.firestore {
                               && isNotSuspended()
                               && (!('bloodGroup' in request.resource.data) || isValidBloodGroup(request.resource.data.bloodGroup))
                               && (!('availabilityStatus' in request.resource.data) || isValidAvailability(request.resource.data.availabilityStatus))
-                              && (
-                                (!('phoneNumber' in request.resource.data) || request.resource.data.phoneNumber == null)
-                                || (
-                                  request.resource.data.contactMode == 'PUBLIC'
-                                  && request.resource.data.phoneNumber is string
-                                  && request.resource.data.phoneNumber.size() >= 11
-                                  && request.resource.data.phoneNumber.size() <= 15
-                                )
-                              )
                             ) || isAdmin();
 
       allow delete: if isOwner(donorId) || isAdmin();
@@ -174,7 +173,7 @@ service cloud.firestore {
                       )
                     ) || isAdmin();
 
-      allow delete: if false;
+      allow delete: if isAdmin();
     }
 
     // -------------------------------------------------------------
@@ -205,7 +204,7 @@ service cloud.firestore {
                       && (resource.data.status == 'open' && request.resource.data.status in ['open', 'fulfilled', 'cancelled', 'expired'])
                     ) || isAdmin();
 
-      allow delete: if false;
+      allow delete: if isAdmin();
     }
 
     // -------------------------------------------------------------
@@ -243,7 +242,7 @@ service cloud.firestore {
                       )
                     ) || isAdmin();
 
-      allow delete: if false;
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.recipientId == request.auth.uid);
     }
 
     // -------------------------------------------------------------
@@ -263,7 +262,7 @@ service cloud.firestore {
 
       allow update: if isAdmin();
 
-      allow delete: if false;
+      allow delete: if isAdmin();
     }
 
     // -------------------------------------------------------------

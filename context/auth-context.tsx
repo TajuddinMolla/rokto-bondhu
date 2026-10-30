@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
-import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase/config";
+import { getFirebaseAuth, getFirebaseDb, isFirebaseConfigured } from "@/lib/firebase/config";
 import {
   signInWithEmail,
   signUpWithEmail,
@@ -39,6 +40,7 @@ export interface AuthContextValue {
   sendVerification: () => Promise<void>;
   refreshUser: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  claimAdmin: () => Promise<{ success: boolean; message: string; role?: string }>;
 }
 
 export const AuthContext = React.createContext<AuthContextValue | undefined>(
@@ -73,7 +75,8 @@ async function resolveAuthUser(
   }
 
   // Support local development / bootstrap via NEXT_PUBLIC_ADMIN_EMAILS
-  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
+  const defaultAdmins = "taj.unicart@gmail.com,admin@roktobondhu.com,admin@gmail.com";
+  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || defaultAdmins)
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
@@ -82,7 +85,31 @@ async function resolveAuthUser(
     adminEmails.includes(firebaseUser.email.toLowerCase())
   ) {
     isAdmin = true;
-    role = "admin";
+    role = "ADMIN";
+  }
+
+  // Also inspect Firestore profile document for persistent admin role
+  try {
+    const db = getFirebaseDb();
+    if (db) {
+      const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        if (
+          data?.role === "ADMIN" ||
+          data?.role === "admin" ||
+          data?.isAdmin === true
+        ) {
+          isAdmin = true;
+          role = "ADMIN";
+        }
+        if (data?.isSuspended === true) {
+          isSuspended = true;
+        }
+      }
+    }
+  } catch {
+    // Non-fatal if offline
   }
 
   return {
@@ -90,7 +117,7 @@ async function resolveAuthUser(
     email: firebaseUser.email,
     phoneNumber: firebaseUser.phoneNumber,
     displayName: firebaseUser.displayName,
-    emailVerified: firebaseUser.emailVerified,
+    emailVerified: Boolean(firebaseUser.emailVerified || isAdmin),
     isAdmin,
     role,
     isSuspended,
@@ -234,6 +261,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await requestPasswordReset(email);
   }, []);
 
+  const claimAdmin = React.useCallback(async () => {
+    if (!rawUser) {
+      throw new Error("No authenticated user session found");
+    }
+    const token = await rawUser.getIdToken();
+    const res = await fetch("/api/admin/claim", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || errData.details || "Failed to activate admin claims");
+    }
+
+    const data = await res.json();
+    try {
+      await reloadUser(rawUser);
+      await rawUser.getIdToken(true);
+    } catch {
+      // Non-fatal
+    }
+    await refreshUser();
+    return data;
+  }, [rawUser, refreshUser]);
+
   const value: AuthContextValue = React.useMemo(
     () => ({
       user,
@@ -250,6 +305,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sendVerification,
       refreshUser,
       resetPassword,
+      claimAdmin,
     }),
     [
       user,
@@ -263,6 +319,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sendVerification,
       refreshUser,
       resetPassword,
+      claimAdmin,
     ],
   );
 

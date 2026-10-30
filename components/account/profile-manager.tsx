@@ -164,6 +164,7 @@ export function ProfileManager({ locale }: ProfileManagerProps) {
             isUpdatingContactMode={updateContactModeMutation.isPending}
             onToggleAvailability={handleToggleAvailability}
             onSelectContactMode={handleSelectContactMode}
+            contactModeError={updateContactModeMutation.error?.message}
             isSuspended={donorProfile?.isSuspended}
             locale={locale}
           />

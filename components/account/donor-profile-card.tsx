@@ -38,6 +38,7 @@ interface DonorProfileCardProps {
   isUpdatingContactMode: boolean;
   onToggleAvailability: () => Promise<void>;
   onSelectContactMode: (mode: DonorContactMode) => Promise<void>;
+  contactModeError?: string | null;
   isSuspended?: boolean;
   locale: Locale;
 }
@@ -49,25 +50,37 @@ export function DonorProfileCard({
   isUpdatingContactMode,
   onToggleAvailability,
   onSelectContactMode,
+  contactModeError,
   isSuspended = false,
   locale,
 }: DonorProfileCardProps) {
   const t = getTranslations(locale);
   const [contactModeSuccess, setContactModeSuccess] = React.useState(false);
+  const [internalError, setInternalError] = React.useState<string | null>(null);
+  const [updatingTarget, setUpdatingTarget] = React.useState<DonorContactMode | null>(null);
 
   const prefix = locale === "en" ? "/en" : "";
   const donorRegisterHref = `${prefix}/donors/register`;
 
   const isAvailable = donorProfile?.availabilityStatus === "available";
+  const activeMode: DonorContactMode = donorProfile?.contactMode || "PRIVATE";
 
   const handleContactModeClick = async (mode: DonorContactMode) => {
-    if (!donorProfile || donorProfile.contactMode === mode) return;
+    if (!donorProfile || activeMode === mode || isUpdatingContactMode) return;
+    setInternalError(null);
+    setUpdatingTarget(mode);
     try {
       await onSelectContactMode(mode);
       setContactModeSuccess(true);
       setTimeout(() => setContactModeSuccess(false), 3000);
-    } catch {
-      // Handled by mutation
+    } catch (err) {
+      console.error("[Donor Contact Mode Update Failed]:", err);
+      setInternalError(
+        (err as Error)?.message ||
+        (locale === "en" ? "Failed to change contact privacy mode. Please try again." : "যোগাযোগের গোপনীয়তা মোড পরিবর্তন করতে ব্যর্থ হয়েছে। পুনরায় চেষ্টা করুন।")
+      );
+    } finally {
+      setUpdatingTarget(null);
     }
   };
 
@@ -242,7 +255,7 @@ export function DonorProfileCard({
             <div className="p-4 sm:p-5 rounded-2xl border border-border/80 bg-muted/20 space-y-3.5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  {donorProfile.contactMode === "PUBLIC" ? (
+                  {activeMode === "PUBLIC" ? (
                     <Globe className="size-4 text-emerald-600" />
                   ) : (
                     <Lock className="size-4 text-primary" />
@@ -252,10 +265,10 @@ export function DonorProfileCard({
                   </strong>
                 </div>
                 <Badge
-                  variant={donorProfile.contactMode === "PUBLIC" ? "default" : "secondary"}
+                  variant={activeMode === "PUBLIC" ? "default" : "secondary"}
                   className="self-start sm:self-auto font-bold text-[11px]"
                 >
-                  {donorProfile.contactMode === "PUBLIC" ? "PUBLIC (প্রকাশ্য)" : "PRIVATE (সুরক্ষিত)"}
+                  {activeMode === "PUBLIC" ? "PUBLIC (প্রকাশ্য)" : "PRIVATE (সুরক্ষিত)"}
                 </Badge>
               </div>
 
@@ -269,13 +282,17 @@ export function DonorProfileCard({
                   onClick={() => handleContactModeClick("PUBLIC")}
                   disabled={isUpdatingContactMode}
                   className={`text-left p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
-                    donorProfile.contactMode === "PUBLIC"
+                    activeMode === "PUBLIC"
                       ? "border-emerald-500 bg-emerald-500/10 text-foreground ring-2 ring-emerald-500/20 shadow-xs"
                       : "border-border/80 bg-surface hover:border-primary/40 text-foreground"
                   }`}
                 >
                   <div className="flex items-center gap-2 font-bold text-xs mb-1">
-                    <PhoneCall className="size-3.5 text-emerald-600 shrink-0" />
+                    {isUpdatingContactMode && updatingTarget === "PUBLIC" ? (
+                      <Loader2 className="size-3.5 animate-spin text-emerald-600 shrink-0" />
+                    ) : (
+                      <PhoneCall className="size-3.5 text-emerald-600 shrink-0" />
+                    )}
                     <span>{t.contactModeSettings.publicMode}</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -288,13 +305,17 @@ export function DonorProfileCard({
                   onClick={() => handleContactModeClick("PRIVATE")}
                   disabled={isUpdatingContactMode}
                   className={`text-left p-3.5 rounded-xl border-2 transition-all cursor-pointer ${
-                    (donorProfile.contactMode || "PRIVATE") === "PRIVATE"
+                    activeMode === "PRIVATE"
                       ? "border-primary bg-primary/10 text-foreground ring-2 ring-primary/20 shadow-xs"
                       : "border-border/80 bg-surface hover:border-primary/40 text-foreground"
                   }`}
                 >
                   <div className="flex items-center gap-2 font-bold text-xs mb-1">
-                    <Lock className="size-3.5 text-primary shrink-0" />
+                    {isUpdatingContactMode && updatingTarget === "PRIVATE" ? (
+                      <Loader2 className="size-3.5 animate-spin text-primary shrink-0" />
+                    ) : (
+                      <Lock className="size-3.5 text-primary shrink-0" />
+                    )}
                     <span>{t.contactModeSettings.privateMode}</span>
                   </div>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
@@ -303,10 +324,24 @@ export function DonorProfileCard({
                 </button>
               </div>
 
-              {donorProfile.contactMode === "PUBLIC" && (
+              {activeMode === "PUBLIC" && (
                 <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 dark:text-amber-200">
                   <AlertCircle className="size-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
                   <span className="leading-relaxed">{t.contactModeSettings.publicPrivacyWarning}</span>
+                </div>
+              )}
+
+              {(internalError || contactModeError) && (
+                <div className="flex items-start gap-2.5 p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-xs text-destructive">
+                  <AlertCircle className="size-4 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed">{internalError || contactModeError}</span>
+                </div>
+              )}
+
+              {contactModeSuccess && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-700 dark:text-emerald-300">
+                  <CheckCircle2 className="size-4 shrink-0" />
+                  <span>{t.contactModeSettings.switchSuccess}</span>
                 </div>
               )}
 
