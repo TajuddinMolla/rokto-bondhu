@@ -74,8 +74,8 @@ async function resolveAuthUser(
     // Non-fatal if offline
   }
 
-  // Support local development / bootstrap via NEXT_PUBLIC_ADMIN_EMAILS
-  const defaultAdmins = "taj.unicart@gmail.com,admin@roktobondhu.com,admin@gmail.com";
+  // Support authorized administrators via NEXT_PUBLIC_ADMIN_EMAILS
+  const defaultAdmins = "taj.unicart@gmail.com,admin@roktobondhu.com";
   const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || defaultAdmins)
     .split(",")
     .map((e) => e.trim().toLowerCase())

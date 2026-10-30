@@ -28,6 +28,37 @@ export async function POST(req: NextRequest) {
     const uid = decodedToken.uid;
     const email = decodedToken.email;
 
+    // Security Authorization Check:
+    // Only permit if caller is an authorized administrator email, an existing verified admin,
+    // or provides a valid server secret header. Regular users are strictly forbidden.
+    const defaultAdmins = "taj.unicart@gmail.com,admin@roktobondhu.com";
+    const allowedEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || defaultAdmins)
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+
+    const isWhitelistedEmail = Boolean(email && allowedEmails.includes(email.toLowerCase()));
+    const isExistingClaimAdmin = decodedToken.role === "ADMIN" || decodedToken.admin === true;
+
+    const userDocSnap = await adminDb.collection("users").doc(uid).get();
+    const isFirestoreAdmin = Boolean(
+      userDocSnap.exists &&
+        (userDocSnap.data()?.role === "ADMIN" ||
+          userDocSnap.data()?.role === "admin" ||
+          userDocSnap.data()?.isAdmin === true)
+    );
+
+    const adminSecret = process.env.ADMIN_INVITE_SECRET;
+    const providedSecret = req.headers.get("x-admin-secret");
+    const hasValidSecret = Boolean(adminSecret && providedSecret && providedSecret === adminSecret);
+
+    if (!isWhitelistedEmail && !isExistingClaimAdmin && !isFirestoreAdmin && !hasValidSecret) {
+      return NextResponse.json(
+        { error: "Forbidden: You are not authorized to claim administrative privileges." },
+        { status: 403 }
+      );
+    }
+
     // Grant ADMIN custom claim
     await adminAuth.setCustomUserClaims(uid, {
       role: "ADMIN",

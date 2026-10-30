@@ -158,24 +158,26 @@ async function main() {
 
     if (userDoc.exists) {
       await userDocRef.update({
-        role: isRevoke ? "user" : "admin",
+        role: isRevoke ? "user" : "ADMIN",
+        isAdmin: !isRevoke,
         updatedAt: FieldValue.serverTimestamp(),
       });
-      console.log(`✅ Synchronized Firestore document: users/${user.uid} (role: "${isRevoke ? "user" : "admin"}")`);
+      console.log(`✅ Synchronized Firestore document: users/${user.uid} (role: "${isRevoke ? "user" : "ADMIN"}", isAdmin: ${!isRevoke})`);
     } else {
       await userDocRef.set(
         {
           uid: user.uid,
           email: user.email || "",
           displayName: user.displayName || "",
-          role: isRevoke ? "user" : "admin",
+          role: isRevoke ? "user" : "ADMIN",
+          isAdmin: !isRevoke,
           emailVerified: user.emailVerified,
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
         },
         { merge: true }
       );
-      console.log(`✅ Created Firestore document: users/${user.uid} (role: "${isRevoke ? "user" : "admin"}")`);
+      console.log(`✅ Created Firestore document: users/${user.uid} (role: "${isRevoke ? "user" : "ADMIN"}", isAdmin: ${!isRevoke})`);
     }
   } catch (firestoreErr) {
     console.warn(`⚠️ Warning: Could not synchronize Firestore users/${user.uid}:`, firestoreErr.message);

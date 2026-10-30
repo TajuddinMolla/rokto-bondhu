@@ -3,7 +3,9 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
+    // -------------------------------------------------------------
+    // Helper Functions
+    // -------------------------------------------------------------
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -17,18 +19,21 @@ service cloud.firestore {
         request.auth.token.role == 'ADMIN' ||
         request.auth.token.role == 'admin' ||
         request.auth.token.admin == true ||
-        request.auth.token.email in ['taj.unicart@gmail.com', 'admin@roktobondhu.com', 'admin@gmail.com'] ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['ADMIN', 'admin'] ||
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true))
+        request.auth.token.email in ['taj.unicart@gmail.com', 'admin@roktobondhu.com'] ||
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          (
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') in ['ADMIN', 'admin'] ||
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isAdmin', false) == true
+          )
+        )
       );
     }
 
     function isNotSuspended() {
       return isAuthenticated() && (
+        isAdmin() ||
         request.auth.token.suspended != true
-        && (!exists(/databases/$(database)/documents/users/$(request.auth.uid))
-            || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isSuspended != true)
       );
     }
 
@@ -42,30 +47,12 @@ service cloud.firestore {
 
     // -------------------------------------------------------------
     // 1. Users Collection: /users/{userId}
-    // Private user account documents. Only owner or admin can read.
-    // Suspended users cannot update their account.
+    // Private user account documents. Owner or Admin have full control.
     // -------------------------------------------------------------
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-
-      allow create: if (
-                      isOwner(userId)
-                      && request.resource.data.uid == userId
-                      && (request.resource.data.email == request.auth.token.email || request.auth.token.email == null || request.resource.data.email == '')
-                      && (!('isSuspended' in request.resource.data) || request.resource.data.isSuspended == false)
-                      && (!('role' in request.resource.data) || request.resource.data.role == 'user')
-                    ) || isAdmin();
-
-      allow update: if (
-                      isOwner(userId)
-                      && isNotSuspended()
-                      && request.resource.data.uid == userId
-                      && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
-                      && (!('isSuspended' in request.resource.data) || request.resource.data.isSuspended == resource.data.isSuspended)
-                      && (!('role' in request.resource.data) || request.resource.data.role == resource.data.role)
-                    ) || isAdmin();
-
-      allow delete: if false;
+      allow create, update: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin();
 
       // Device push tokens for FCM web push
       match /pushTokens/{tokenId} {
@@ -75,55 +62,28 @@ service cloud.firestore {
 
     // -------------------------------------------------------------
     // 2. Donor Profiles Collection: /donorProfiles/{donorId}
-    // Private donor profile details. Document ID matches Auth UID.
-    // Admins can read for moderation and update suspension state.
+    // Private donor profile details. Owner or Admin can read and write.
     // -------------------------------------------------------------
     match /donorProfiles/{donorId} {
       allow read: if isOwner(donorId) || isAdmin();
-
-      allow create: if (
-                      isOwner(donorId)
-                      && isNotSuspended()
-                      && (!('userId' in request.resource.data) || request.resource.data.userId == donorId)
-                      && isValidBloodGroup(request.resource.data.bloodGroup)
-                      && isValidAvailability(request.resource.data.availabilityStatus)
-                    ) || isAdmin();
-
-      allow update: if (
-                      isOwner(donorId)
-                      && isNotSuspended()
-                      && (!('userId' in request.resource.data) || request.resource.data.userId == donorId)
-                      && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
-                      && (!('bloodGroup' in request.resource.data) || isValidBloodGroup(request.resource.data.bloodGroup))
-                      && (!('availabilityStatus' in request.resource.data) || isValidAvailability(request.resource.data.availabilityStatus))
-                      && (!('isSuspended' in request.resource.data) || request.resource.data.isSuspended == resource.data.isSuspended)
-                    ) || isAdmin();
-
+      allow create, update: if isOwner(donorId) || isAdmin();
       allow delete: if isOwner(donorId) || isAdmin();
     }
 
     // -------------------------------------------------------------
     // 3. Public Donor Profiles Collection: /publicDonorProfiles/{donorId}
     // Public projection for donor search and open discovery.
-    // Admins can moderate, update, or delist public profiles.
+    // Anyone can read, only the donor or Admin can write.
     // -------------------------------------------------------------
     match /publicDonorProfiles/{donorId} {
       allow read: if true;
-
-      allow create, update: if (
-                              isOwner(donorId)
-                              && isNotSuspended()
-                              && (!('bloodGroup' in request.resource.data) || isValidBloodGroup(request.resource.data.bloodGroup))
-                              && (!('availabilityStatus' in request.resource.data) || isValidAvailability(request.resource.data.availabilityStatus))
-                            ) || isAdmin();
-
+      allow create, update: if isOwner(donorId) || isAdmin();
       allow delete: if isOwner(donorId) || isAdmin();
     }
 
     // -------------------------------------------------------------
     // 4. Donor Contact Requests Collection: /donorContactRequests/{requestId}
     // Direct 1-to-1 donor contact requests and consent management.
-    // Admins can inspect for harassment / report resolution.
     // -------------------------------------------------------------
     match /donorContactRequests/{requestId} {
       allow read: if isAuthenticated() && (
@@ -133,45 +93,13 @@ service cloud.firestore {
         isAdmin()
       );
 
-      allow create: if isAuthenticated()
-                    && isNotSuspended()
-                    && request.resource.data.requesterId == request.auth.uid
-                    && request.resource.data.status == 'PENDING'
-                    && request.resource.data.donorConsentGiven == false
-                    && !('sharedContactDetails' in request.resource.data)
-                    && request.resource.data.requesterName is string
-                    && request.resource.data.requesterPhone is string
-                    && request.resource.data.urgency in ['normal', 'urgent', 'critical'];
+      allow create: if isAuthenticated();
 
-      allow update: if isAuthenticated()
-                    && isNotSuspended()
-                    && (!('donorId' in resource.data) || request.resource.data.donorId == resource.data.donorId)
-                    && (!('requesterId' in resource.data) || request.resource.data.requesterId == resource.data.requesterId)
-                    && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
-                    && (
-                      (
-                        resource.data.requesterId == request.auth.uid
-                        && resource.data.status == 'PENDING'
-                        && request.resource.data.status == 'CANCELLED'
-                      ) ||
-                      (
-                        resource.data.donorId == request.auth.uid
-                        && resource.data.status == 'PENDING'
-                        && request.resource.data.status in ['ACCEPTED', 'DECLINED']
-                      ) ||
-                      (
-                        resource.data.donorId == request.auth.uid
-                        && resource.data.status == 'ACCEPTED'
-                        && request.resource.data.donorConsentGiven == true
-                        && request.resource.data.sharedContactDetails is map
-                        && request.resource.data.sharedContactDetails.phoneNumber is string
-                      ) ||
-                      (
-                        (resource.data.donorId == request.auth.uid || resource.data.requesterId == request.auth.uid)
-                        && resource.data.status == 'ACCEPTED'
-                        && request.resource.data.status == 'COMPLETED'
-                      )
-                    ) || isAdmin();
+      allow update: if isAuthenticated() && (
+        resource.data.donorId == request.auth.uid ||
+        resource.data.requesterId == request.auth.uid ||
+        isAdmin()
+      );
 
       allow delete: if isAdmin();
     }
@@ -179,102 +107,50 @@ service cloud.firestore {
     // -------------------------------------------------------------
     // 5. Blood Requests Collection: /bloodRequests/{requestId}
     // Emergency blood requisitions.
-    // Admins can moderate / hide abusive requests or restore them.
     // -------------------------------------------------------------
     match /bloodRequests/{requestId} {
       allow read: if true;
 
-      allow create: if isAuthenticated()
-                    && isNotSuspended()
-                    && request.resource.data.requesterId == request.auth.uid
-                    && request.resource.data.status == 'open'
-                    && isValidBloodGroup(request.resource.data.bloodGroup)
-                    && request.resource.data.unitsNeeded >= 1
-                    && request.resource.data.unitsNeeded <= 20
-                    && request.resource.data.urgency in ['normal', 'urgent', 'critical']
-                    && (!('scope' in request.resource.data) || request.resource.data.scope in ['LOCAL', 'GLOBAL']);
+      allow create: if isAuthenticated();
 
       allow update: if (
-                      isAuthenticated()
-                      && isNotSuspended()
-                      && resource.data.requesterId == request.auth.uid
-                      && request.resource.data.requesterId == resource.data.requesterId
-                      && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
-                      && (!('scope' in request.resource.data) || request.resource.data.scope in ['LOCAL', 'GLOBAL'])
-                      && (resource.data.status == 'open' && request.resource.data.status in ['open', 'fulfilled', 'cancelled', 'expired'])
-                    ) || isAdmin();
+        (isAuthenticated() && (
+          resource.data.requesterId == request.auth.uid &&
+          (!('status' in request.resource.data) || request.resource.data.status in ['open', 'fulfilled', 'cancelled', 'expired'])
+        )) ||
+        isAdmin()
+      );
 
-      allow delete: if isAdmin();
+      allow delete: if (isAuthenticated() && resource.data.requesterId == request.auth.uid) || isAdmin();
     }
 
     // -------------------------------------------------------------
     // 6. Notifications Collection: /notifications/{notificationId}
-    // In-app notifications. Admins can create moderation notices.
+    // In-app notifications.
     // -------------------------------------------------------------
     match /notifications/{notificationId} {
       allow read: if isAuthenticated() && (resource.data.recipientId == request.auth.uid || isAdmin());
-
-      allow update: if isAuthenticated()
-                    && resource.data.recipientId == request.auth.uid
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt', 'updatedAt']);
-
-      allow create: if (
-                      isAuthenticated() && isNotSuspended() && (
-                        request.resource.data.recipientId == request.auth.uid
-                        ||
-                        (
-                          request.resource.data.relatedContactRequestId is string
-                          && exists(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId))
-                          && (
-                            (
-                              get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.requesterId == request.auth.uid
-                              && request.resource.data.recipientId == get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.donorId
-                              && request.resource.data.type in ['CONTACT_REQUEST_RECEIVED', 'CONTACT_REQUEST_CANCELLED']
-                            )
-                            ||
-                            (
-                              get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.donorId == request.auth.uid
-                              && request.resource.data.recipientId == get(/databases/$(database)/documents/donorContactRequests/$(request.resource.data.relatedContactRequestId)).data.requesterId
-                              && request.resource.data.type in ['CONTACT_REQUEST_ACCEPTED', 'CONTACT_REQUEST_DECLINED', 'CONTACT_INFO_SHARED', 'CONTACT_REQUEST_COMPLETED']
-                            )
-                          )
-                        )
-                      )
-                    ) || isAdmin();
-
-      allow delete: if isAdmin() || (isAuthenticated() && resource.data.recipientId == request.auth.uid);
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (resource.data.recipientId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (resource.data.recipientId == request.auth.uid || isAdmin());
     }
 
     // -------------------------------------------------------------
     // 7. Reports Collection: /reports/{reportId}
     // User-submitted flags on donors, blood requests, or accounts.
-    // Authenticated users can submit flags. Only admins can resolve.
     // -------------------------------------------------------------
     match /reports/{reportId} {
       allow read: if isAdmin() || (isAuthenticated() && resource.data.reporterId == request.auth.uid);
-
-      allow create: if isAuthenticated()
-                    && isNotSuspended()
-                    && request.resource.data.reporterId == request.auth.uid
-                    && request.resource.data.status == 'PENDING'
-                    && request.resource.data.targetType in ['DONOR', 'BLOOD_REQUEST', 'USER']
-                    && request.resource.data.reason in ['INAPPROPRIATE_CONTENT', 'SPAM', 'FAKE_INFORMATION', 'HARASSMENT', 'OTHER'];
-
-      allow update: if isAdmin();
-
-      allow delete: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
     }
 
     // -------------------------------------------------------------
     // 8. Audit Logs Collection: /auditLogs/{logId}
-    // Append-only audit records for all admin actions.
-    // Immutable: update and delete are strictly forbidden for everyone.
     // -------------------------------------------------------------
     match /auditLogs/{logId} {
       allow read: if isAdmin();
-
-      allow create: if isAdmin() && request.resource.data.adminId == request.auth.uid;
-
+      allow create: if isAuthenticated();
       allow update, delete: if false;
     }
 

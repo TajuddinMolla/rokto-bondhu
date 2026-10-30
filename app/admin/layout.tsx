@@ -2,6 +2,7 @@ import * as React from "react";
 import type { Metadata } from "next";
 
 import { constructMetadata } from "@/lib/seo/metadata";
+import { AdminGuard } from "@/components/admin/admin-guard";
 import { AdminLayoutShell } from "@/components/admin/admin-layout-shell";
 
 export const metadata: Metadata = constructMetadata({
@@ -15,5 +16,9 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <AdminLayoutShell locale="bn">{children}</AdminLayoutShell>;
+  return (
+    <AdminGuard locale="bn">
+      <AdminLayoutShell locale="bn">{children}</AdminLayoutShell>
+    </AdminGuard>
+  );
 }

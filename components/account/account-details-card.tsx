@@ -15,8 +15,6 @@ import {
   Mail,
   Phone,
   Calendar,
-  Shield,
-  Sparkles,
   ExternalLink,
   RefreshCw,
 } from "lucide-react";
@@ -210,7 +208,7 @@ export function AccountDetailsCard({
         </div>
 
         {/* Administrative Status & Capability Controls */}
-        {user.isAdmin ? (
+        {user.isAdmin && (
           <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/10 via-rose-500/10 to-amber-500/10 border border-primary/30 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-2.5">
@@ -261,60 +259,6 @@ export function AccountDetailsCard({
                 <span>{locale === "en" ? "Sync Privileges" : "পারমিশন রিফ্রেশ"}</span>
               </Button>
             </div>
-
-            {claimFeedback && (
-              <div
-                className={`p-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 ${
-                  claimFeedback.type === "success"
-                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30"
-                    : "bg-destructive/15 text-destructive border border-destructive/30"
-                }`}
-              >
-                {claimFeedback.type === "success" ? (
-                  <CheckCircle2 className="size-3.5 shrink-0" />
-                ) : (
-                  <AlertCircle className="size-3.5 shrink-0" />
-                )}
-                <span>{claimFeedback.message}</span>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
-            <div className="flex items-start gap-2.5">
-              <div className="flex size-8 items-center justify-center rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 shrink-0 mt-0.5">
-                <Shield className="size-4" />
-              </div>
-              <div>
-                <h4 className="font-bold text-xs sm:text-sm text-foreground">
-                  {locale === "en" ? "Activate Full Administrator Rights" : "অ্যাডমিন ও পূর্ণ পারমিশন সক্রিয় করুন"}
-                </h4>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
-                  {locale === "en"
-                    ? "Gain complete administrative and moderation control across all site features."
-                    : "সাইটের যেকোনো ফিচার পরিবর্তন ও পরিচালনার জন্য এক ক্লিকে পূর্ণ প্রশাসনিক ক্ষমতা গ্রহণ করুন।"}
-                </p>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleClaimAdminClick}
-              disabled={isClaimingAdmin}
-              className="w-full font-bold gap-2 rounded-xl shadow-xs text-xs h-9 cursor-pointer"
-            >
-              {isClaimingAdmin ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="size-3.5" />
-              )}
-              <span>
-                {locale === "en"
-                  ? "Claim Full Administrator Privileges"
-                  : "অ্যাডমিন ও সকল পারমিশন সক্রিয় করুন"}
-              </span>
-            </Button>
 
             {claimFeedback && (
               <div
