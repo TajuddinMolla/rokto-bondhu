@@ -146,6 +146,31 @@ test("messages/bn.json and messages/en.json have matching critical keys", () => 
   assert.ok(en.home.bloodGroups.clinicalDisclaimerTitle, "en must have clinicalDisclaimerTitle");
 });
 
+// -----------------------------------------------------------------
+// Test Suite 6: Brand Favicon & App Icons
+// -----------------------------------------------------------------
+console.log("\n6. Brand Favicon & App Icons Assets");
+
+test("favicon.ico, icon.svg, apple-icon.png, and manifest exist with valid headers", () => {
+  // Check app/favicon.ico and public/favicon.ico
+  const appIco = fs.readFileSync("app/favicon.ico");
+  const pubIco = fs.readFileSync("public/favicon.ico");
+  assert.ok(appIco.length > 2000, "app/favicon.ico must contain multi-res icons");
+  assert.equal(appIco.readUInt16LE(2), 1, "app/favicon.ico must be valid ICO format");
+  assert.equal(pubIco.readUInt16LE(2), 1, "public/favicon.ico must be valid ICO format");
+
+  // Check SVG icons
+  const appSvg = fs.readFileSync("app/icon.svg", "utf-8");
+  assert.ok(appSvg.includes("<svg") && appSvg.includes("M12 22a7"), "app/icon.svg must contain droplet vector");
+
+  // Check Apple touch icon
+  const appleIcon = fs.readFileSync("app/apple-icon.png");
+  assert.ok(appleIcon.slice(0, 8).toString("hex") === "89504e470d0a1a0a", "apple-icon.png must be valid PNG");
+
+  // Check manifest
+  assert.ok(fs.existsSync("app/manifest.ts"), "app/manifest.ts must exist");
+});
+
 console.log("\n=================================================");
 console.log(`Results: ${passedTests}/${totalTests} tests passed`);
 console.log("=================================================");

@@ -5,6 +5,8 @@ import { constructMetadata } from "@/lib/seo/metadata";
 import { AdminGuard } from "@/components/admin/admin-guard";
 import { AdminRequestsView } from "@/components/admin/admin-requests-view";
 
+export const instant = false;
+
 export const metadata: Metadata = constructMetadata({
   title: "Blood Requests Moderation",
   path: "/admin/requests",

@@ -26,6 +26,8 @@ function DynamicYear() {
 
 export function Footer() {
   const pathname = usePathname();
+  const { user, status } = useAuth();
+  const { isDonor } = useIsDonor();
 
   // Completely omit footer on authentication routes
   if (isAuthPathname(pathname)) {
@@ -35,8 +37,6 @@ export function Footer() {
   const currentLocale = getLocaleFromPathname(pathname);
   const t = getTranslations(currentLocale);
 
-  const { user, status } = useAuth();
-  const { isDonor } = useIsDonor();
   const isAuthenticated = status === "authenticated" && Boolean(user);
 
   const mainNavItems = getMainNavItems(currentLocale);

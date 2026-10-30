@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Droplets,
   ShieldAlert,
@@ -11,6 +12,8 @@ import {
   RefreshCw,
   EyeOff,
   Eye,
+  ExternalLink,
+  MapPin,
 } from "lucide-react";
 
 import { useAdminRequests } from "@/hooks/queries/use-admin-data";
@@ -154,18 +157,18 @@ export function AdminRequestsView({ locale }: AdminRequestsViewProps) {
         </div>
       </Card>
 
-      {/* Requests Table */}
+      {/* Requests Content: Desktop Table + Mobile Cards */}
       {isLoading ? (
-        <div className="p-12 text-center text-muted-foreground">
+        <div className="p-12 text-center text-muted-foreground rounded-3xl border border-border bg-surface/50">
           <Loader2 className="size-6 animate-spin mx-auto mb-2 text-primary" />
-          <span className="text-xs">
+          <span className="text-xs font-medium">
             {locale === "en"
               ? "Loading blood requests..."
               : "রক্তের অনুরোধ লোড হচ্ছে..."}
           </span>
         </div>
       ) : isError ? (
-        <Card className="p-8 text-center border-destructive/20 bg-destructive/5">
+        <Card className="p-8 text-center border-destructive/20 bg-destructive/5 rounded-3xl">
           <ShieldAlert className="size-8 text-destructive mx-auto mb-2" />
           <p className="text-sm font-semibold text-destructive">
             {locale === "en"
@@ -174,7 +177,7 @@ export function AdminRequestsView({ locale }: AdminRequestsViewProps) {
           </p>
         </Card>
       ) : requests.length === 0 ? (
-        <Card className="p-12 text-center border-dashed">
+        <Card className="p-12 text-center border-dashed rounded-3xl">
           <Droplets className="size-8 text-muted-foreground mx-auto mb-2 opacity-50" />
           <p className="text-sm font-semibold text-foreground">
             {locale === "en"
@@ -189,39 +192,184 @@ export function AdminRequestsView({ locale }: AdminRequestsViewProps) {
         </Card>
       ) : (
         <div className="space-y-4">
-          <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-xs">
+          {/* Mobile Card Grid View (< md) */}
+          <div className="grid grid-cols-1 gap-3.5 md:hidden">
+            {requests.map((req) => {
+              const locationText = formatLocation(
+                {
+                  divisionId: req.divisionId,
+                  districtId: req.districtId,
+                  upazilaId: req.upazilaId,
+                },
+                locale,
+              );
+              const isHidden = req.status === "hidden";
+              const requestHref = `${locale === "en" ? "/en" : ""}/blood-request/${req.id}`;
+
+              return (
+                <div
+                  key={req.id}
+                  className={`relative overflow-hidden rounded-2xl border p-4 shadow-2xs space-y-3 ${
+                    isHidden
+                      ? "border-destructive/30 bg-destructive/5"
+                      : "border-border/80 bg-surface/95"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-rose-600 to-primary text-white font-black text-sm shrink-0 shadow-xs">
+                        {req.bloodGroup}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-foreground">{req.requesterName}</h4>
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          {req.unitsNeeded} {locale === "en" ? "bags" : "ব্যাগ"} • ID: {req.id.slice(0, 8)}...
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] uppercase font-bold ${
+                          req.urgency === "critical"
+                            ? "bg-destructive/10 text-destructive border-destructive/20"
+                            : req.urgency === "urgent"
+                            ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {req.urgency}
+                      </Badge>
+
+                      {isHidden ? (
+                        <Badge variant="destructive" className="text-[10px] font-bold">
+                          {locale === "en" ? "Hidden" : "লুকানো"}
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] font-bold ${
+                            req.status === "open"
+                              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {req.status}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-1 border-t border-border/60">
+                    <div>
+                      <span className="text-[10px] font-medium block text-muted-foreground">
+                        {locale === "en" ? "Hospital:" : "হাসপাতাল:"}
+                      </span>
+                      <span className="font-medium text-foreground truncate block">
+                        {req.hospitalName ? `${req.hospitalName} • ${locationText}` : locationText}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-medium block text-muted-foreground">
+                        {locale === "en" ? "Needed By:" : "প্রয়োজনের সময়:"}
+                      </span>
+                      <span className="font-mono text-foreground font-medium block">
+                        {req.neededAt}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions Row */}
+                  <div className="flex items-center justify-between pt-1 border-t border-border/60">
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-8 px-2 text-primary font-bold gap-1"
+                    >
+                      <Link href={requestHref} target="_blank">
+                        <span>{locale === "en" ? "Public Post" : "পোস্ট দেখুন"}</span>
+                        <ExternalLink className="size-3" />
+                      </Link>
+                    </Button>
+
+                    <div className="flex items-center gap-1.5">
+                      {isHidden ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-8 px-2.5 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 rounded-xl font-bold"
+                          onClick={() =>
+                            setDialogState({
+                              isOpen: true,
+                              action: "RESTORE",
+                              targetRequest: req,
+                            })
+                          }
+                        >
+                          <Eye className="size-3 mr-1" />
+                          <span>{locale === "en" ? "Restore" : "পুনর্বহাল"}</span>
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-8 px-2.5 text-destructive hover:bg-destructive/10 rounded-xl font-medium"
+                          onClick={() =>
+                            setDialogState({
+                              isOpen: true,
+                              action: "HIDE",
+                              targetRequest: req,
+                            })
+                          }
+                        >
+                          <EyeOff className="size-3 mr-1" />
+                          <span>{locale === "en" ? "Hide" : "লুকান"}</span>
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table View (>= md) */}
+          <div className="hidden md:block overflow-x-auto rounded-2xl border border-border/80 bg-surface/95 shadow-xs">
             <table className="w-full text-left text-xs text-foreground">
-              <thead className="bg-muted/50 border-b border-border font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">
+              <thead className="bg-muted/60 border-b border-border/80 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">
                 <tr>
-                  <th className="px-4 py-3">
+                  <th className="px-5 py-3.5">
                     {locale === "en" ? "Requester" : "আবেদনকারী"}
                   </th>
-                  <th className="px-4 py-3">
+                  <th className="px-5 py-3.5">
                     {locale === "en" ? "Group" : "গ্রুপ"}
                   </th>
-                  <th className="px-4 py-3">
+                  <th className="px-5 py-3.5">
                     {locale === "en" ? "Units" : "পরিমাণ"}
                   </th>
-                  <th className="px-4 py-3">
+                  <th className="px-5 py-3.5">
                     {locale === "en"
                       ? "Hospital & Location"
                       : "হাসপাতাল ও এলাকা"}
                   </th>
-                  <th className="px-4 py-3">
+                  <th className="px-5 py-3.5">
                     {locale === "en" ? "Urgency" : "জরুরিতা"}
                   </th>
-                  <th className="px-4 py-3">
+                  <th className="px-5 py-3.5">
                     {locale === "en" ? "Status" : "স্ট্যাটাস"}
                   </th>
-                  <th className="px-4 py-3">
+                  <th className="px-5 py-3.5">
                     {locale === "en" ? "Needed At" : "প্রয়োজনের সময়"}
                   </th>
-                  <th className="px-4 py-3 text-right">
+                  <th className="px-5 py-3.5 text-right">
                     {locale === "en" ? "Actions" : "পদক্ষেপ"}
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-border/70">
                 {requests.map((req) => {
                   const locationText = formatLocation(
                     {
@@ -233,50 +381,52 @@ export function AdminRequestsView({ locale }: AdminRequestsViewProps) {
                   );
 
                   const isHidden = req.status === "hidden";
+                  const requestHref = `${locale === "en" ? "/en" : ""}/blood-request/${req.id}`;
 
                   return (
                     <tr
                       key={req.id}
-                      className={`hover:bg-muted/30 transition-colors ${
+                      className={`hover:bg-muted/40 transition-colors ${
                         isHidden ? "bg-destructive/5" : ""
                       }`}
                     >
-                      <td className="px-4 py-3 font-semibold">
-                        <div>{req.requesterName}</div>
+                      <td className="px-5 py-4 font-semibold">
+                        <div className="font-bold text-foreground">{req.requesterName}</div>
                         <div className="text-[10px] text-muted-foreground font-mono">
-                          ID: {req.id.slice(0, 8)}...
+                          ID: {req.id.slice(0, 10)}...
                         </div>
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-5 py-4">
                         <Badge
                           variant="outline"
-                          className="font-extrabold text-xs"
+                          className="font-black text-xs bg-primary/5 text-primary border-primary/20 px-2.5 py-0.5 rounded-lg"
                         >
                           {req.bloodGroup}
                         </Badge>
                       </td>
 
-                      <td className="px-4 py-3 font-medium">
+                      <td className="px-5 py-4 font-bold text-foreground">
                         {req.unitsNeeded} {locale === "en" ? "bags" : "ব্যাগ"}
                       </td>
 
-                      <td className="px-4 py-3 text-muted-foreground max-w-[200px]">
+                      <td className="px-5 py-4 text-muted-foreground max-w-[200px]">
                         {req.hospitalName ? (
-                          <div className="font-medium text-foreground truncate flex items-center gap-1">
-                            <Building2 className="size-3 text-primary shrink-0" />
+                          <div className="font-bold text-foreground truncate flex items-center gap-1.5">
+                            <Building2 className="size-3.5 text-primary shrink-0" />
                             <span className="truncate">{req.hospitalName}</span>
                           </div>
                         ) : null}
-                        <div className="text-[11px] truncate">
-                          {locationText}
+                        <div className="text-[11px] truncate flex items-center gap-1 mt-0.5">
+                          <MapPin className="size-3 text-muted-foreground shrink-0" />
+                          <span>{locationText}</span>
                         </div>
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-5 py-4">
                         <Badge
                           variant="outline"
-                          className={`text-[10px] uppercase font-bold ${
+                          className={`text-[10px] uppercase font-bold rounded-lg ${
                             req.urgency === "critical"
                               ? "bg-destructive/10 text-destructive border-destructive/20"
                               : req.urgency === "urgent"
@@ -288,12 +438,12 @@ export function AdminRequestsView({ locale }: AdminRequestsViewProps) {
                         </Badge>
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-5 py-4">
                         {isHidden ? (
                           <div>
                             <Badge
                               variant="destructive"
-                              className="text-[10px] font-bold"
+                              className="text-[10px] font-bold rounded-lg"
                             >
                               {locale === "en" ? "Hidden" : "লুকানো"}
                             </Badge>
@@ -309,7 +459,7 @@ export function AdminRequestsView({ locale }: AdminRequestsViewProps) {
                         ) : (
                           <Badge
                             variant="outline"
-                            className={`text-[10px] ${
+                            className={`text-[10px] rounded-lg font-bold ${
                               req.status === "open"
                                 ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
                                 : "bg-muted text-muted-foreground"
@@ -320,47 +470,60 @@ export function AdminRequestsView({ locale }: AdminRequestsViewProps) {
                         )}
                       </td>
 
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
-                        <div className="flex items-center gap-1">
-                          <Clock className="size-3" />
+                      <td className="px-5 py-4 text-muted-foreground whitespace-nowrap">
+                        <div className="flex items-center gap-1 font-mono text-[11px]">
+                          <Clock className="size-3 text-muted-foreground shrink-0" />
                           <span>{req.neededAt}</span>
                         </div>
                       </td>
 
-                      <td className="px-4 py-3 text-right">
-                        {isHidden ? (
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
                           <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-[11px] h-7 px-2 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"
-                            onClick={() =>
-                              setDialogState({
-                                isOpen: true,
-                                action: "RESTORE",
-                                targetRequest: req,
-                              })
-                            }
-                          >
-                            <Eye className="size-3 mr-1" />
-                            {locale === "en" ? "Restore" : "পুনর্বহাল"}
-                          </Button>
-                        ) : (
-                          <Button
+                            asChild
                             variant="ghost"
                             size="sm"
-                            className="text-[11px] h-7 px-2 text-destructive hover:bg-destructive/10"
-                            onClick={() =>
-                              setDialogState({
-                                isOpen: true,
-                                action: "HIDE",
-                                targetRequest: req,
-                              })
-                            }
+                            className="text-[11px] h-7 px-2 text-primary font-bold"
                           >
-                            <EyeOff className="size-3 mr-1" />
-                            {locale === "en" ? "Hide" : "লুকান"}
+                            <Link href={requestHref} target="_blank">
+                              <ExternalLink className="size-3" />
+                            </Link>
                           </Button>
-                        )}
+
+                          {isHidden ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-[11px] h-7 px-2.5 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 rounded-lg font-bold"
+                              onClick={() =>
+                                setDialogState({
+                                  isOpen: true,
+                                  action: "RESTORE",
+                                  targetRequest: req,
+                                })
+                              }
+                            >
+                              <Eye className="size-3 mr-1" />
+                              {locale === "en" ? "Restore" : "পুনর্বহাল"}
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-[11px] h-7 px-2 rounded-lg text-destructive hover:bg-destructive/10 font-medium"
+                              onClick={() =>
+                                setDialogState({
+                                  isOpen: true,
+                                  action: "HIDE",
+                                  targetRequest: req,
+                                })
+                              }
+                            >
+                              <EyeOff className="size-3 mr-1" />
+                              {locale === "en" ? "Hide" : "লুকান"}
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

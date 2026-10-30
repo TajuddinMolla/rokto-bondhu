@@ -18,15 +18,11 @@ import {
   Edit3,
   Phone,
   Lock,
-  Globe,
   Check,
   Sparkles,
   Activity,
-  Clock,
   PhoneCall,
-  Search,
   Droplet,
-  Users,
 } from "lucide-react";
 
 import {

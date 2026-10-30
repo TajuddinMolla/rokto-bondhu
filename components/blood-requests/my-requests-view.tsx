@@ -22,7 +22,6 @@ import {
   Share2,
   Check,
   Clock,
-  ExternalLink,
 } from "lucide-react";
 
 import { FacebookIcon, WhatsAppIcon } from "@/components/shared/social-icons";

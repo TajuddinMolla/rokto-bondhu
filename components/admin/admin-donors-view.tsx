@@ -184,18 +184,18 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
         </div>
       </Card>
 
-      {/* Donors Table */}
+      {/* Donors Content: Desktop Table + Mobile Cards */}
       {isLoading ? (
-        <div className="p-12 text-center text-muted-foreground">
+        <div className="p-12 text-center text-muted-foreground rounded-3xl border border-border bg-surface/50">
           <Loader2 className="size-6 animate-spin mx-auto mb-2 text-primary" />
-          <span className="text-xs">
+          <span className="text-xs font-medium">
             {locale === "en"
               ? "Loading donor profiles..."
               : "রক্তদাতা তালিকা লোড হচ্ছে..."}
           </span>
         </div>
       ) : isError ? (
-        <Card className="p-8 text-center border-destructive/20 bg-destructive/5">
+        <Card className="p-8 text-center border-destructive/20 bg-destructive/5 rounded-3xl">
           <ShieldAlert className="size-8 text-destructive mx-auto mb-2" />
           <p className="text-sm font-semibold text-destructive">
             {locale === "en"
@@ -204,7 +204,7 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
           </p>
         </Card>
       ) : donors.length === 0 ? (
-        <Card className="p-12 text-center border-dashed">
+        <Card className="p-12 text-center border-dashed rounded-3xl">
           <Users className="size-8 text-muted-foreground mx-auto mb-2 opacity-50" />
           <p className="text-sm font-semibold text-foreground">
             {locale === "en"
@@ -219,34 +219,189 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
         </Card>
       ) : (
         <div className="space-y-4">
-          <div className="overflow-x-auto rounded-xl border border-border bg-card shadow-xs">
+          {/* Mobile Card Grid View (< md) */}
+          <div className="grid grid-cols-1 gap-3.5 md:hidden">
+            {donors.map((donor) => {
+              const isRevealed = revealedPhones[donor.id];
+              const locationText = formatLocation(
+                {
+                  divisionId: donor.divisionId,
+                  districtId: donor.districtId,
+                  upazilaId: donor.upazilaId,
+                },
+                locale,
+              );
+
+              return (
+                <div
+                  key={donor.id}
+                  className={`relative overflow-hidden rounded-2xl border p-4 shadow-2xs space-y-3 ${
+                    donor.isSuspended
+                      ? "border-destructive/30 bg-destructive/5"
+                      : "border-border/80 bg-surface/95"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-rose-600 to-primary text-white font-black text-sm shrink-0 shadow-xs">
+                        {donor.bloodGroup}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm text-foreground">{donor.displayName}</h4>
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          ID: {donor.id.slice(0, 10)}...
+                        </span>
+                      </div>
+                    </div>
+
+                    {donor.isSuspended ? (
+                      <Badge variant="destructive" className="text-[10px] font-bold">
+                        {locale === "en" ? "Suspended" : "স্থগিত"}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
+                        {locale === "en" ? "Active" : "সক্রিয়"}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-1 border-t border-border/60">
+                    <div>
+                      <span className="text-[10px] font-medium block text-muted-foreground">
+                        {locale === "en" ? "Location:" : "ঠিকানা:"}
+                      </span>
+                      <span className="font-medium text-foreground truncate block">{locationText || "—"}</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-medium block text-muted-foreground">
+                        {locale === "en" ? "Contact Privacy:" : "গোপনীয়তা:"}
+                      </span>
+                      {donor.contactMode === "PUBLIC" ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600">
+                          <Globe className="size-3" />
+                          <span>{locale === "en" ? "Public Call" : "পাবলিক কল"}</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                          <Lock className="size-3" />
+                          <span>{locale === "en" ? "Protected Mode" : "প্রাইভেট মোড"}</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Phone reveal row */}
+                  <div className="flex items-center justify-between text-xs bg-muted/40 p-2.5 rounded-xl border border-border/60">
+                    <div className="flex items-center gap-1.5 font-mono">
+                      <span className="text-foreground font-bold">
+                        {isRevealed ? donor.phoneNumber : maskPhone(donor.phoneNumber)}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => togglePhoneReveal(donor.id)}
+                      className="text-xs text-primary font-semibold flex items-center gap-1 px-2 py-0.5 rounded-lg hover:bg-primary/10 transition-colors"
+                    >
+                      {isRevealed ? (
+                        <>
+                          <EyeOff className="size-3.5" />
+                          <span>{locale === "en" ? "Hide" : "লুকান"}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="size-3.5" />
+                          <span>{locale === "en" ? "Reveal" : "দেখুন"}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Mobile Actions */}
+                  <div className="flex items-center justify-end gap-2 pt-1">
+                    {donor.contactMode === "PUBLIC" && !donor.isSuspended && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-8 rounded-xl"
+                        onClick={() =>
+                          setDialogState({
+                            isOpen: true,
+                            action: "PRIVATIZE",
+                            targetDonor: donor,
+                          })
+                        }
+                      >
+                        {locale === "en" ? "Make Private" : "প্রাইভেট করুন"}
+                      </Button>
+                    )}
+
+                    {donor.isSuspended ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-8 rounded-xl text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 font-bold"
+                        onClick={() =>
+                          setDialogState({
+                            isOpen: true,
+                            action: "RESTORE",
+                            targetDonor: donor,
+                          })
+                        }
+                      >
+                        {locale === "en" ? "Restore Profile" : "পুনর্বহাল"}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-8 rounded-xl text-destructive hover:bg-destructive/10 font-medium"
+                        onClick={() =>
+                          setDialogState({
+                            isOpen: true,
+                            action: "SUSPEND",
+                            targetDonor: donor,
+                          })
+                        }
+                      >
+                        {locale === "en" ? "Suspend" : "স্থগিত"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Table View (>= md) */}
+          <div className="hidden md:block overflow-x-auto rounded-2xl border border-border/80 bg-surface/95 shadow-xs">
             <table className="w-full text-left text-xs text-foreground">
-              <thead className="bg-muted/50 border-b border-border font-semibold text-muted-foreground uppercase text-[11px] tracking-wider">
+              <thead className="bg-muted/60 border-b border-border/80 font-bold text-muted-foreground uppercase text-[10px] tracking-wider">
                 <tr>
-                  <th className="px-4 py-3">
+                  <th className="px-5 py-3.5">
                     {locale === "en" ? "Donor" : "রক্তদাতা"}
                   </th>
-                  <th className="px-4 py-3">
+                  <th className="px-5 py-3.5">
                     {locale === "en" ? "Group" : "গ্রুপ"}
                   </th>
-                  <th className="px-4 py-3">
+                  <th className="px-5 py-3.5">
                     {locale === "en" ? "Location" : "ঠিকানা"}
                   </th>
-                  <th className="px-4 py-3">
+                  <th className="px-5 py-3.5">
                     {locale === "en" ? "Contact Mode" : "যোগাযোগের ধরন"}
                   </th>
-                  <th className="px-4 py-3">
+                  <th className="px-5 py-3.5">
                     {locale === "en" ? "Phone (Privacy)" : "ফোন নম্বর"}
                   </th>
-                  <th className="px-4 py-3">
+                  <th className="px-5 py-3.5">
                     {locale === "en" ? "Status" : "স্ট্যাটাস"}
                   </th>
-                  <th className="px-4 py-3 text-right">
+                  <th className="px-5 py-3.5 text-right">
                     {locale === "en" ? "Actions" : "পদক্ষেপ"}
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-border/70">
                 {donors.map((donor) => {
                   const isRevealed = revealedPhones[donor.id];
                   const locationText = formatLocation(
@@ -261,38 +416,38 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
                   return (
                     <tr
                       key={donor.id}
-                      className={`hover:bg-muted/30 transition-colors ${
+                      className={`hover:bg-muted/40 transition-colors ${
                         donor.isSuspended ? "bg-destructive/5" : ""
                       }`}
                     >
-                      <td className="px-4 py-3 font-semibold">
-                        <div>{donor.displayName}</div>
+                      <td className="px-5 py-4 font-semibold">
+                        <div className="font-bold text-foreground">{donor.displayName}</div>
                         <div className="text-[10px] text-muted-foreground font-mono">
-                          ID: {donor.id.slice(0, 8)}...
+                          ID: {donor.id.slice(0, 10)}...
                         </div>
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-5 py-4">
                         <Badge
                           variant="outline"
-                          className="font-extrabold text-xs"
+                          className="font-black text-xs bg-primary/5 text-primary border-primary/20 px-2.5 py-0.5 rounded-lg"
                         >
                           {donor.bloodGroup}
                         </Badge>
                       </td>
 
                       <td
-                        className="px-4 py-3 text-muted-foreground max-w-[180px] truncate"
+                        className="px-5 py-4 text-muted-foreground max-w-[200px] truncate"
                         title={locationText}
                       >
                         {locationText}
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-5 py-4">
                         {donor.contactMode === "PUBLIC" ? (
                           <Badge
                             variant="outline"
-                            className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20 flex items-center gap-1 w-fit"
+                            className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/20 flex items-center gap-1 w-fit rounded-lg font-bold"
                           >
                             <Globe className="size-2.5" />
                             {locale === "en" ? "Public" : "পাবলিক"}
@@ -300,7 +455,7 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
                         ) : (
                           <Badge
                             variant="outline"
-                            className="text-[10px] bg-muted text-muted-foreground flex items-center gap-1 w-fit"
+                            className="text-[10px] bg-muted text-muted-foreground flex items-center gap-1 w-fit rounded-lg"
                           >
                             <Lock className="size-2.5" />
                             {locale === "en" ? "Private" : "প্রাইভেট"}
@@ -308,9 +463,9 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
                         )}
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-5 py-4">
                         <div className="flex items-center gap-1.5 font-mono">
-                          <span>
+                          <span className="font-semibold">
                             {isRevealed
                               ? donor.phoneNumber
                               : maskPhone(donor.phoneNumber)}
@@ -318,7 +473,7 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
                           <button
                             type="button"
                             onClick={() => togglePhoneReveal(donor.id)}
-                            className="text-muted-foreground hover:text-foreground p-1"
+                            className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors cursor-pointer"
                             title={
                               isRevealed
                                 ? "Hide number"
@@ -331,40 +486,40 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
                             }
                           >
                             {isRevealed ? (
-                              <EyeOff className="size-3" />
+                              <EyeOff className="size-3.5 text-primary" />
                             ) : (
-                              <Eye className="size-3" />
+                              <Eye className="size-3.5" />
                             )}
                           </button>
                         </div>
                       </td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-5 py-4">
                         {donor.isSuspended ? (
                           <Badge
                             variant="destructive"
-                            className="text-[10px] font-bold"
+                            className="text-[10px] font-bold rounded-lg"
                           >
                             {locale === "en" ? "Suspended" : "স্থগিত"}
                           </Badge>
                         ) : (
                           <Badge
                             variant="outline"
-                            className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20"
+                            className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20 rounded-lg font-bold"
                           >
                             {locale === "en" ? "Active" : "সক্রিয়"}
                           </Badge>
                         )}
                       </td>
 
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
                           {donor.contactMode === "PUBLIC" &&
                             !donor.isSuspended && (
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
-                                className="text-[11px] h-7 px-2"
+                                className="text-[11px] h-7 px-2 rounded-lg font-medium"
                                 onClick={() =>
                                   setDialogState({
                                     isOpen: true,
@@ -383,7 +538,7 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
                             <Button
                               variant="outline"
                               size="sm"
-                              className="text-[11px] h-7 px-2 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"
+                              className="text-[11px] h-7 px-2.5 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10 rounded-lg font-bold"
                               onClick={() =>
                                 setDialogState({
                                   isOpen: true,
@@ -398,7 +553,7 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="text-[11px] h-7 px-2 text-destructive hover:bg-destructive/10"
+                              className="text-[11px] h-7 px-2 rounded-lg text-destructive hover:bg-destructive/10 font-medium"
                               onClick={() =>
                                 setDialogState({
                                   isOpen: true,

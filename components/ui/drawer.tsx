@@ -91,14 +91,16 @@ const DrawerTrigger = React.forwardRef<HTMLButtonElement, DrawerTriggerProps>(
 );
 DrawerTrigger.displayName = "DrawerTrigger";
 
+const emptySubscribe = () => () => {};
+
 function DrawerPortal({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = React.useState(false);
+  const isClient = React.useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted || typeof document === "undefined") {
+  if (!isClient || typeof document === "undefined") {
     return null;
   }
 

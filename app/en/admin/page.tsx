@@ -5,6 +5,8 @@ import { constructMetadata } from "@/lib/seo/metadata";
 import { AdminGuard } from "@/components/admin/admin-guard";
 import { AdminDashboardView } from "@/components/admin/admin-dashboard-view";
 
+export const instant = false;
+
 export const metadata: Metadata = constructMetadata({
   title: "Admin Dashboard",
   path: "/admin",

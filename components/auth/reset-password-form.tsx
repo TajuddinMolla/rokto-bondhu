@@ -87,10 +87,6 @@ function ResetPasswordFormInternal({ locale }: ResetPasswordFormProps) {
   // Verify action code on mount
   React.useEffect(() => {
     if (!actionCode) {
-      setCodeState({
-        status: "invalid",
-        error: t.auth.resetPassword.invalidCodeDesc,
-      });
       return;
     }
 

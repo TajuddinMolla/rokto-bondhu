@@ -217,10 +217,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const userUid = user?.uid;
   const logout = React.useCallback(async () => {
-    if (user?.uid) {
+    if (userUid) {
       try {
-        await unregisterPushNotificationToken(user.uid);
+        await unregisterPushNotificationToken(userUid);
       } catch (err) {
         console.warn("[AuthContext] Push token cleanup error on logout:", err);
       }
@@ -229,7 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setRawUser(null);
     setStatus("unauthenticated");
-  }, [user?.uid]);
+  }, [userUid]);
 
   const sendVerification = React.useCallback(async () => {
     if (!rawUser) {

@@ -5,6 +5,8 @@ import { constructMetadata } from "@/lib/seo/metadata";
 import { AdminGuard } from "@/components/admin/admin-guard";
 import { AdminDonorsView } from "@/components/admin/admin-donors-view";
 
+export const instant = false;
+
 export const metadata: Metadata = constructMetadata({
   title: "Donor Profiles Moderation",
   path: "/admin/donors",

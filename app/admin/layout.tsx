@@ -5,6 +5,8 @@ import { constructMetadata } from "@/lib/seo/metadata";
 import { AdminGuard } from "@/components/admin/admin-guard";
 import { AdminLayoutShell } from "@/components/admin/admin-layout-shell";
 
+export const instant = false;
+
 export const metadata: Metadata = constructMetadata({
   title: "প্রশাসনিক প্যানেল ও মডারেশন",
   path: "/admin",
