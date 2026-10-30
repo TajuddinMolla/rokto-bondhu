@@ -116,7 +116,7 @@ export function HeroSection({ locale }: HeroSectionProps) {
               </Button>
 
               {/* Voluntary Donor Action */}
-              {!isDonor && (
+              {!isDonor ? (
                 <Button
                   asChild
                   variant="ghost"
@@ -126,6 +126,18 @@ export function HeroSection({ locale }: HeroSectionProps) {
                   <Link href={registerHref}>
                     <UserPlus className="size-4.5 mr-2" aria-hidden="true" />
                     {t.home.hero.secondaryCta}
+                  </Link>
+                </Button>
+              ) : (
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="lg"
+                  className="min-h-[48px] font-semibold text-base text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-700"
+                >
+                  <Link href={registerHref}>
+                    <ShieldCheck className="size-4.5 mr-2" aria-hidden="true" />
+                    <span>{locale === "en" ? "Donor Profile" : "রক্তদাতা প্রোফাইল"}</span>
                   </Link>
                 </Button>
               )}

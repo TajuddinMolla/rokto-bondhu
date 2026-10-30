@@ -8,6 +8,8 @@ import { Droplet, Heart, ShieldCheck, ChevronRight } from "lucide-react";
 import { getLocaleFromPathname, isAuthPathname } from "@/i18n/config";
 import { getTranslations } from "@/i18n/translations";
 import { getMainNavItems, getUserNavItems } from "@/constants/navigation";
+import { useAuth } from "@/hooks/use-auth";
+import { useIsDonor } from "@/hooks/use-is-donor";
 
 const emptySubscribe = () => () => {};
 const getClientYear = () => new Date().getFullYear();
@@ -33,8 +35,15 @@ export function Footer() {
   const currentLocale = getLocaleFromPathname(pathname);
   const t = getTranslations(currentLocale);
 
+  const { user, status } = useAuth();
+  const { isDonor } = useIsDonor();
+  const isAuthenticated = status === "authenticated" && Boolean(user);
+
   const mainNavItems = getMainNavItems(currentLocale);
-  const userNavItems = getUserNavItems(currentLocale);
+  const userNavItems = getUserNavItems(currentLocale, {
+    isAuthenticated,
+    isDonor,
+  });
   const homeHref = currentLocale === "en" ? "/en" : "/";
 
   return (
@@ -126,7 +135,9 @@ export function Footer() {
           {/* Platform Participation (3 cols) */}
           <div className="md:col-span-3 lg:col-span-3 flex flex-col space-y-3.5">
             <h3 className="text-xs font-bold uppercase tracking-wider text-foreground">
-              {t.footer.participation}
+              {isAuthenticated
+                ? (currentLocale === "en" ? "My Account" : "আমার অ্যাকাউন্ট")
+                : t.footer.participation}
             </h3>
             <ul className="flex flex-col space-y-2 text-sm text-muted-foreground">
               {userNavItems.map((item) => (

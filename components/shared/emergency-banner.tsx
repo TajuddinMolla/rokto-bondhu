@@ -5,6 +5,7 @@ import Link from "next/link";
 import { HeartPulse, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useIsDonor } from "@/hooks/use-is-donor";
 import type { Locale } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +17,11 @@ interface EmergencyBannerProps {
 export function EmergencyBanner({ locale, className }: EmergencyBannerProps) {
   const prefix = locale === "en" ? "/en" : "";
   const requestCreateHref = `${prefix}/blood-request/create`;
+  const { isDonor } = useIsDonor();
+
+  const donorActionLabel = isDonor
+    ? (locale === "en" ? "Donor Profile" : "রক্তদাতা প্রোফাইল")
+    : (locale === "en" ? "Become a Donor" : "রক্তদাতা হোন");
 
   return (
     <div
@@ -89,7 +95,7 @@ export function EmergencyBanner({ locale, className }: EmergencyBannerProps) {
             className="flex-1 md:flex-initial min-h-[46px] px-5 rounded-xl font-bold text-xs sm:text-sm border-border/80 hover:bg-muted text-foreground cursor-pointer"
           >
             <Link href={`${prefix}/donors/register`}>
-              <span>{locale === "en" ? "Become a Donor" : "রক্তদাতা হোন"}</span>
+              <span>{donorActionLabel}</span>
             </Link>
           </Button>
         </div>

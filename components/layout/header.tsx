@@ -188,6 +188,15 @@ export function Header() {
                     <span>{t.auth.userMenu.profile}</span>
                   </DropdownMenuItem>
 
+                  {isDonor && (
+                    <DropdownMenuItem onClick={() => router.push(`${prefix}/donors/register`)}>
+                      <Droplet className="size-4 text-primary fill-primary/20" aria-hidden="true" />
+                      <span>
+                        {currentLocale === "en" ? "Donor Profile" : "রক্তদাতা প্রোফাইল"}
+                      </span>
+                    </DropdownMenuItem>
+                  )}
+
                   <DropdownMenuItem onClick={() => router.push(myRequestsHref)}>
                     <FileText className="size-4 text-muted-foreground" aria-hidden="true" />
                     <span>

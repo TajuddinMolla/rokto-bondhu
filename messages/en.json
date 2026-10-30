@@ -278,6 +278,29 @@
     "badge": "Voluntary Donation",
     "heading": "Register as a Blood Donor",
     "subtitle": "Provide accurate information to join the voluntary donor network. In an emergency, your single donation can save a life.",
+    "sidebar": {
+      "eligibilityTitle": "Donor Eligibility Criteria",
+      "eligibilityDesc": "Before donating, ensure you meet the following medical screening guidelines:",
+      "ageRule": "Age: 18 to 60 years old",
+      "weightRule": "Weight: At least 50 kg (Male) / 45 kg (Female)",
+      "intervalRule": "Donation Interval: At least 4 months (120 days) since your last donation",
+      "healthRule": "Health Status: Normal blood pressure, adequate hemoglobin, no active antibiotics",
+      "privacyTitle": "Privacy & Protection Guarantees",
+      "privacy1": "Choose 'Protected Mode' to keep your phone number confidential until you approve a request.",
+      "privacy2": "Change your availability to 'Temporarily Unavailable' anytime from your dashboard.",
+      "privacy3": "100% voluntary and non-commercial—your data is never sold or shared with brokers.",
+      "benefitsTitle": "Health Benefits of Donating",
+      "benefit1": "Reduces risk of cardiovascular and arterial conditions",
+      "benefit2": "Stimulates production of fresh red blood cells",
+      "benefit3": "Provides the profound satisfaction of directly saving human lives"
+    },
+    "privacyModes": {
+      "privateTitle": "Protected Contact (Private - Recommended)",
+      "privateDesc": "Phone number remains hidden in searches. Requesters must send an in-app inquiry which you approve before sharing.",
+      "publicTitle": "Direct Call (Public Visibility)",
+      "publicDesc": "Phone number is visibly displayed in donor searches for immediate dialer access during life-or-death emergencies."
+    },
+    "recipientCompatibility": "Eligible Recipient Groups:",
     "form": {
       "personalInfoTitle": "Personal & Contact Information",
       "personalInfoSubtitle": "Recipients and coordinators will reach out using this contact information in emergencies",

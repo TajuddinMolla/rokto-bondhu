@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Search, UserPlus, ArrowRight, Heart } from "lucide-react";
+import { Search, UserPlus, ArrowRight, Heart, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useIsDonor } from "@/hooks/use-is-donor";
@@ -60,7 +60,7 @@ export function FinalCtaSection({ locale }: FinalCtaSectionProps) {
               </Link>
             </Button>
 
-            {!isDonor && (
+            {!isDonor ? (
               <Button
                 asChild
                 variant="outline"
@@ -70,6 +70,18 @@ export function FinalCtaSection({ locale }: FinalCtaSectionProps) {
                 <Link href={registerHref}>
                   <UserPlus className="size-4.5" aria-hidden="true" />
                   <span>{t.home.finalCta.registerCta}</span>
+                </Link>
+              </Button>
+            ) : (
+              <Button
+                asChild
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto min-h-[48px] px-7 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 font-bold text-base gap-2"
+              >
+                <Link href={registerHref}>
+                  <ShieldCheck className="size-4.5" aria-hidden="true" />
+                  <span>{locale === "en" ? "Donor Profile" : "রক্তদাতা প্রোফাইল"}</span>
                 </Link>
               </Button>
             )}

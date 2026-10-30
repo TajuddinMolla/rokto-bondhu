@@ -94,7 +94,7 @@ export function BecomeDonorSection({ locale }: BecomeDonorSectionProps) {
               </div>
             </div>
 
-            {!isDonor && (
+            {!isDonor ? (
               <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <Button
                   asChild
@@ -104,6 +104,24 @@ export function BecomeDonorSection({ locale }: BecomeDonorSectionProps) {
                   <Link href={registerHref}>
                     <UserPlus className="size-4.5" aria-hidden="true" />
                     <span>{t.home.becomeDonor.cta}</span>
+                    <ArrowRight className="size-4" aria-hidden="true" />
+                  </Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <Button
+                  asChild
+                  size="lg"
+                  className="min-h-[48px] px-7 font-bold text-base shadow-sm bg-emerald-600 hover:bg-emerald-700 text-white gap-2"
+                >
+                  <Link href={registerHref}>
+                    <ShieldCheck className="size-4.5" aria-hidden="true" />
+                    <span>
+                      {locale === "en"
+                        ? "Manage Donor Profile"
+                        : "রক্তদাতা প্রোফাইল পরিচালনা"}
+                    </span>
                     <ArrowRight className="size-4" aria-hidden="true" />
                   </Link>
                 </Button>
