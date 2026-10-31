@@ -6,6 +6,7 @@ import { Heart, Clock, ShieldCheck, UserPlus, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useIsDonor } from "@/hooks/use-is-donor";
+import { useAuth } from "@/hooks/use-auth";
 import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
 
@@ -16,10 +17,13 @@ interface BecomeDonorSectionProps {
 export function BecomeDonorSection({ locale }: BecomeDonorSectionProps) {
   const t = getTranslations(locale);
   const { isDonor } = useIsDonor();
+  const { user, status } = useAuth();
+  const prefix = locale === "en" ? "/en" : "";
+  const targetHref = `${prefix}/donors/register#registration-form`;
   const registerHref =
-    locale === "en"
-      ? "/en/donors/register#registration-form"
-      : "/donors/register#registration-form";
+    status === "unauthenticated" || !user
+      ? `${prefix}/login?redirect=${encodeURIComponent(targetHref)}`
+      : targetHref;
 
   return (
     <section

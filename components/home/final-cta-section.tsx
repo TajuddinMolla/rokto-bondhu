@@ -5,6 +5,7 @@ import { Search, UserPlus, ArrowRight, Heart, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useIsDonor } from "@/hooks/use-is-donor";
+import { useAuth } from "@/hooks/use-auth";
 import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
 
@@ -15,8 +16,13 @@ interface FinalCtaSectionProps {
 export function FinalCtaSection({ locale }: FinalCtaSectionProps) {
   const t = getTranslations(locale);
   const { isDonor } = useIsDonor();
+  const { user, status } = useAuth();
   const prefix = locale === "en" ? "/en" : "";
-  const registerHref = `${prefix}/donors/register#registration-form`;
+  const targetRegisterHref = `${prefix}/donors/register#registration-form`;
+  const registerHref =
+    status === "unauthenticated" || !user
+      ? `${prefix}/login?redirect=${encodeURIComponent(targetRegisterHref)}`
+      : targetRegisterHref;
   const donorsHref = `${prefix}/donors`;
 
   return (

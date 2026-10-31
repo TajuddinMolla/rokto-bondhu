@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Mail,
   CheckCircle2,
@@ -30,6 +30,7 @@ export interface VerifyEmailViewProps {
 export function VerifyEmailView({ locale }: VerifyEmailViewProps) {
   const t = getTranslations(locale);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, status, loading, isEmailVerified, sendVerification, refreshUser, logout } =
     useAuth();
 
@@ -43,6 +44,19 @@ export function VerifyEmailView({ locale }: VerifyEmailViewProps) {
   const homeHref = prefix || "/";
   const loginHref = `${prefix}/login`;
   const donorRegisterHref = `${prefix}/donors/register#registration-form`;
+
+  const rawRedirect = searchParams.get("redirect");
+  const redirectTarget = React.useMemo(() => {
+    if (
+      rawRedirect &&
+      rawRedirect.startsWith("/") &&
+      !rawRedirect.startsWith("//") &&
+      !rawRedirect.startsWith("/\\")
+    ) {
+      return rawRedirect;
+    }
+    return donorRegisterHref;
+  }, [rawRedirect, donorRegisterHref]);
 
   // Redirect to login if user is not authenticated and finished loading
   React.useEffect(() => {
@@ -139,7 +153,7 @@ export function VerifyEmailView({ locale }: VerifyEmailViewProps) {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Button asChild variant="default" className="w-full sm:w-auto shadow-sm">
-              <Link href={donorRegisterHref}>
+              <Link href={redirectTarget}>
                 <Heart className="size-4 mr-1.5 fill-current" aria-hidden="true" />
                 {t.auth.verifyEmail.goToDonorRegisterButton}
               </Link>

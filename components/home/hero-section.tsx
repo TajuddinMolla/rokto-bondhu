@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useIsDonor } from "@/hooks/use-is-donor";
+import { useAuth } from "@/hooks/use-auth";
 import { getTranslations } from "@/i18n/translations";
 import { BLOOD_GROUPS, type BloodGroup } from "@/constants/blood-groups";
 import type { Locale } from "@/i18n/config";
@@ -26,9 +27,14 @@ export function HeroSection({ locale }: HeroSectionProps) {
   const t = getTranslations(locale);
   const router = useRouter();
   const { isDonor } = useIsDonor();
+  const { user, status } = useAuth();
 
   const prefix = locale === "en" ? "/en" : "";
-  const registerHref = `${prefix}/donors/register#registration-form`;
+  const targetDonorHref = `${prefix}/donors/register#registration-form`;
+  const registerHref =
+    status === "unauthenticated" || !user
+      ? `${prefix}/login?redirect=${encodeURIComponent(targetDonorHref)}`
+      : targetDonorHref;
   const createRequestHref = `${prefix}/blood-request/create#request-form`;
   const donorsBaseHref = `${prefix}/donors`;
 

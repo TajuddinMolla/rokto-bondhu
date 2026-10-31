@@ -6,6 +6,7 @@ import { HeartPulse, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useIsDonor } from "@/hooks/use-is-donor";
+import { useAuth } from "@/hooks/use-auth";
 import type { Locale } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 
@@ -18,10 +19,17 @@ export function EmergencyBanner({ locale, className }: EmergencyBannerProps) {
   const prefix = locale === "en" ? "/en" : "";
   const requestCreateHref = `${prefix}/blood-request/create#request-form`;
   const { isDonor } = useIsDonor();
+  const { user, status } = useAuth();
 
   const donorActionLabel = isDonor
     ? (locale === "en" ? "Donor Profile" : "রক্তদাতা প্রোফাইল")
     : (locale === "en" ? "Become a Donor" : "রক্তদাতা হোন");
+
+  const targetDonorHref = `${prefix}/donors/register#registration-form`;
+  const donorRegisterHref =
+    !isDonor && (status === "unauthenticated" || !user)
+      ? `${prefix}/login?redirect=${encodeURIComponent(targetDonorHref)}`
+      : targetDonorHref;
 
   return (
     <div
@@ -94,7 +102,7 @@ export function EmergencyBanner({ locale, className }: EmergencyBannerProps) {
             size="default"
             className="flex-1 md:flex-initial min-h-[46px] px-5 rounded-xl font-bold text-xs sm:text-sm border-border/80 hover:bg-muted text-foreground cursor-pointer"
           >
-            <Link href={`${prefix}/donors/register#registration-form`}>
+            <Link href={donorRegisterHref}>
               <span>{donorActionLabel}</span>
             </Link>
           </Button>

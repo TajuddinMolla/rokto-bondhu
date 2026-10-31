@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@/lib/validations/zod-resolver";
 import { Loader2, AlertCircle, ArrowRight, ShieldAlert } from "lucide-react";
@@ -24,6 +24,7 @@ export interface LoginFormProps {
 export function LoginForm({ locale }: LoginFormProps) {
   const t = getTranslations(locale);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const formId = React.useId();
   const { login, isConfigured, status, user } = useAuth();
   const [authError, setAuthError] = React.useState<string | null>(null);
@@ -33,6 +34,19 @@ export function LoginForm({ locale }: LoginFormProps) {
   const prefix = locale === "en" ? "/en" : "";
   const forgotPasswordHref = `${prefix}/forgot-password`;
   const homeHref = prefix || "/";
+
+  const rawRedirect = searchParams.get("redirect");
+  const redirectTarget = React.useMemo(() => {
+    if (
+      rawRedirect &&
+      rawRedirect.startsWith("/") &&
+      !rawRedirect.startsWith("//") &&
+      !rawRedirect.startsWith("/\\")
+    ) {
+      return rawRedirect;
+    }
+    return homeHref;
+  }, [rawRedirect, homeHref]);
 
   const {
     register,
@@ -53,15 +67,16 @@ export function LoginForm({ locale }: LoginFormProps) {
   // Redirect if already authenticated
   React.useEffect(() => {
     if (status === "authenticated" && user) {
-      router.push(homeHref);
+      router.push(redirectTarget);
     }
-  }, [status, user, router, homeHref]);
+  }, [status, user, router, redirectTarget]);
 
   const onSubmit = async (data: LoginInput) => {
     setAuthError(null);
 
     if (!isConfigured) {
       setAuthError(getFirebaseErrorMessage("auth/not-configured", locale));
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -82,11 +97,12 @@ export function LoginForm({ locale }: LoginFormProps) {
       await login(emailToUse, data.password);
       // Clean up sensitive state immediately
       reset();
-      router.push(homeHref);
+      router.push(redirectTarget);
     } catch (err: unknown) {
       const firebaseError = err as { code?: string; message?: string };
       const errorCode = firebaseError?.code || "auth/generic-error";
       setAuthError(getFirebaseErrorMessage(errorCode, locale));
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 

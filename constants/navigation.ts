@@ -67,11 +67,13 @@ export function getUserNavItems(
     return items;
   }
 
+  const targetDonorHref = `${prefix}/donors/register#registration-form`;
+
   return [
     { label: t.nav.login, href: `${prefix}/login` },
     {
       label: t.nav.becomeDonor,
-      href: `${prefix}/donors/register#registration-form`,
+      href: `${prefix}/login?redirect=${encodeURIComponent(targetDonorHref)}`,
       isPrimary: true,
     },
     {

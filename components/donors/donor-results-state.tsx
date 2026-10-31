@@ -25,6 +25,7 @@ import { DonorCard } from "@/components/donors/donor-card";
 import { ContactRequestModal } from "@/components/donors/contact-request-modal";
 import { useDonorSearch } from "@/hooks/queries/use-donor-search";
 import { useIsDonor } from "@/hooks/use-is-donor";
+import { useAuth } from "@/hooks/use-auth";
 import { getTranslations } from "@/i18n/translations";
 import type { Locale } from "@/i18n/config";
 import type {
@@ -77,6 +78,7 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
   const [contactTargetDonor, setContactTargetDonor] =
     React.useState<PublicDonorProfile | DonorPublicSummary | null>(null);
 
+  const { user, status } = useAuth();
   const rawBloodGroup = searchParams.get("bloodGroup");
   const bloodGroup = normalizeBloodGroup(rawBloodGroup);
   const divisionId = searchParams.get("division") || undefined;
@@ -84,10 +86,17 @@ export function DonorResultsState({ locale }: DonorResultsStateProps) {
   const upazilaId = searchParams.get("upazila") || undefined;
   const availability = searchParams.get("availability") || undefined;
 
-  const registerHref =
+  const targetRegisterHref =
     locale === "en"
       ? "/en/donors/register#registration-form"
       : "/donors/register#registration-form";
+
+  const registerHref =
+    status === "unauthenticated" || !user
+      ? (locale === "en"
+          ? `/en/login?redirect=${encodeURIComponent(targetRegisterHref)}`
+          : `/login?redirect=${encodeURIComponent(targetRegisterHref)}`)
+      : targetRegisterHref;
 
   const division = divisionId ? getDivisionById(divisionId) : undefined;
   const district = districtId ? getDistrictById(districtId) : undefined;

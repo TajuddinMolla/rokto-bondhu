@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@/lib/validations/zod-resolver";
 import {
@@ -91,6 +92,7 @@ function getServerMaxDate(): undefined {
 
 export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
   const t = getTranslations(locale);
+  const router = useRouter();
   const formId = React.useId();
   const { user, status } = useAuth();
   const prefix = locale === "en" ? "/en" : "";
@@ -100,6 +102,57 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
     DonorProfile | DonorInput | null
   >(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
+
+  // Redirect unauthenticated user immediately to login page
+  React.useEffect(() => {
+    if (status === "unauthenticated") {
+      const returnUrl = `${prefix}/donors/register#registration-form`;
+      router.replace(`${prefix}/login?redirect=${encodeURIComponent(returnUrl)}`);
+    }
+  }, [status, router, prefix]);
+
+  const scrollToTop = React.useCallback(() => {
+    // Wait for DOM update so the error banner / form container is rendered
+    setTimeout(() => {
+      if (typeof window === "undefined") return;
+      const bannerEl = document.getElementById("form-top-error");
+      const formSectionEl = document.getElementById("registration-form");
+
+      if (bannerEl) {
+        const headerOffset = 90;
+        const bannerPos =
+          bannerEl.getBoundingClientRect().top +
+          window.pageYOffset -
+          headerOffset;
+        window.scrollTo({
+          top: Math.max(0, bannerPos),
+          behavior: "smooth",
+        });
+        bannerEl.focus?.();
+      } else if (formSectionEl) {
+        const headerOffset = 90;
+        const formPos =
+          formSectionEl.getBoundingClientRect().top +
+          window.pageYOffset -
+          headerOffset;
+        window.scrollTo({
+          top: Math.max(0, formPos),
+          behavior: "smooth",
+        });
+      } else {
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+      }
+    }, 60);
+  }, []);
+
+  React.useEffect(() => {
+    if (submitError) {
+      scrollToTop();
+    }
+  }, [submitError, scrollToTop]);
 
   const { data: existingProfile, isLoading: isProfileLoading } =
     useDonorProfile(user?.uid);
@@ -204,11 +257,8 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
     setSubmitError(null);
 
     if (!user) {
-      setSubmitError(
-        locale === "en"
-          ? "Please sign in or create an account to save your donor profile."
-          : "রক্তদাতা প্রোফাইল সংরক্ষণ করতে অনুগ্রহ করে লগইন করুন বা অ্যাকাউন্ট তৈরি করুন।"
-      );
+      const returnUrl = `${prefix}/donors/register#registration-form`;
+      router.push(`${prefix}/login?redirect=${encodeURIComponent(returnUrl)}`);
       return;
     }
 
@@ -224,6 +274,7 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
       });
       setSubmittedSnapshot(savedProfile);
       setIsSuccess(true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err: unknown) {
       console.error("[DonorRegistrationForm] Submission error:", err);
       const firestoreErr = err as { code?: string; message?: string };
@@ -255,7 +306,18 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
               : "ডাটাবেজে রক্তদাতা প্রোফাইল সংরক্ষণ ব্যর্থ হয়েছে। ইন্টারনেট সংযোগ যাচাই করে পুনরায় চেষ্টা করুন।")
         );
       }
+      scrollToTop();
     }
+  };
+
+  const onInvalid = (fieldErrors: typeof errors) => {
+    const errorCount = Object.keys(fieldErrors).length;
+    const msg =
+      locale === "en"
+        ? `Please correct the ${errorCount} highlighted ${errorCount === 1 ? "field" : "fields"} below before saving.`
+        : `ফরমটি সংরক্ষণ করতে অনুগ্রহ করে নিম্নে চিহ্নিত ${errorCount}টি তথ্যের ত্রুটি সংশোধন করুন।`;
+    setSubmitError(msg);
+    scrollToTop();
   };
 
   const handleReset = () => {
@@ -410,8 +472,6 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
   }
 
   const isPending = saveDonorMutation.isPending;
-  const loginHref = `${prefix}/login`;
-  const registerHref = `${prefix}/register`;
   const verifyEmailHref = `${prefix}/verify-email`;
 
   // Compatible recipients preview
@@ -420,34 +480,38 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
       ? getCompatibleRecipientGroups(watchedBloodGroup)
       : [];
 
+  // Protect donor registration route: require authentication
+  if (status === "loading" || status === "unauthenticated") {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 sm:p-16 rounded-3xl border border-border/80 bg-surface shadow-xs space-y-4 text-center">
+        <Loader2 className="size-8 text-primary animate-spin" aria-hidden="true" />
+        <div className="space-y-1">
+          <p className="text-base font-bold text-foreground">
+            {status === "unauthenticated"
+              ? locale === "en"
+                ? "Redirecting to login..."
+                : "লগইন পেজে নিয়ে যাওয়া হচ্ছে..."
+              : locale === "en"
+              ? "Checking authentication..."
+              : "লগইন অবস্থা যাচাই করা হচ্ছে..."}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {locale === "en"
+              ? "You must be signed in to register as a voluntary donor."
+              : "স্বেচ্ছাসেবী রক্তদাতা হিসেবে নিবন্ধন করতে আপনাকে প্রথমে লগইন করতে হবে।"}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       {/* ----------------------------------------------------------------- */}
       {/* LEFT / MAIN COLUMN: The Registration & Profile Form (8 cols)      */}
       {/* ----------------------------------------------------------------- */}
       <div className="lg:col-span-8 space-y-6">
-        {/* Guest Authentication Guidance */}
-        {status === "unauthenticated" ? (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl border border-amber-500/25 bg-amber-500/10 text-xs sm:text-sm">
-            <div className="flex items-start gap-2.5">
-              <AlertCircle
-                className="size-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"
-                aria-hidden="true"
-              />
-              <span className="text-foreground leading-relaxed">
-                {t.auth.donorFormAuth.unauthenticatedNotice}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto pt-2 sm:pt-0">
-              <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none rounded-xl">
-                <Link href={loginHref}>{t.auth.donorFormAuth.loginPrompt}</Link>
-              </Button>
-              <Button asChild size="sm" className="flex-1 sm:flex-none rounded-xl font-bold">
-                <Link href={registerHref}>{t.auth.donorFormAuth.registerPrompt}</Link>
-              </Button>
-            </div>
-          </div>
-        ) : user ? (
+        {user ? (
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl border border-primary/20 bg-primary/5 text-xs sm:text-sm">
             <div className="flex items-center gap-2.5">
               <ShieldCheck className="size-4.5 text-primary shrink-0" aria-hidden="true" />
@@ -478,12 +542,14 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
         {/* Submit Error Banner */}
         {submitError && (
           <div
+            id="form-top-error"
             role="alert"
             aria-live="assertive"
-            className="flex items-start gap-2.5 rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-xs sm:text-sm text-destructive font-medium animate-in fade-in duration-200"
+            tabIndex={-1}
+            className="flex items-start gap-2.5 rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-xs sm:text-sm text-destructive font-medium animate-in fade-in duration-200 outline-none"
           >
             <ShieldAlert className="size-5 shrink-0 mt-0.5" aria-hidden="true" />
-            <span className="leading-relaxed">{submitError}</span>
+            <span className="leading-relaxed flex-1">{submitError}</span>
           </div>
         )}
 
@@ -520,7 +586,7 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
           </CardHeader>
 
           <CardContent className="p-5 sm:p-8">
-            <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-8">
+            <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate className="space-y-8">
               {/* ------------------------------------------------------------- */}
               {/* GROUP 1: BLOOD GROUP & PERSONAL IDENTITY                      */}
               {/* ------------------------------------------------------------- */}

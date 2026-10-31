@@ -168,6 +168,48 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
   const [submitError, setSubmitError] = React.useState<string | null>(null);
   const [timingPreset, setTimingPreset] = React.useState<string>("asap");
 
+  const scrollToTop = React.useCallback(() => {
+    setTimeout(() => {
+      if (typeof window === "undefined") return;
+      const bannerEl = document.getElementById("request-form-top-error");
+      const formSectionEl = document.getElementById("request-form");
+
+      if (bannerEl) {
+        const headerOffset = 90;
+        const bannerPos =
+          bannerEl.getBoundingClientRect().top +
+          window.pageYOffset -
+          headerOffset;
+        window.scrollTo({
+          top: Math.max(0, bannerPos),
+          behavior: "smooth",
+        });
+        bannerEl.focus?.();
+      } else if (formSectionEl) {
+        const headerOffset = 90;
+        const formPos =
+          formSectionEl.getBoundingClientRect().top +
+          window.pageYOffset -
+          headerOffset;
+        window.scrollTo({
+          top: Math.max(0, formPos),
+          behavior: "smooth",
+        });
+      } else {
+        window.scrollTo({
+          top: 0,
+          behavior: "smooth",
+        });
+      }
+    }, 60);
+  }, []);
+
+  React.useEffect(() => {
+    if (submitError) {
+      scrollToTop();
+    }
+  }, [submitError, scrollToTop]);
+
   // Schema initialized with active locale
   const requestSchema = React.useMemo(
     () => createBloodRequestSchema(locale),
@@ -335,7 +377,18 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
           ? "Failed to save blood request. Please try again."
           : "রক্তের অনুরোধ সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।");
       setSubmitError(msg);
+      scrollToTop();
     }
+  };
+
+  const onInvalid = (fieldErrors: typeof errors) => {
+    const errorCount = Object.keys(fieldErrors).length;
+    const msg =
+      locale === "en"
+        ? `Please correct the ${errorCount} highlighted ${errorCount === 1 ? "field" : "fields"} below before submitting.`
+        : `অনুরোধ জমা দিতে অনুগ্রহ করে নিম্নে চিহ্নিত ${errorCount}টি তথ্যের ত্রুটি সংশোধন করুন।`;
+    setSubmitError(msg);
+    scrollToTop();
   };
 
   const handleReset = () => {
@@ -582,12 +635,14 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
         {/* Submission Error Banner */}
         {submitError ? (
           <div
+            id="request-form-top-error"
             role="alert"
             aria-live="assertive"
-            className="flex items-start gap-2.5 rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-xs sm:text-sm text-destructive font-medium animate-in fade-in duration-200"
+            tabIndex={-1}
+            className="flex items-start gap-2.5 rounded-2xl border border-destructive/20 bg-destructive/10 p-4 text-xs sm:text-sm text-destructive font-medium animate-in fade-in duration-200 outline-none"
           >
             <AlertCircle className="size-5 shrink-0 mt-0.5" aria-hidden="true" />
-            <span className="leading-relaxed">{submitError}</span>
+            <span className="leading-relaxed flex-1">{submitError}</span>
           </div>
         ) : null}
 
@@ -614,7 +669,7 @@ export function BloodRequestForm({ locale }: BloodRequestFormProps) {
           </CardHeader>
 
           <CardContent className="p-5 sm:p-8">
-            <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-8">
+            <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate className="space-y-8">
               {/* ------------------------------------------------------------- */}
               {/* GROUP 1: BLOOD DETAILS & URGENCY (ALL SELECT FIELDS)          */}
               {/* ------------------------------------------------------------- */}

@@ -48,7 +48,10 @@ export function Header() {
   const t = getTranslations(currentLocale);
 
   const mainNavItems = getMainNavItems(currentLocale);
-  const userNavItems = getUserNavItems(currentLocale);
+  const userNavItems = getUserNavItems(currentLocale, {
+    isAuthenticated: status === "authenticated" && Boolean(user),
+    isDonor: Boolean(isDonor),
+  });
 
   const prefix = currentLocale === "en" ? "/en" : "";
   const homeHref = prefix || "/";

@@ -1,11 +1,11 @@
 import * as React from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { constructMetadata } from "@/lib/seo/metadata";
 import { getTranslations } from "@/i18n/translations";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { RegisterForm } from "@/components/auth/register-form";
+import { RegisterFooter } from "@/components/auth/auth-footer-links";
 
 export const metadata: Metadata = constructMetadata({
   title: "Create Account",
@@ -24,18 +24,14 @@ export default function EnRegisterPage() {
       title={t.auth.register.title}
       subtitle={t.auth.register.subtitle}
       footerContent={
-        <div className="flex items-center justify-center gap-1.5 flex-wrap">
-          <span>{t.auth.register.hasAccountText}</span>
-          <Link
-            href="/en/login"
-            className="font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-          >
-            {t.auth.register.loginLink}
-          </Link>
-        </div>
+        <React.Suspense fallback={null}>
+          <RegisterFooter locale="en" />
+        </React.Suspense>
       }
     >
-      <RegisterForm locale="en" />
+      <React.Suspense fallback={<div className="h-96 animate-pulse rounded-2xl bg-surface/50" />}>
+        <RegisterForm locale="en" />
+      </React.Suspense>
     </AuthLayout>
   );
 }

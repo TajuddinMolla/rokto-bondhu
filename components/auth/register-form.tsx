@@ -1,11 +1,10 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@/lib/validations/zod-resolver";
-import { Loader2, AlertCircle, ArrowRight, Heart, ShieldAlert } from "lucide-react";
+import { Loader2, AlertCircle, ArrowRight, ShieldAlert } from "lucide-react";
 
 import { createRegisterSchema, type RegisterInput } from "@/lib/validations/auth";
 import { getFirebaseErrorMessage } from "@/lib/firebase/errors";
@@ -24,6 +23,7 @@ export interface RegisterFormProps {
 export function RegisterForm({ locale }: RegisterFormProps) {
   const t = getTranslations(locale);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const formId = React.useId();
   const { register: registerAuth, isConfigured, status, user } = useAuth();
   const [authError, setAuthError] = React.useState<string | null>(null);
@@ -31,8 +31,20 @@ export function RegisterForm({ locale }: RegisterFormProps) {
   const registerSchema = React.useMemo(() => createRegisterSchema(locale), [locale]);
 
   const prefix = locale === "en" ? "/en" : "";
-  const donorRegisterHref = `${prefix}/donors/register#registration-form`;
   const homeHref = prefix || "/";
+
+  const rawRedirect = searchParams.get("redirect");
+  const redirectTarget = React.useMemo(() => {
+    if (
+      rawRedirect &&
+      rawRedirect.startsWith("/") &&
+      !rawRedirect.startsWith("//") &&
+      !rawRedirect.startsWith("/\\")
+    ) {
+      return rawRedirect;
+    }
+    return homeHref;
+  }, [rawRedirect, homeHref]);
 
   const {
     register,
@@ -55,15 +67,16 @@ export function RegisterForm({ locale }: RegisterFormProps) {
   // Redirect if already authenticated
   React.useEffect(() => {
     if (status === "authenticated" && user) {
-      router.push(homeHref);
+      router.push(redirectTarget);
     }
-  }, [status, user, router, homeHref]);
+  }, [status, user, router, redirectTarget]);
 
   const onSubmit = async (data: RegisterInput) => {
     setAuthError(null);
 
     if (!isConfigured) {
       setAuthError(getFirebaseErrorMessage("auth/not-configured", locale));
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
@@ -72,11 +85,15 @@ export function RegisterForm({ locale }: RegisterFormProps) {
       // Clean up sensitive state immediately
       reset();
       // Direct user to verify email
-      router.push(`${prefix}/verify-email`);
+      const verifyUrl = rawRedirect
+        ? `${prefix}/verify-email?redirect=${encodeURIComponent(rawRedirect)}`
+        : `${prefix}/verify-email`;
+      router.push(verifyUrl);
     } catch (err: unknown) {
       const firebaseError = err as { code?: string; message?: string };
       const errorCode = firebaseError?.code || "auth/generic-error";
       setAuthError(getFirebaseErrorMessage(errorCode, locale));
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
@@ -110,7 +127,7 @@ export function RegisterForm({ locale }: RegisterFormProps) {
       )}
 
       {/* Cross-link to Donor Registration */}
-      <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/15 bg-primary/5 p-3 text-xs">
+      {/* <div className="flex items-center justify-between gap-2 rounded-lg border border-primary/15 bg-primary/5 p-3 text-xs">
         <div className="flex items-center gap-1.5 text-foreground font-medium">
           <Heart className="size-3.5 text-primary shrink-0" aria-hidden="true" />
           <span>{t.auth.register.donorNotice}</span>
@@ -121,7 +138,7 @@ export function RegisterForm({ locale }: RegisterFormProps) {
         >
           {t.auth.register.donorRegisterLink}
         </Link>
-      </div>
+      </div> */}
 
       {/* Full Name */}
       <FormField

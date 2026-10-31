@@ -11,5 +11,9 @@ export const metadata: Metadata = constructMetadata({
 });
 
 export default function VerifyEmailPage() {
-  return <VerifyEmailView locale="bn" />;
+  return (
+    <React.Suspense fallback={<div className="h-64 animate-pulse rounded-2xl bg-surface/50" />}>
+      <VerifyEmailView locale="bn" />
+    </React.Suspense>
+  );
 }

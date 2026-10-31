@@ -47,7 +47,10 @@ export function MobileNav() {
   const { isDonor } = useIsDonor();
   const { data: unreadCount = 0 } = useUnreadNotificationsCount(user?.uid);
   const mainNavItems = getMainNavItems(currentLocale);
-  const userNavItems = getUserNavItems(currentLocale);
+  const userNavItems = getUserNavItems(currentLocale, {
+    isAuthenticated: status === "authenticated" && Boolean(user),
+    isDonor: Boolean(isDonor),
+  });
 
   const homeHref = currentLocale === "en" ? "/en" : "/";
   const prefix = currentLocale === "en" ? "/en" : "";
