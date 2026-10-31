@@ -9,6 +9,8 @@ import { BottomNav } from "@/components/layout/bottom-nav";
 import { SkipLink } from "@/components/layout/skip-link";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 
 const notoSansBengali = Noto_Sans_Bengali({
   variable: "--font-noto-sans-bengali",
@@ -52,6 +54,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <BottomNav />
           </AuthProvider>
         </QueryProvider>
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
