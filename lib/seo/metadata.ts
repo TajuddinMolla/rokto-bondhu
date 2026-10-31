@@ -33,8 +33,8 @@ export function getSiteUrl(): string {
     return envUrl.trim().replace(/\/+$/, "");
   }
 
-  // 5. Default production domain fallback
-  return "https://roktobondhu.org";
+  // 4. Default production domain for RoktoBondhu
+  return "https://roktobondhubd.vercel.app";
 }
 
 export interface MetadataParams {

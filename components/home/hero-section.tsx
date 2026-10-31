@@ -67,8 +67,8 @@ export function HeroSection({ locale }: HeroSectionProps) {
                 </span>
                 <span>
                   {locale === "en"
-                    ? "Find Blood, Save Lives • রক্ত খুঁজুন, জীবন বাঁচান"
-                    : "রক্ত খুঁজুন, জীবন বাঁচান • Find Blood, Save Lives"}
+                    ? "Donate Blood, Save Lives • রক্ত দিন, জীবন বাঁচান"
+                    : "রক্ত দিন, জীবন বাঁচান • Donate Blood, Save Lives"}
                 </span>
               </Badge>
             </div>
