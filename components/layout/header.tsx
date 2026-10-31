@@ -29,7 +29,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { MobileNav } from "@/components/layout/mobile-nav";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { cn } from "@/lib/utils";
@@ -273,12 +272,12 @@ export function Header() {
           )}
         </div>
 
-        {/* Mobile Navigation Trigger & Bell */}
-        <div className="flex md:hidden items-center gap-1.5">
+        {/* Mobile Header Actions: Language Switcher & Notification Bell */}
+        <div className="flex md:hidden items-center gap-2">
+          <LanguageSwitcher />
           {!loading && status === "authenticated" && user ? (
             <NotificationBell locale={currentLocale} />
           ) : null}
-          <MobileNav />
         </div>
       </div>
     </header>
