@@ -174,6 +174,17 @@ test("favicon.ico, icon.svg, apple-icon.png, and manifest exist with valid heade
   assert.ok(fs.existsSync("app/manifest.ts"), "app/manifest.ts must exist");
 });
 
+test("public/og-image.png exists and meets 1200x630 dimensions", () => {
+  assert.ok(fs.existsSync("public/og-image.png"), "public/og-image.png must exist");
+  const ogBuf = fs.readFileSync("public/og-image.png");
+  assert.equal(ogBuf.slice(0, 8).toString("hex"), "89504e470d0a1a0a", "Must be valid PNG format");
+  const width = ogBuf.readUInt32BE(16);
+  const height = ogBuf.readUInt32BE(20);
+  assert.equal(width, 1200, "OG image width must be 1200px");
+  assert.equal(height, 630, "OG image height must be 630px");
+  assert.ok(ogBuf.length < 300 * 1024, "OG image size should be under 300KB for social platform scrapers");
+});
+
 console.log("\n=================================================");
 console.log(`Results: ${passedTests}/${totalTests} tests passed`);
 console.log("=================================================");

@@ -11,6 +11,8 @@
     "deploy:rules:cli": "npx -y firebase-tools deploy --only firestore:rules",
     "deploy:indexes": "npx -y firebase-tools deploy --only firestore:indexes",
     "test": "node scripts/verify-production-readiness.mjs",
+    "generate:icons": "node scripts/generate-favicons.mjs",
+    "generate:og": "node scripts/generate-og-image.mjs",
     "admin:set": "node scripts/set-admin.mjs"
   },
   "dependencies": {

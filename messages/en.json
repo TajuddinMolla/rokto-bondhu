@@ -31,9 +31,9 @@
     "changeLanguage": "Change language"
   },
   "seo": {
-    "defaultTitle": "RoktoBondhu — Find Blood, Save Lives",
+    "defaultTitle": "RoktoBondhu — Find Blood Donors, Save Lives",
     "titleTemplate": "%s | RoktoBondhu",
-    "description": "A trusted digital platform connecting blood donors and recipients across Bangladesh."
+    "description": "Find blood donors across Bangladesh, register as a donor, and help people in urgent need of blood."
   },
   "domain": {
     "donorStatus": {
