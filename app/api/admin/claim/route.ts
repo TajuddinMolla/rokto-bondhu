@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     const idToken = authHeader.slice(7).trim();
-    const adminAuth = getServerAuth();
+    const adminAuth = await getServerAuth();
     const adminDb = getServerFirestore();
 
     if (!adminAuth || !adminDb) {

@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     }
 
     const idToken = authHeader.slice(7).trim();
-    const adminAuth = getServerAuth();
+    const adminAuth = await getServerAuth();
     if (!adminAuth) {
       console.warn("[Dispatch] Server Firebase Auth not configured");
       return NextResponse.json(

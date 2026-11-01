@@ -2,8 +2,8 @@ import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import { initializeApp, getApps, cert, type App } from "firebase-admin/app";
 import { getFirestore, type Firestore } from "firebase-admin/firestore";
-import { getMessaging, type Messaging } from "firebase-admin/messaging";
-import { getAuth, type Auth } from "firebase-admin/auth";
+import type { Messaging } from "firebase-admin/messaging";
+import type { Auth } from "firebase-admin/auth";
 import { firebaseConfig } from "@/lib/firebase/config";
 
 const ADMIN_APP_NAME = "rokto-bondhu-admin";
@@ -123,8 +123,9 @@ export function getServerFirestore(): Firestore | null {
 
 /**
  * Returns the Firebase Admin Messaging instance for dispatching web push notifications.
+ * Uses dynamic import to decouple Messaging from Firestore-only execution contexts.
  */
-export function getServerMessaging(): Messaging | null {
+export async function getServerMessaging(): Promise<Messaging | null> {
   if (adminMessaging) {
     return adminMessaging;
   }
@@ -135,6 +136,7 @@ export function getServerMessaging(): Messaging | null {
   }
 
   try {
+    const { getMessaging } = await import("firebase-admin/messaging");
     adminMessaging = getMessaging(app);
     return adminMessaging;
   } catch (error) {
@@ -145,8 +147,9 @@ export function getServerMessaging(): Messaging | null {
 
 /**
  * Returns the Firebase Admin Auth instance for verifying tokens on the server.
+ * Uses dynamic import to decouple Auth from Firestore-only execution contexts.
  */
-export function getServerAuth(): Auth | null {
+export async function getServerAuth(): Promise<Auth | null> {
   if (adminAuth) {
     return adminAuth;
   }
@@ -157,6 +160,7 @@ export function getServerAuth(): Auth | null {
   }
 
   try {
+    const { getAuth } = await import("firebase-admin/auth");
     adminAuth = getAuth(app);
     return adminAuth;
   } catch (error) {

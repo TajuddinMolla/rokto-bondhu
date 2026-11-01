@@ -42,7 +42,7 @@ export async function sendPushNotification(
     };
   }
 
-  const messaging = getServerMessaging();
+  const messaging = await getServerMessaging();
   const db = getServerFirestore();
 
   if (!messaging || !db) {
