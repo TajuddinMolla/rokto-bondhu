@@ -11,6 +11,8 @@ import {
   Filter,
   Loader2,
   RefreshCw,
+  Clock,
+  Calendar,
 } from "lucide-react";
 
 import { useAdminDonors } from "@/hooks/queries/use-admin-data";
@@ -22,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { BLOOD_GROUPS, type BloodGroup } from "@/constants/blood-groups";
 import { formatLocation } from "@/constants/locations";
+import { getTranslations } from "@/i18n/translations";
 import type { DonorProfile } from "@/types/donor";
 import type { Locale } from "@/i18n/config";
 
@@ -30,9 +33,13 @@ interface AdminDonorsViewProps {
 }
 
 export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
+  const t = getTranslations(locale);
   const [bloodGroup, setBloodGroup] = React.useState<string>("ALL");
   const [statusFilter, setStatusFilter] = React.useState<
     "ALL" | "ACTIVE" | "SUSPENDED"
+  >("ALL");
+  const [availabilityFilter, setAvailabilityFilter] = React.useState<
+    "ALL" | "available" | "unavailable" | "pending"
   >("ALL");
   const [revealedPhones, setRevealedPhones] = React.useState<
     Record<string, boolean>
@@ -65,7 +72,13 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
   const { suspendDonor, restoreDonor, privatizeDonorPhone } =
     useAdminMutations();
 
-  const donors = data?.pages.flatMap((page) => page.items) || [];
+  const rawDonors = data?.pages.flatMap((page) => page.items) || [];
+  const donors = React.useMemo(() => {
+    if (availabilityFilter === "ALL") return rawDonors;
+    return rawDonors.filter(
+      (d) => (d.availabilityStatus || "available") === availabilityFilter,
+    );
+  }, [rawDonors, availabilityFilter]);
 
   const togglePhoneReveal = (donorId: string) => {
     setRevealedPhones((prev) => ({
@@ -143,7 +156,7 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
             <span>{locale === "en" ? "Filters:" : "ফিল্টারসমূহ:"}</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full sm:w-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full sm:w-auto">
             {/* Blood Group Filter */}
             <Select
               value={bloodGroup}
@@ -160,6 +173,30 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
               ))}
             </Select>
 
+            {/* Donation Availability Filter */}
+            <Select
+              value={availabilityFilter}
+              onChange={(e) =>
+                setAvailabilityFilter(
+                  e.target.value as "ALL" | "available" | "unavailable" | "pending",
+                )
+              }
+              className="text-xs h-9 w-full sm:w-44"
+            >
+              <option value="ALL">
+                {locale === "en" ? "All Availability" : "সকল প্রাপ্যতা"}
+              </option>
+              <option value="available">
+                {locale === "en" ? "Available Only" : "কেবলমাত্র প্রস্তুত"}
+              </option>
+              <option value="unavailable">
+                {locale === "en" ? "Unavailable Only" : "কেবলমাত্র অনুপলব্ধ"}
+              </option>
+              <option value="pending">
+                {locale === "en" ? "Pending Only" : "কেবলমাত্র অপেক্ষমান"}
+              </option>
+            </Select>
+
             {/* Status Filter */}
             <Select
               value={statusFilter}
@@ -171,7 +208,7 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
               className="text-xs h-9 w-full sm:w-44"
             >
               <option value="ALL">
-                {locale === "en" ? "All Statuses" : "সকল স্ট্যাটাস"}
+                {locale === "en" ? "All Account Statuses" : "সকল অ্যাকাউন্ট স্ট্যাটাস"}
               </option>
               <option value="ACTIVE">
                 {locale === "en" ? "Active Only" : "কেবলমাত্র সক্রিয়"}
@@ -213,8 +250,8 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             {locale === "en"
-              ? "Try adjusting the blood group or status filters."
-              : "রক্তের গ্রুপ বা স্ট্যাটাস ফিল্টার পরিবর্তন করে চেষ্টা করুন।"}
+              ? "Try adjusting the blood group, availability, or status filters."
+              : "রক্তের গ্রুপ, প্রাপ্যতা বা স্ট্যাটাস ফিল্টার পরিবর্তন করে চেষ্টা করুন।"}
           </p>
         </Card>
       ) : (
@@ -254,15 +291,38 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
                       </div>
                     </div>
 
-                    {donor.isSuspended ? (
-                      <Badge variant="destructive" className="text-[10px] font-bold">
-                        {locale === "en" ? "Suspended" : "স্থগিত"}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[10px] text-emerald-600 bg-emerald-500/10 border-emerald-500/20">
-                        {locale === "en" ? "Active" : "সক্রিয়"}
-                      </Badge>
-                    )}
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {/* Live Donation Availability Status */}
+                      {donor.availabilityStatus === "available" ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shadow-2xs">
+                          <span className="relative flex size-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+                            <span className="relative inline-flex rounded-full size-1.5 bg-emerald-500" />
+                          </span>
+                          <span>{t.domain.donorStatus.available}</span>
+                        </span>
+                      ) : donor.availabilityStatus === "pending" ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 shadow-2xs">
+                          <Clock className="size-2.5 shrink-0" />
+                          <span>{t.domain.donorStatus.pending}</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-muted/70 text-muted-foreground border border-border shadow-2xs">
+                          <span className="size-1.5 rounded-full bg-muted-foreground/60 shrink-0" />
+                          <span>{t.domain.donorStatus.unavailable}</span>
+                        </span>
+                      )}
+
+                      {donor.isSuspended ? (
+                        <Badge variant="destructive" className="text-[9px] font-bold py-0 h-4">
+                          {locale === "en" ? "Suspended" : "স্থগিত"}
+                        </Badge>
+                      ) : (
+                        <span className="text-[9px] text-muted-foreground font-medium">
+                          {locale === "en" ? "Active Account" : "সক্রিয় অ্যাকাউন্ট"}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground pt-1 border-t border-border/60">
@@ -289,6 +349,16 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
                         </span>
                       )}
                     </div>
+
+                    {donor.lastDonationDate ? (
+                      <div className="col-span-2 flex items-center gap-1.5 text-[11px] text-muted-foreground pt-1.5 border-t border-border/40">
+                        <Calendar className="size-3 text-primary shrink-0" />
+                        <span>
+                          {locale === "en" ? "Last donation:" : "সর্বশেষ রক্তদান:"}{" "}
+                          <strong className="text-foreground font-semibold">{donor.lastDonationDate}</strong>
+                        </span>
+                      </div>
+                    ) : null}
                   </div>
 
                   {/* Phone reveal row */}
@@ -385,6 +455,9 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
                     {locale === "en" ? "Group" : "গ্রুপ"}
                   </th>
                   <th className="px-5 py-3.5">
+                    {locale === "en" ? "Donation Availability" : "রক্তদানের প্রাপ্যতা"}
+                  </th>
+                  <th className="px-5 py-3.5">
                     {locale === "en" ? "Location" : "ঠিকানা"}
                   </th>
                   <th className="px-5 py-3.5">
@@ -394,7 +467,7 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
                     {locale === "en" ? "Phone (Privacy)" : "ফোন নম্বর"}
                   </th>
                   <th className="px-5 py-3.5">
-                    {locale === "en" ? "Status" : "স্ট্যাটাস"}
+                    {locale === "en" ? "Account Status" : "অ্যাকাউন্ট স্ট্যাটাস"}
                   </th>
                   <th className="px-5 py-3.5 text-right">
                     {locale === "en" ? "Actions" : "পদক্ষেপ"}
@@ -434,6 +507,50 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
                         >
                           {donor.bloodGroup}
                         </Badge>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col gap-1 items-start">
+                          {donor.availabilityStatus === "available" ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 border-emerald-500/25 flex items-center gap-1.5 rounded-lg shadow-2xs"
+                            >
+                              <span className="relative flex size-1.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+                                <span className="relative inline-flex rounded-full size-1.5 bg-emerald-500" />
+                              </span>
+                              <span>{t.domain.donorStatus.available}</span>
+                            </Badge>
+                          ) : donor.availabilityStatus === "pending" ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/25 flex items-center gap-1.5 rounded-lg shadow-2xs"
+                            >
+                              <Clock className="size-2.5 shrink-0" />
+                              <span>{t.domain.donorStatus.pending}</span>
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-medium text-muted-foreground bg-muted/60 border-border flex items-center gap-1.5 rounded-lg shadow-2xs"
+                            >
+                              <span className="size-1.5 rounded-full bg-muted-foreground/60 shrink-0" />
+                              <span>{t.domain.donorStatus.unavailable}</span>
+                            </Badge>
+                          )}
+
+                          {donor.lastDonationDate ? (
+                            <span className="text-[10px] text-muted-foreground flex items-center gap-1 font-mono">
+                              <Calendar className="size-2.5 text-muted-foreground/70 shrink-0" />
+                              <span>{donor.lastDonationDate}</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground/60 italic">
+                              {locale === "en" ? "Never donated" : "রক্তদান করেননি"}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td
