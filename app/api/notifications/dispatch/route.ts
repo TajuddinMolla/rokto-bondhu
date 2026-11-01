@@ -14,6 +14,7 @@ import {
 import { sendPushNotification } from "@/services/push.service";
 import { getDistrictById, getDivisionById } from "@/constants/locations";
 import { normalizeBloodGroup } from "@/constants/blood-groups";
+import { calculateDonorEligibility } from "@/lib/utils/donor-eligibility";
 import { dispatchNotificationSchema } from "@/lib/validations/notification-dispatch";
 import type { EmailDeliveryStatus } from "@/types/notification";
 
@@ -608,7 +609,9 @@ export async function POST(req: NextRequest) {
             String(dData.bloodGroup || "").trim().toUpperCase();
           const donorDistrictId = String(dData.districtId || "").trim().toLowerCase();
 
-          const isAvailable = dData.availabilityStatus !== "unavailable";
+          // Self-heal: Enforce medical recovery cooldown
+          const donorEligibility = calculateDonorEligibility(dData.lastDonationDate);
+          const isAvailable = donorEligibility.isEligible && dData.availabilityStatus !== "unavailable";
           const notSuspended = dData.isSuspended !== true;
 
           // 1. Blood group match

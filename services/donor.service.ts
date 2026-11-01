@@ -12,7 +12,8 @@ import {
 
 import { getFirebaseDb } from "@/lib/firebase/config";
 import { setUserHasDonorProfile } from "@/services/user.service";
-import type { DonorProfile, DonorContactMode } from "@/types/donor";
+import { calculateDonorEligibility } from "@/lib/utils/donor-eligibility";
+import type { DonorProfile, DonorContactMode, DonorUnavailableReason } from "@/types/donor";
 import type { DonorAvailabilityStatus } from "@/types/blood";
 import type { DonorInput } from "@/lib/validations/donor";
 
@@ -54,6 +55,25 @@ export async function getDonorProfile(uid: string): Promise<DonorProfile | null>
   const contactMode: DonorContactMode =
     data.phoneVisibility || data.contactMode || (data.isPhonePublic ? "PUBLIC" : "PRIVATE");
 
+  const eligibility = calculateDonorEligibility(data.lastDonationDate);
+  let effectiveStatus: DonorAvailabilityStatus =
+    (data.availabilityStatus as DonorAvailabilityStatus) || "available";
+  let effectiveReason: DonorUnavailableReason | null =
+    (data.unavailableReason as DonorUnavailableReason) || null;
+  let nextEligibleDate = (data.nextEligibleDate as string) || eligibility.nextEligibleDate;
+
+  // Self-heal: If donor has recent lastDonationDate, enforce recovery
+  if (!eligibility.isEligible) {
+    effectiveStatus = "unavailable";
+    effectiveReason = "MEDICAL_RECOVERY";
+    nextEligibleDate = eligibility.nextEligibleDate;
+  } else if (effectiveReason === "MEDICAL_RECOVERY" && eligibility.isEligible) {
+    // 120-day recovery has ended for this donor
+    effectiveStatus = "available";
+    effectiveReason = null;
+    nextEligibleDate = null;
+  }
+
   const profile: DonorProfile = {
     id: snap.id,
     userId: snap.id,
@@ -67,8 +87,10 @@ export async function getDonorProfile(uid: string): Promise<DonorProfile | null>
     isPhonePublic: contactMode === "PUBLIC",
     contactMode,
     phoneVisibility: contactMode,
-    lastDonationDate: data.lastDonationDate || undefined,
-    availabilityStatus: data.availabilityStatus as DonorAvailabilityStatus,
+    lastDonationDate: eligibility.lastDonationDate || undefined,
+    availabilityStatus: effectiveStatus,
+    unavailableReason: effectiveReason,
+    nextEligibleDate,
     createdAt: timestampToIso(data.createdAt),
     updatedAt: timestampToIso(data.updatedAt),
   };
@@ -114,6 +136,8 @@ export async function ensurePublicDonorProfile(
       districtId: profile.districtId,
       upazilaId: profile.upazilaId,
       availabilityStatus: profile.availabilityStatus || "available",
+      unavailableReason: profile.unavailableReason || null,
+      nextEligibleDate: profile.nextEligibleDate || null,
       lastDonationDate: profile.lastDonationDate || null,
       contactMode,
       phoneVisibility: contactMode,
@@ -155,6 +179,30 @@ export async function upsertDonorProfile(
     Boolean(input.isPhonePublic);
   const contactMode: DonorContactMode = isPublic ? "PUBLIC" : "PRIVATE";
 
+  // Calculate medical eligibility from lastDonationDate
+  const eligibility = calculateDonorEligibility(input.lastDonationDate);
+
+  let finalStatus: DonorAvailabilityStatus = "available";
+  let unavailableReason: DonorUnavailableReason | null = null;
+  let nextEligibleDate: string | null = null;
+
+  if (!eligibility.isEligible) {
+    // In mandatory 120-day recovery period
+    finalStatus = "unavailable";
+    unavailableReason = "MEDICAL_RECOVERY";
+    nextEligibleDate = eligibility.nextEligibleDate;
+  } else if (input.availabilityStatus === "unavailable") {
+    // Medically eligible, but explicitly paused by donor preference
+    finalStatus = "unavailable";
+    unavailableReason = "MANUAL_PAUSE";
+    nextEligibleDate = null;
+  } else {
+    // Medically eligible and available
+    finalStatus = "available";
+    unavailableReason = null;
+    nextEligibleDate = null;
+  }
+
   const payload: Record<string, unknown> = {
     userId: uid,
     displayName: input.displayName.trim(),
@@ -167,8 +215,10 @@ export async function upsertDonorProfile(
     districtId: input.districtId,
     upazilaId: input.upazilaId,
     area: input.area?.trim() || null,
-    lastDonationDate: input.lastDonationDate?.trim() || null,
-    availabilityStatus: input.availabilityStatus || "available",
+    lastDonationDate: eligibility.lastDonationDate,
+    availabilityStatus: finalStatus,
+    unavailableReason,
+    nextEligibleDate,
     updatedAt: serverTimestamp(),
   };
 
@@ -183,8 +233,10 @@ export async function upsertDonorProfile(
     divisionId: input.divisionId,
     districtId: input.districtId,
     upazilaId: input.upazilaId,
-    availabilityStatus: input.availabilityStatus || "available",
-    lastDonationDate: input.lastDonationDate?.trim() || null,
+    availabilityStatus: finalStatus,
+    unavailableReason,
+    nextEligibleDate,
+    lastDonationDate: eligibility.lastDonationDate,
     contactMode,
     phoneVisibility: contactMode,
     updatedAt: serverTimestamp(),
@@ -226,8 +278,10 @@ export async function upsertDonorProfile(
     phoneNumber: input.phoneNumber.trim(),
     isPhonePublic: isPublic,
     contactMode,
-    lastDonationDate: input.lastDonationDate?.trim() || undefined,
-    availabilityStatus: input.availabilityStatus || "available",
+    lastDonationDate: eligibility.lastDonationDate || undefined,
+    availabilityStatus: finalStatus,
+    unavailableReason,
+    nextEligibleDate,
     createdAt: createdAtValue,
     updatedAt: now,
   };
@@ -235,6 +289,7 @@ export async function upsertDonorProfile(
 
 /**
  * Updates a donor's availability status across both private and public records.
+ * Protects donors in the mandatory 120-day recovery cooldown from prematurely becoming available.
  */
 export async function updateDonorAvailability(
   uid: string,
@@ -248,19 +303,33 @@ export async function updateDonorAvailability(
   const docRef = doc(db, DONOR_PROFILES_COLLECTION, uid);
   const publicDocRef = doc(db, PUBLIC_DONOR_PROFILES_COLLECTION, uid);
 
+  // Validate recovery period before allowing availability transition
+  const snap = await getDoc(docRef);
+  if (snap.exists()) {
+    const data = snap.data();
+    const eligibility = calculateDonorEligibility(data.lastDonationDate);
+    if (status === "available" && !eligibility.isEligible) {
+      const remainingDays = eligibility.daysRemaining;
+      const nextDate = eligibility.nextEligibleDate;
+      throw new Error(
+        `রক্তদানের ১২০ দিনের বিরতি চলমান রয়েছে। আপনি ${nextDate || ""} (আরও ${remainingDays} দিন পর) রক্তদানে প্রস্তুত হতে পারবেন।`
+      );
+    }
+  }
+
+  const unavailableReason: DonorUnavailableReason | null =
+    status === "unavailable" ? "MANUAL_PAUSE" : null;
+
+  const updates: Record<string, unknown> = {
+    availabilityStatus: status,
+    unavailableReason,
+    nextEligibleDate: null,
+    updatedAt: serverTimestamp(),
+  };
+
   await Promise.all([
-    updateDoc(docRef, {
-      availabilityStatus: status,
-      updatedAt: serverTimestamp(),
-    }),
-    setDoc(
-      publicDocRef,
-      {
-        availabilityStatus: status,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    ).catch(() => {
+    updateDoc(docRef, updates),
+    setDoc(publicDocRef, updates, { merge: true }).catch(() => {
       // Non-fatal if public doc write experiences temporary network race
     }),
   ]);

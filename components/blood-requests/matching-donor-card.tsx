@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getTranslations } from "@/i18n/translations";
+import { calculateDonorEligibility } from "@/lib/utils/donor-eligibility";
 import type { Locale } from "@/i18n/config";
 
 interface MatchingDonorCardProps {
@@ -44,8 +45,11 @@ export function MatchingDonorCard({
     locale
   );
 
+  const eligibility = calculateDonorEligibility(donor.lastDonationDate);
+  const isAvailable = donor.availabilityStatus === "available" && eligibility.isEligible;
+
   const statusVariant =
-    donor.availabilityStatus === "available"
+    isAvailable
       ? "border-emerald-500/30 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
       : donor.availabilityStatus === "pending"
       ? "border-amber-500/30 text-amber-600 dark:text-amber-400 bg-amber-500/10"
@@ -77,7 +81,11 @@ export function MatchingDonorCard({
           </div>
 
           <Badge variant="outline" className={`text-xs ${statusVariant}`}>
-            {t.domain.donorStatus[donor.availabilityStatus]}
+            {isAvailable
+              ? t.domain.donorStatus.available
+              : donor.availabilityStatus === "pending"
+              ? t.domain.donorStatus.pending
+              : t.domain.donorStatus.unavailable}
           </Badge>
         </div>
 

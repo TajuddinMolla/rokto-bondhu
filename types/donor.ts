@@ -8,6 +8,13 @@ import type { BloodGroup, DonorAvailabilityStatus } from "@/types/blood";
 export type DonorContactMode = "PUBLIC" | "PRIVATE";
 
 /**
+ * Root cause behind a donor's `unavailable` status.
+ * - `MEDICAL_RECOVERY`: Donor is in the mandatory 120-day recovery cooldown following a donation.
+ * - `MANUAL_PAUSE`: Donor is medically eligible (or never donated) but explicitly paused their availability.
+ */
+export type DonorUnavailableReason = "MEDICAL_RECOVERY" | "MANUAL_PAUSE";
+
+/**
  * Full Donor Profile representation.
  *
  * Date representation notes:
@@ -29,6 +36,8 @@ export interface DonorProfile {
   phoneVisibility?: DonorContactMode;
   lastDonationDate?: string; // YYYY-MM-DD
   availabilityStatus: DonorAvailabilityStatus;
+  unavailableReason?: DonorUnavailableReason | null;
+  nextEligibleDate?: string | null; // YYYY-MM-DD
   isSuspended?: boolean;
   suspendedAt?: string; // ISO 8601 string
   suspendedReason?: string;
@@ -54,6 +63,8 @@ export interface DonorPublicSummary {
   phoneNumber?: string; // Only present if contactMode === "PUBLIC" or isPhonePublic is true
   lastDonationDate?: string;
   availabilityStatus: DonorAvailabilityStatus;
+  unavailableReason?: DonorUnavailableReason | null;
+  nextEligibleDate?: string | null;
 }
 
 /**
@@ -68,6 +79,8 @@ export interface PublicDonorProfile {
   districtId: string;
   upazilaId: string;
   availabilityStatus: DonorAvailabilityStatus;
+  unavailableReason?: DonorUnavailableReason | null;
+  nextEligibleDate?: string | null; // YYYY-MM-DD
   contactMode?: DonorContactMode;
   phoneVisibility?: DonorContactMode;
   phoneNumber?: string; // Strictly present ONLY when contactMode === "PUBLIC"

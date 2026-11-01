@@ -24,6 +24,7 @@ import {
   Activity,
   PhoneCall,
   Droplet,
+  Clock,
 } from "lucide-react";
 
 import {
@@ -40,6 +41,10 @@ import {
   getUpazilaById,
 } from "@/constants/locations";
 import { createDonorSchema, type DonorInput } from "@/lib/validations/donor";
+import {
+  calculateDonorEligibility,
+  formatEligibleDateDisplay,
+} from "@/lib/utils/donor-eligibility";
 import { useDonorProfile } from "@/hooks/queries/use-donor-profile";
 import { useSaveDonorProfile } from "@/hooks/mutations/use-save-donor-profile";
 import { Button } from "@/components/ui/button";
@@ -192,6 +197,19 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
     useWatch({ control, name: "availabilityStatus" }) || "available";
   const watchedIsPhonePublic =
     useWatch({ control, name: "isPhonePublic" }) ?? false;
+  const watchedLastDonationDate = useWatch({ control, name: "lastDonationDate" });
+
+  const donorEligibility = React.useMemo(
+    () => calculateDonorEligibility(watchedLastDonationDate),
+    [watchedLastDonationDate]
+  );
+
+  // Automatically enforce "unavailable" if inside mandatory 120-day recovery cooldown
+  React.useEffect(() => {
+    if (!donorEligibility.isEligible && watchedAvailabilityStatus !== "unavailable") {
+      setValue("availabilityStatus", "unavailable", { shouldValidate: true });
+    }
+  }, [donorEligibility.isEligible, watchedAvailabilityStatus, setValue]);
 
   // Pre-fill existing donor profile when loaded (Edit Mode)
   const hasInitializedRef = React.useRef(false);
@@ -948,28 +966,66 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
                     {t.registrationPage.form.availabilityLabel}
                   </label>
 
+                  {!donorEligibility.isEligible && (
+                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-1 text-xs">
+                      <div className="flex items-center gap-2 font-bold text-amber-700 dark:text-amber-400">
+                        <Clock className="size-4 shrink-0" />
+                        <span>
+                          {locale === "en"
+                            ? "You are currently in the 120-day donation recovery period."
+                            : "আপনি বর্তমানে রক্তদানের বিরতিতে আছেন।"}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground leading-relaxed pl-6">
+                        {locale === "en" ? (
+                          <>
+                            Next eligible date: <strong className="text-foreground">{formatEligibleDateDisplay(donorEligibility.nextEligibleDate, "en")}</strong> (in {donorEligibility.daysRemaining} days).
+                          </>
+                        ) : (
+                          <>
+                            আবার রক্ত দিতে পারবেন: <strong className="text-foreground">{formatEligibleDateDisplay(donorEligibility.nextEligibleDate, "bn")}</strong> (আরও {donorEligibility.daysRemaining} দিন পর আপনি রক্তদানের জন্য eligible হবেন)।
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
                       type="button"
-                      onClick={() =>
+                      disabled={!donorEligibility.isEligible}
+                      onClick={() => {
+                        if (!donorEligibility.isEligible) return;
                         setValue("availabilityStatus", "available", {
                           shouldValidate: true,
-                        })
-                      }
-                      className={`text-left p-4 rounded-2xl border transition-all cursor-pointer ${
-                        watchedAvailabilityStatus === "available"
-                          ? "border-emerald-500 bg-emerald-500/[0.06] ring-2 ring-emerald-500/20 shadow-xs"
-                          : "border-border/80 bg-surface hover:bg-muted/30"
+                        });
+                      }}
+                      className={`text-left p-4 rounded-2xl border transition-all ${
+                        !donorEligibility.isEligible
+                          ? "opacity-45 cursor-not-allowed border-border/60 bg-muted/20"
+                          : watchedAvailabilityStatus === "available"
+                          ? "border-emerald-500 bg-emerald-500/[0.06] ring-2 ring-emerald-500/20 shadow-xs cursor-pointer"
+                          : "border-border/80 bg-surface hover:bg-muted/30 cursor-pointer"
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <span className="flex size-3 rounded-full bg-emerald-500 animate-pulse" />
+                        <span
+                          className={`flex size-3 rounded-full ${
+                            donorEligibility.isEligible
+                              ? "bg-emerald-500 animate-pulse"
+                              : "bg-muted-foreground/60"
+                          }`}
+                        />
                         <div>
                           <strong className="text-xs sm:text-sm font-bold text-foreground block">
                             {t.domain.donorStatus.available}
                           </strong>
                           <span className="text-[11px] text-muted-foreground block mt-0.5">
-                            {locale === "en"
+                            {!donorEligibility.isEligible
+                              ? locale === "en"
+                                ? "Locked during 120-day recovery"
+                                : "১২০ দিনের বিরতিকালীন রক্তদান স্থগিত"
+                              : locale === "en"
                               ? "Healthy and currently available to donate"
                               : "শারীরিকভাবে সুস্থ এবং রক্তদানের জন্য প্রস্তুত"}
                           </span>
@@ -997,7 +1053,11 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
                             {t.domain.donorStatus.unavailable}
                           </strong>
                           <span className="text-[11px] text-muted-foreground block mt-0.5">
-                            {locale === "en"
+                            {!donorEligibility.isEligible
+                              ? locale === "en"
+                                ? "In mandatory 120-day recovery"
+                                : "১২০ দিনের বিরতিতে আছেন"
+                              : locale === "en"
                               ? "Temporarily on break or recovering"
                               : "অসুস্থতা বা সাম্প্রতিক রক্তদানের কারণে সাময়িক বিরতি"}
                           </span>

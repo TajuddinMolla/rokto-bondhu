@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ReportModal } from "@/components/reports/report-modal";
 import { getTranslations } from "@/i18n/translations";
+import { calculateDonorEligibility } from "@/lib/utils/donor-eligibility";
 import type { Locale } from "@/i18n/config";
 
 interface DonorCardProps {
@@ -44,6 +45,9 @@ export function DonorCard({ donor, locale, onRequestContact }: DonorCardProps) {
     },
     locale
   );
+
+  const isEligible = calculateDonorEligibility(donor.lastDonationDate).isEligible;
+  const isAvailable = donor.availabilityStatus === "available" && isEligible;
 
   const isPublicContact =
     donor.contactMode === "PUBLIC" && Boolean(donor.phoneNumber);
@@ -114,7 +118,7 @@ export function DonorCard({ donor, locale, onRequestContact }: DonorCardProps) {
 
         {/* Live Availability Status Pill */}
         <div className="self-start sm:self-auto shrink-0">
-          {donor.availabilityStatus === "available" ? (
+          {isAvailable ? (
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-black bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shadow-2xs">
               <span className="relative flex size-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />

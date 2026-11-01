@@ -15,9 +15,14 @@ import {
   AlertCircle,
   MapPin,
   Calendar,
+  Clock,
 } from "lucide-react";
 
 import { getDivisionById, getDistrictById, getUpazilaById } from "@/constants/locations";
+import {
+  calculateDonorEligibility,
+  formatEligibleDateDisplay,
+} from "@/lib/utils/donor-eligibility";
 import type { DonorProfile, DonorContactMode } from "@/types/donor";
 import { Button } from "@/components/ui/button";
 import {
@@ -62,7 +67,14 @@ export function DonorProfileCard({
   const prefix = locale === "en" ? "/en" : "";
   const donorRegisterHref = `${prefix}/donors/register#registration-form`;
 
-  const isAvailable = donorProfile?.availabilityStatus === "available";
+  const eligibility = React.useMemo(
+    () => calculateDonorEligibility(donorProfile?.lastDonationDate),
+    [donorProfile?.lastDonationDate]
+  );
+  const isMedicallyEligible = eligibility.isEligible;
+
+  // Real-time effective availability respects medical cooldown
+  const isAvailable = isMedicallyEligible && donorProfile?.availabilityStatus === "available";
   const activeMode: DonorContactMode = donorProfile?.contactMode || "PRIVATE";
 
   const handleContactModeClick = async (mode: DonorContactMode) => {
@@ -118,32 +130,46 @@ export function DonorProfileCard({
           </div>
 
           {donorProfile && (
-            <Badge
-              variant={isAvailable ? "default" : "secondary"}
-              className={`self-start sm:self-auto text-xs py-1 px-3 rounded-full font-bold shadow-2xs ${
-                isAvailable ? "bg-emerald-600 hover:bg-emerald-600 text-white" : ""
-              }`}
-            >
-              <span className="relative flex size-2 mr-1.5">
-                {isAvailable && (
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                )}
-                <span
-                  className={`relative inline-flex rounded-full size-2 ${
-                    isAvailable ? "bg-white" : "bg-muted-foreground"
-                  }`}
-                />
-              </span>
-              <span>
-                {isAvailable
-                  ? locale === "en"
-                    ? "Available to Donate"
-                    : "রক্তদানে প্রস্তুত (সক্রিয়)"
-                  : locale === "en"
-                  ? "Currently Unavailable"
-                  : "এখন প্রস্তুত নন (নিষ্ক্রিয়)"}
-              </span>
-            </Badge>
+            !isMedicallyEligible ? (
+              <Badge
+                variant="outline"
+                className="self-start sm:self-auto text-xs py-1 px-3 rounded-full font-bold shadow-2xs border-amber-500/30 text-amber-700 dark:text-amber-400 bg-amber-500/10"
+              >
+                <Clock className="size-3 mr-1.5 shrink-0" />
+                <span>
+                  {locale === "en"
+                    ? `In Recovery (${eligibility.daysRemaining}d left)`
+                    : `রক্তদানের বিরতিতে (আরও ${eligibility.daysRemaining} দিন)`}
+                </span>
+              </Badge>
+            ) : (
+              <Badge
+                variant={isAvailable ? "default" : "secondary"}
+                className={`self-start sm:self-auto text-xs py-1 px-3 rounded-full font-bold shadow-2xs ${
+                  isAvailable ? "bg-emerald-600 hover:bg-emerald-600 text-white" : ""
+                }`}
+              >
+                <span className="relative flex size-2 mr-1.5">
+                  {isAvailable && (
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                  )}
+                  <span
+                    className={`relative inline-flex rounded-full size-2 ${
+                      isAvailable ? "bg-white" : "bg-muted-foreground"
+                    }`}
+                  />
+                </span>
+                <span>
+                  {isAvailable
+                    ? locale === "en"
+                      ? "Available to Donate"
+                      : "রক্তদানে প্রস্তুত (সক্রিয়)"
+                    : locale === "en"
+                    ? "Currently Unavailable"
+                    : "এখন প্রস্তুত নন (নিষ্ক্রিয়)"}
+                </span>
+              </Badge>
+            )
           )}
         </div>
       </CardHeader>
@@ -156,6 +182,44 @@ export function DonorProfileCard({
           </div>
         ) : donorProfile ? (
           <div className="space-y-6">
+            {/* Medical Recovery Cooldown Banner */}
+            {!isMedicallyEligible && (
+              <div className="p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 space-y-1.5 text-xs">
+                <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
+                  <Clock className="size-4 shrink-0" />
+                  <span>
+                    {locale === "en"
+                      ? "You are currently in the 120-day donation recovery period."
+                      : "আপনি বর্তমানে রক্তদানের বিরতিতে আছেন।"}
+                  </span>
+                </div>
+                <div className="text-muted-foreground pl-6 space-y-0.5">
+                  <p>
+                    {locale === "en" ? (
+                      <>
+                        Next eligible date: <strong className="text-foreground">{formatEligibleDateDisplay(eligibility.nextEligibleDate, "en")}</strong>
+                      </>
+                    ) : (
+                      <>
+                        আবার রক্ত দিতে পারবেন: <strong className="text-foreground">{formatEligibleDateDisplay(eligibility.nextEligibleDate, "bn")}</strong>
+                      </>
+                    )}
+                  </p>
+                  <p>
+                    {locale === "en" ? (
+                      <>
+                        In <strong>{eligibility.daysRemaining}</strong> more days you will become eligible to donate blood.
+                      </>
+                    ) : (
+                      <>
+                        আরও <strong>{eligibility.daysRemaining}</strong> দিন পর আপনি রক্তদানের জন্য eligible হবেন।
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Availability Quick Action Switcher */}
             <div className="p-4 sm:p-5 rounded-2xl border border-border/80 bg-muted/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="space-y-1">
@@ -163,7 +227,11 @@ export function DonorProfileCard({
                   {locale === "en" ? "Donation Readiness Toggle" : "রক্তদানের প্রাপ্যতা পরিবর্তন"}
                 </strong>
                 <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
-                  {isAvailable
+                  {!isMedicallyEligible
+                    ? locale === "en"
+                      ? "You cannot become available until your 120-day medical recovery period completes."
+                      : "সর্বশেষ রক্তদানের ১২০ দিনের বিরতি সম্পন্ন না হওয়া পর্যন্ত প্রোফাইল সক্রিয় করা সম্ভব নয়।"
+                    : isAvailable
                     ? locale === "en"
                       ? "You are currently visible to patients and coordinators seeking urgent blood donors."
                       : "আপনার প্রোফাইল বর্তমানে সক্রিয় রক্তদাতা হিসেবে প্রদর্শিত হচ্ছে এবং জরুরি প্রয়োজনে রোগীরা যোগাযোগ করতে পারবে।"
@@ -177,7 +245,14 @@ export function DonorProfileCard({
                 size="sm"
                 variant={isAvailable ? "outline" : "default"}
                 onClick={onToggleAvailability}
-                disabled={isUpdatingAvailability || isSuspended}
+                disabled={isUpdatingAvailability || isSuspended || !isMedicallyEligible}
+                title={
+                  !isMedicallyEligible
+                    ? locale === "en"
+                      ? "Cannot enable while in 120-day recovery cooldown"
+                      : "১২০ দিনের বিরতিকালীন প্রাপ্যতা পরিবর্তন করা সম্ভব নয়"
+                    : undefined
+                }
                 className="shrink-0 gap-2 min-h-[42px] rounded-xl px-4 font-bold shadow-xs cursor-pointer"
               >
                 {isUpdatingAvailability ? (
@@ -186,7 +261,11 @@ export function DonorProfileCard({
                   <Power className="size-4" />
                 )}
                 <span>
-                  {isAvailable
+                  {!isMedicallyEligible
+                    ? locale === "en"
+                      ? "Recovery Cooldown"
+                      : "বিরতিকালীন নিষ্ক্রিয়"
+                    : isAvailable
                     ? locale === "en"
                       ? "Set to Unavailable"
                       : "অপ্রস্তুত হিসেবে চিহ্নিত করুন"

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getServerFirestore } from "@/lib/firebase/server";
+import { calculateDonorEligibility } from "@/lib/utils/donor-eligibility";
 
 /**
  * Validates authorization for scheduled background cron execution.
@@ -214,18 +215,100 @@ async function handleExpireRequests(req: NextRequest) {
       await commitBatchIfFull();
     }
 
+    // -------------------------------------------------------------
+    // 3. Reset Donors whose 120-day recovery period has elapsed
+    // -------------------------------------------------------------
+    let recoveredDonorCount = 0;
+
+    const recoveringDonorsSnap = await db
+      .collection("donorProfiles")
+      .where("availabilityStatus", "==", "unavailable")
+      .limit(200)
+      .get();
+
+    for (const docSnap of recoveringDonorsSnap.docs) {
+      const data = docSnap.data();
+      const donorId = docSnap.id;
+      const lastDonation = data.lastDonationDate;
+      const reason = data.unavailableReason;
+
+      // Strict Rule: Cron must automatically reactivate a donor ONLY when:
+      // unavailableReason === "MEDICAL_RECOVERY"
+      // Never reactivate MANUAL_PAUSE, legacy undefined/missing reason, or nextEligibleDate alone.
+      if (reason !== "MEDICAL_RECOVERY") {
+        continue;
+      }
+
+      // If they had no lastDonationDate, preserve existing status
+      if (!lastDonation) {
+        continue;
+      }
+
+      const eligibility = calculateDonorEligibility(lastDonation);
+      // Strictly verify 120-day recovery has elapsed
+      if (!eligibility.isEligible) {
+        continue;
+      }
+
+      const donorRef = docSnap.ref;
+      const publicRef = db.collection("publicDonorProfiles").doc(donorId);
+
+      const updateData = {
+        availabilityStatus: "available",
+        unavailableReason: FieldValue.delete(),
+        nextEligibleDate: FieldValue.delete(),
+        updatedAt: FieldValue.serverTimestamp(),
+      };
+
+      currentBatch.update(donorRef, updateData);
+      currentBatch.set(publicRef, updateData, { merge: true });
+      currentBatchOps += 2;
+      recoveredDonorCount++;
+
+      // Create in-app notification to the donor using a deterministic ID based on donorId + lastDonationDate
+      // Prevents duplicate notifications on repeated or concurrent cron executions
+      const notifId = `notif_donor_recovery_reset_${donorId}_${lastDonation}`;
+      const notifRef = db.collection("notifications").doc(notifId);
+      currentBatch.set(
+        notifRef,
+        {
+          recipientId: donorId,
+          type: "MODERATION_NOTICE",
+          title: {
+            bn: "রক্তদানের জন্য আপনি পুনরায় প্রস্তুত",
+            en: "You are now eligible to donate blood again!",
+          },
+          message: {
+            bn: "সর্বশেষ রক্তদানের ১২০ দিনের বিরতি সফলভাবে সম্পন্ন হয়েছে। আপনার প্রোফাইল স্বয়ংক্রিয়ভাবে 'রক্তদানে প্রস্তুত' হিসেবে সক্রিয় করা হয়েছে।",
+            en: "Your 120-day recovery period since your last donation has ended. Your profile has been automatically restored to 'Available to Donate'.",
+          },
+          actionUrl: "/account/profile",
+          read: false,
+          readAt: null,
+          emailStatus: "NOT_APPLICABLE",
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+      currentBatchOps++;
+
+      await commitBatchIfFull();
+    }
+
     if (currentBatchOps > 0) {
       await currentBatch.commit();
     }
 
     console.info(
-      `[Cron Expire] Cutoffs: 7d=${sevenDaysAgoIso}, 48h=${fortyEightHoursAgoIso}. Processed expiry: ${expiredBloodCount} blood requests, ${expiredContactCount} contact requests`
+      `[Cron Expire & Recover] Cutoffs: 7d=${sevenDaysAgoIso}, 48h=${fortyEightHoursAgoIso}. Processed: ${expiredBloodCount} blood requests expired, ${expiredContactCount} contact requests expired, ${recoveredDonorCount} donors recovered.`
     );
 
     return NextResponse.json({
       success: true,
       expiredBloodRequests: expiredBloodCount,
       expiredContactRequests: expiredContactCount,
+      recoveredDonors: recoveredDonorCount,
       timestamp: new Date().toISOString(),
     });
   } catch (error: unknown) {

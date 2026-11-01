@@ -14,6 +14,7 @@ import {
 import { getFirebaseDb } from "@/lib/firebase/config";
 import { PUBLIC_DONOR_PROFILES_COLLECTION } from "@/services/donor.service";
 import { normalizeBloodGroup } from "@/constants/blood-groups";
+import { calculateDonorEligibility } from "@/lib/utils/donor-eligibility";
 import type {
   PublicDonorProfile,
   DonorSearchFilterParams,
@@ -122,6 +123,23 @@ export async function searchPublicDonors(
       data.contactMode ||
       (data.phoneNumber ? "PUBLIC" : "PRIVATE")) as DonorContactMode;
 
+    const eligibility = calculateDonorEligibility(data.lastDonationDate);
+    let effectiveStatus: DonorAvailabilityStatus =
+      (data.availabilityStatus || "available") as DonorAvailabilityStatus;
+    let effectiveReason = data.unavailableReason || null;
+    let nextEligibleDate = data.nextEligibleDate || eligibility.nextEligibleDate;
+
+    // Self-heal: recovering donors are never available
+    if (!eligibility.isEligible) {
+      effectiveStatus = "unavailable";
+      effectiveReason = "MEDICAL_RECOVERY";
+      nextEligibleDate = eligibility.nextEligibleDate;
+    } else if (effectiveReason === "MEDICAL_RECOVERY" && eligibility.isEligible) {
+      effectiveStatus = "available";
+      effectiveReason = null;
+      nextEligibleDate = null;
+    }
+
     return {
       id: docSnap.id,
       displayName: data.displayName || "",
@@ -129,15 +147,22 @@ export async function searchPublicDonors(
       divisionId: data.divisionId || "",
       districtId: data.districtId || "",
       upazilaId: data.upazilaId || "",
-      availabilityStatus: (data.availabilityStatus ||
-        "available") as DonorAvailabilityStatus,
-      lastDonationDate: data.lastDonationDate || undefined,
+      availabilityStatus: effectiveStatus,
+      unavailableReason: effectiveReason,
+      nextEligibleDate,
+      lastDonationDate: eligibility.lastDonationDate || undefined,
       contactMode,
       phoneVisibility: contactMode,
       phoneNumber:
         contactMode === "PUBLIC" ? data.phoneNumber || undefined : undefined,
       updatedAt: timestampToIso(data.updatedAt),
     };
+  })
+  .filter((donor) => {
+    if (filters.availabilityStatus === "available") {
+      return donor.availabilityStatus === "available";
+    }
+    return true;
   });
 
   const hasMore = snap.docs.length === pageSize;
@@ -218,6 +243,15 @@ export async function searchMatchingDonors(
     const donorDistrict = String(data.districtId || "");
     const donorDivision = String(data.divisionId || "");
 
+    const eligibility = calculateDonorEligibility(data.lastDonationDate);
+    let effectiveStatus: DonorAvailabilityStatus =
+      (data.availabilityStatus || "available") as DonorAvailabilityStatus;
+
+    // Self-heal: recovering donors are never available
+    if (!eligibility.isEligible) {
+      effectiveStatus = "unavailable";
+    }
+
     return {
       id: docSnap.id,
       displayName: String(data.displayName || ""),
@@ -225,9 +259,8 @@ export async function searchMatchingDonors(
       divisionId: donorDivision,
       districtId: donorDistrict,
       upazilaId: donorUpazila,
-      availabilityStatus: (data.availabilityStatus ||
-        "available") as DonorAvailabilityStatus,
-      lastDonationDate: data.lastDonationDate ? String(data.lastDonationDate) : undefined,
+      availabilityStatus: effectiveStatus,
+      lastDonationDate: eligibility.lastDonationDate || undefined,
       contactMode,
       phoneVisibility: contactMode,
       phoneNumber:
@@ -237,6 +270,12 @@ export async function searchMatchingDonors(
       isSameDistrict: Boolean(params.districtId && donorDistrict === params.districtId),
       isSameDivision: Boolean(params.divisionId && donorDivision === params.divisionId),
     };
+  })
+  .filter((donor) => {
+    if (params.availabilityOnly) {
+      return donor.availabilityStatus === "available";
+    }
+    return true;
   });
 
   // Deterministic in-page ranking:

@@ -10,7 +10,7 @@
     "deploy:rules": "node scripts/deploy-rules.mjs",
     "deploy:rules:cli": "npx -y firebase-tools deploy --only firestore:rules",
     "deploy:indexes": "npx -y firebase-tools deploy --only firestore:indexes",
-    "test": "node scripts/verify-production-readiness.mjs",
+    "test": "node scripts/verify-production-readiness.mjs && node --experimental-strip-types scripts/test-donor-eligibility-suite.mjs",
     "generate:icons": "node scripts/generate-favicons.mjs",
     "generate:og": "node scripts/generate-og-image.mjs",
     "admin:set": "node scripts/set-admin.mjs"

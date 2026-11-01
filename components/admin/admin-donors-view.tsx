@@ -25,6 +25,7 @@ import { Select } from "@/components/ui/select";
 import { BLOOD_GROUPS, type BloodGroup } from "@/constants/blood-groups";
 import { formatLocation } from "@/constants/locations";
 import { getTranslations } from "@/i18n/translations";
+import { calculateDonorEligibility } from "@/lib/utils/donor-eligibility";
 import type { DonorProfile } from "@/types/donor";
 import type { Locale } from "@/i18n/config";
 
@@ -72,7 +73,10 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
   const { suspendDonor, restoreDonor, privatizeDonorPhone } =
     useAdminMutations();
 
-  const rawDonors = data?.pages.flatMap((page) => page.items) || [];
+  const rawDonors = React.useMemo(
+    () => data?.pages.flatMap((page) => page.items) || [],
+    [data]
+  );
   const donors = React.useMemo(() => {
     if (availabilityFilter === "ALL") return rawDonors;
     return rawDonors.filter(
@@ -293,7 +297,16 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
 
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       {/* Live Donation Availability Status */}
-                      {donor.availabilityStatus === "available" ? (
+                      {!calculateDonorEligibility(donor.lastDonationDate).isEligible ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 shadow-2xs">
+                          <Clock className="size-2.5 shrink-0" />
+                          <span>
+                            {locale === "en"
+                              ? `Recovery (${calculateDonorEligibility(donor.lastDonationDate).daysRemaining}d left)`
+                              : `বিরতিতে (আরও ${calculateDonorEligibility(donor.lastDonationDate).daysRemaining} দিন)`}
+                          </span>
+                        </span>
+                      ) : donor.availabilityStatus === "available" ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 shadow-2xs">
                           <span className="relative flex size-1.5">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
@@ -511,7 +524,19 @@ export function AdminDonorsView({ locale }: AdminDonorsViewProps) {
 
                       <td className="px-5 py-4">
                         <div className="flex flex-col gap-1 items-start">
-                          {donor.availabilityStatus === "available" ? (
+                          {!calculateDonorEligibility(donor.lastDonationDate).isEligible ? (
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/25 flex items-center gap-1.5 rounded-lg shadow-2xs"
+                            >
+                              <Clock className="size-2.5 shrink-0" />
+                              <span>
+                                {locale === "en"
+                                  ? `In Recovery (${calculateDonorEligibility(donor.lastDonationDate).daysRemaining}d left)`
+                                  : `বিরতিতে (আরও ${calculateDonorEligibility(donor.lastDonationDate).daysRemaining} দিন)`}
+                              </span>
+                            </Badge>
+                          ) : donor.availabilityStatus === "available" ? (
                             <Badge
                               variant="outline"
                               className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 border-emerald-500/25 flex items-center gap-1.5 rounded-lg shadow-2xs"
