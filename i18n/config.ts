@@ -31,6 +31,8 @@ export function getLocaleFromPathname(pathname: string): Locale {
  */
 const ROUTE_MAP: Record<string, string> = {
   "/": "/en",
+  "/terms": "/en/terms",
+  "/privacy-policy": "/en/privacy-policy",
   "/donors": "/en/donors",
   "/donors/register": "/en/donors/register",
   "/blood-request": "/en/blood-request",

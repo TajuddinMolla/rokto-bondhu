@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@/lib/validations/zod-resolver";
@@ -283,7 +284,55 @@ export function RegisterForm({ locale }: RegisterFormProps) {
             {...register("consent")}
           />
           <span className="leading-relaxed">
-            {t.auth.register.consentLabel}
+            {locale === "en" ? (
+              <>
+                I agree to the{" "}
+                <Link
+                  href="/en/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="/en/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Privacy Policy
+                </Link>{" "}
+                of RoktoBondhu.
+              </>
+            ) : (
+              <>
+                আমি রক্তবন্ধু প্ল্যাটফর্মের{" "}
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  ব্যবহারের শর্তাবলী
+                </Link>{" "}
+                ও{" "}
+                <Link
+                  href="/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  গোপনীয়তা নীতি
+                </Link>{" "}
+                মেনে নিচ্ছি।
+              </>
+            )}
             <span className="text-destructive ml-1" aria-hidden="true">
               *
             </span>

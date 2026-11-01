@@ -155,11 +155,30 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Bottom Copyright & Community Mission Notice */}
-        <div className="border-t border-border mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+        {/* Bottom Copyright, Legal Links & Community Mission Notice */}
+        <div className="border-t border-border mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <p className="font-medium">
             © <DynamicYear /> {t.footer.copyright}
           </p>
+
+          <nav
+            aria-label={currentLocale === "en" ? "Legal Information" : "আইনি তথ্যাবলী"}
+            className="flex items-center gap-4 font-medium"
+          >
+            <Link
+              href={currentLocale === "en" ? "/en/terms" : "/terms"}
+              className="hover:text-foreground transition-colors hover:underline underline-offset-4"
+            >
+              {t.footer.terms}
+            </Link>
+            <span className="text-border" aria-hidden="true">•</span>
+            <Link
+              href={currentLocale === "en" ? "/en/privacy-policy" : "/privacy-policy"}
+              className="hover:text-foreground transition-colors hover:underline underline-offset-4"
+            >
+              {t.footer.privacyPolicy}
+            </Link>
+          </nav>
 
           <div className="flex items-center gap-1.5 font-medium">
             <span>{t.footer.missionNote}</span>
