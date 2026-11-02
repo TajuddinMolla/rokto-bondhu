@@ -9,6 +9,7 @@ import { BottomNav } from "@/components/layout/bottom-nav";
 import { SkipLink } from "@/components/layout/skip-link";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -52,6 +53,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 
             {/* Mobile bottom navigation bar (hidden on md+ viewports) */}
             <BottomNav />
+
+            {/* First-time guided onboarding tour and manual relaunch controller */}
+            <OnboardingTour />
           </AuthProvider>
         </QueryProvider>
         <SpeedInsights />

@@ -12,6 +12,7 @@ import {
   ChevronDown,
   FileText,
   MessageSquare,
+  Sparkles,
 } from "lucide-react";
 
 import { getLocaleFromPathname, isAuthPathname } from "@/i18n/config";
@@ -19,6 +20,7 @@ import { getTranslations } from "@/i18n/translations";
 import { getMainNavItems, getUserNavItems } from "@/constants/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsDonor } from "@/hooks/use-is-donor";
+import { openTour } from "@/lib/onboarding/storage";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -128,6 +130,18 @@ export function Header() {
 
         {/* Desktop Actions: Language, Notifications & Account */}
         <div className="hidden md:flex items-center gap-2.5 lg:gap-3">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={openTour}
+            className="hidden lg:inline-flex text-xs font-semibold text-muted-foreground hover:text-foreground h-9 px-2.5"
+            title={currentLocale === "en" ? "Platform Guided Tour" : "প্ল্যাটফর্ম পরিচিতি ট্যুর"}
+          >
+            <Sparkles className="size-3.5 text-primary mr-1" aria-hidden="true" />
+            <span>{currentLocale === "en" ? "Tour" : "পরিচিতি"}</span>
+          </Button>
+
           <LanguageSwitcher />
 
           {!loading && status === "authenticated" && user ? (
@@ -227,6 +241,13 @@ export function Header() {
                       </DropdownMenuItem>
                     </>
                   )}
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem onClick={openTour}>
+                    <Sparkles className="size-4 text-primary" aria-hidden="true" />
+                    <span>{currentLocale === "en" ? "Guided Tour" : "প্ল্যাটফর্ম পরিচিতি"}</span>
+                  </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
 

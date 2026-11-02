@@ -3,13 +3,14 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Droplet, Heart, ShieldCheck, ChevronRight } from "lucide-react";
+import { Droplet, Heart, ShieldCheck, ChevronRight, Sparkles } from "lucide-react";
 
 import { getLocaleFromPathname, isAuthPathname } from "@/i18n/config";
 import { getTranslations } from "@/i18n/translations";
 import { getMainNavItems, getUserNavItems } from "@/constants/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsDonor } from "@/hooks/use-is-donor";
+import { openTour } from "@/lib/onboarding/storage";
 
 const emptySubscribe = () => () => {};
 const getClientYear = () => new Date().getFullYear();
@@ -129,6 +130,18 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <button
+                  type="button"
+                  onClick={openTour}
+                  className="group hover:text-foreground hover:translate-x-1 transition-all duration-150 rounded-sm py-1 inline-flex items-center gap-1.5 text-left cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                >
+                  <Sparkles className="size-3 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="font-medium text-foreground/90">
+                    {currentLocale === "en" ? "Guided Tour" : "প্ল্যাটফর্ম পরিচিতি"}
+                  </span>
+                </button>
+              </li>
             </ul>
           </div>
 
