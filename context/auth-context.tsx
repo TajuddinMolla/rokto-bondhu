@@ -55,6 +55,9 @@ async function resolveAuthUser(
   let isSuspended = false;
   let role = "user";
 
+  let phoneNumber: string | null = firebaseUser.phoneNumber || null;
+  let displayName: string | null = firebaseUser.displayName || null;
+
   try {
     const tokenResult = await firebaseUser.getIdTokenResult(forceRefresh);
     const claimRole =
@@ -88,7 +91,7 @@ async function resolveAuthUser(
     role = "ADMIN";
   }
 
-  // Also inspect Firestore profile document for persistent admin role
+  // Also inspect Firestore profile document for persistent admin role and profile data
   try {
     const db = getFirebaseDb();
     if (db) {
@@ -106,6 +109,12 @@ async function resolveAuthUser(
         if (data?.isSuspended === true) {
           isSuspended = true;
         }
+        if (!phoneNumber && data?.phoneNumber && typeof data.phoneNumber === "string") {
+          phoneNumber = data.phoneNumber;
+        }
+        if (!displayName && data?.displayName && typeof data.displayName === "string") {
+          displayName = data.displayName;
+        }
       }
     }
   } catch {
@@ -115,8 +124,8 @@ async function resolveAuthUser(
   return {
     uid: firebaseUser.uid,
     email: firebaseUser.email,
-    phoneNumber: firebaseUser.phoneNumber,
-    displayName: firebaseUser.displayName,
+    phoneNumber,
+    displayName,
     emailVerified: Boolean(firebaseUser.emailVerified || isAdmin),
     isAdmin,
     role,

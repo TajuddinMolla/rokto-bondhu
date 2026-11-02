@@ -40,11 +40,16 @@ import {
   getDistrictById,
   getUpazilaById,
 } from "@/constants/locations";
-import { createDonorSchema, type DonorInput } from "@/lib/validations/donor";
+import {
+  createDonorSchema,
+  normalizeBdPhoneNumber,
+  type DonorInput,
+} from "@/lib/validations/donor";
 import {
   calculateDonorEligibility,
   formatEligibleDateDisplay,
 } from "@/lib/utils/donor-eligibility";
+import { useUserProfile } from "@/hooks/queries/use-user-profile";
 import { useDonorProfile } from "@/hooks/queries/use-donor-profile";
 import { useSaveDonorProfile } from "@/hooks/mutations/use-save-donor-profile";
 import { Button } from "@/components/ui/button";
@@ -159,6 +164,7 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
     }
   }, [submitError, scrollToTop]);
 
+  const { data: userProfile } = useUserProfile(user?.uid);
   const { data: existingProfile, isLoading: isProfileLoading } =
     useDonorProfile(user?.uid);
   const saveDonorMutation = useSaveDonorProfile();
@@ -177,6 +183,7 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
     control,
     handleSubmit,
     setValue,
+    getValues,
     reset,
     formState: { errors },
   } = useForm<DonorInput>({
@@ -184,7 +191,12 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
     resolver: zodResolver(donorSchema as any),
     defaultValues: {
       ...INITIAL_FORM_STATE,
-      displayName: user?.displayName || "",
+      displayName: user?.displayName || userProfile?.displayName || "",
+      phoneNumber: user?.phoneNumber
+        ? normalizeBdPhoneNumber(user.phoneNumber)
+        : userProfile?.phoneNumber
+        ? normalizeBdPhoneNumber(userProfile.phoneNumber)
+        : "",
     },
     mode: "onTouched",
   });
@@ -212,10 +224,10 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
   }, [donorEligibility.isEligible, watchedAvailabilityStatus, setValue]);
 
   // Pre-fill existing donor profile when loaded (Edit Mode)
-  const hasInitializedRef = React.useRef(false);
+  const hasInitializedDonorRef = React.useRef(false);
   React.useEffect(() => {
-    if (existingProfile && !hasInitializedRef.current) {
-      hasInitializedRef.current = true;
+    if (existingProfile && !hasInitializedDonorRef.current) {
+      hasInitializedDonorRef.current = true;
       reset({
         displayName: existingProfile.displayName,
         bloodGroup: existingProfile.bloodGroup,
@@ -230,15 +242,36 @@ export function DonorRegistrationForm({ locale }: DonorRegistrationFormProps) {
         availabilityStatus: existingProfile.availabilityStatus,
         consent: true,
       });
-    } else if (
-      user?.displayName &&
-      !hasInitializedRef.current &&
-      !existingProfile
-    ) {
-      hasInitializedRef.current = true;
-      setValue("displayName", user.displayName);
     }
-  }, [existingProfile, user?.displayName, reset, setValue]);
+  }, [existingProfile, reset]);
+
+  // Pre-fill user account info (Display Name & Mobile Number) when registering as a donor ("Become a Donor")
+  React.useEffect(() => {
+    // If the user already has an existing donor profile or edit mode was already initialized, do not overwrite
+    if (existingProfile || hasInitializedDonorRef.current) {
+      return;
+    }
+
+    const availableName = user?.displayName || userProfile?.displayName;
+    const rawPhone = user?.phoneNumber || userProfile?.phoneNumber;
+    const availablePhone = rawPhone ? normalizeBdPhoneNumber(rawPhone) : "";
+
+    if (availableName && !getValues("displayName")) {
+      setValue("displayName", availableName, { shouldValidate: false });
+    }
+
+    if (availablePhone && !getValues("phoneNumber")) {
+      setValue("phoneNumber", availablePhone, { shouldValidate: false });
+    }
+  }, [
+    existingProfile,
+    user?.displayName,
+    user?.phoneNumber,
+    userProfile?.displayName,
+    userProfile?.phoneNumber,
+    setValue,
+    getValues,
+  ]);
 
   // Location datasets
   const divisions = React.useMemo(() => getDivisions(), []);

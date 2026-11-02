@@ -76,19 +76,38 @@ export async function ensureUserProfile(user: {
 
   if (existing.exists()) {
     const data = existing.data();
+    const updates: Record<string, unknown> = {};
+
     // Keep emailVerified in sync if changed in Auth
     if (user.emailVerified !== undefined && data.emailVerified !== user.emailVerified) {
-      await updateDoc(docRef, {
-        emailVerified: user.emailVerified,
-        updatedAt: serverTimestamp(),
-      });
+      updates.emailVerified = user.emailVerified;
+    }
+
+    // Keep phone number if user provided one and document does not have it, or if new phone number is passed
+    if (user.phoneNumber && (!data.phoneNumber || data.phoneNumber !== user.phoneNumber)) {
+      updates.phoneNumber = user.phoneNumber;
+    }
+
+    // Keep display name in sync if missing in doc
+    if (user.displayName && (!data.displayName || data.displayName !== user.displayName)) {
+      updates.displayName = user.displayName;
+    }
+
+    // Keep email in sync if missing in doc
+    if (user.email && (!data.email || data.email !== user.email)) {
+      updates.email = user.email;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      updates.updatedAt = serverTimestamp();
+      await updateDoc(docRef, updates);
     }
 
     return {
       uid: existing.id,
-      displayName: data.displayName || user.displayName || "",
-      email: data.email || user.email || "",
-      phoneNumber: data.phoneNumber || user.phoneNumber || undefined,
+      displayName: (updates.displayName as string) || data.displayName || user.displayName || "",
+      email: (updates.email as string) || data.email || user.email || "",
+      phoneNumber: (updates.phoneNumber as string) || data.phoneNumber || user.phoneNumber || undefined,
       emailVerified: Boolean(user.emailVerified ?? data.emailVerified),
       hasDonorProfile: Boolean(data.hasDonorProfile),
       emailNotificationsEnabled: data.emailNotificationsEnabled !== false,
