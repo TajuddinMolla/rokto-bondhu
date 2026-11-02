@@ -1,18 +1,56 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import * as React from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+
 import { queryKeys } from "@/constants/query-keys";
+import { getFirebaseDb } from "@/lib/firebase/config";
 import {
   getIncomingContactRequests,
   getOutgoingContactRequests,
   hasActiveContactRequest,
+  DONOR_CONTACT_REQUESTS_COLLECTION,
 } from "@/services/contact-request.service";
 import type { DonorContactRequest } from "@/types/contact-request";
 
 /**
- * Hook to retrieve incoming contact requests sent to the active donor.
+ * Hook to retrieve incoming contact requests sent to the active donor
+ * with real-time onSnapshot updates for instant status synchronization.
  */
 export function useIncomingContactRequests(donorId?: string | null) {
+  const queryClient = useQueryClient();
+
+  React.useEffect(() => {
+    if (!donorId) return;
+    const db = getFirebaseDb();
+    if (!db) return;
+
+    const colRef = collection(db, DONOR_CONTACT_REQUESTS_COLLECTION);
+    const q = query(colRef, where("donorId", "==", donorId));
+
+    let isFirstEmission = true;
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        if (isFirstEmission) {
+          isFirstEmission = false;
+          return;
+        }
+        if (snapshot.docChanges().length > 0) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.contactRequests.incoming(donorId),
+          });
+        }
+      },
+      (err) => {
+        console.warn("[Realtime Incoming Contact Requests Sync Error]:", err);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [donorId, queryClient]);
+
   return useQuery<DonorContactRequest[], Error>({
     queryKey: queryKeys.contactRequests.incoming(donorId || undefined),
     queryFn: () => {
@@ -25,9 +63,42 @@ export function useIncomingContactRequests(donorId?: string | null) {
 }
 
 /**
- * Hook to retrieve outgoing contact requests initiated by the active requester.
+ * Hook to retrieve outgoing contact requests initiated by the active requester
+ * with real-time onSnapshot updates for instant status synchronization.
  */
 export function useOutgoingContactRequests(requesterId?: string | null) {
+  const queryClient = useQueryClient();
+
+  React.useEffect(() => {
+    if (!requesterId) return;
+    const db = getFirebaseDb();
+    if (!db) return;
+
+    const colRef = collection(db, DONOR_CONTACT_REQUESTS_COLLECTION);
+    const q = query(colRef, where("requesterId", "==", requesterId));
+
+    let isFirstEmission = true;
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        if (isFirstEmission) {
+          isFirstEmission = false;
+          return;
+        }
+        if (snapshot.docChanges().length > 0) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.contactRequests.outgoing(requesterId),
+          });
+        }
+      },
+      (err) => {
+        console.warn("[Realtime Outgoing Contact Requests Sync Error]:", err);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [requesterId, queryClient]);
+
   return useQuery<DonorContactRequest[], Error>({
     queryKey: queryKeys.contactRequests.outgoing(requesterId || undefined),
     queryFn: () => {

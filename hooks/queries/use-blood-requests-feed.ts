@@ -10,6 +10,7 @@ import {
   collection,
   query,
   where,
+  orderBy,
   limit,
   onSnapshot,
   type QueryConstraint,
@@ -76,6 +77,7 @@ export function useBloodRequestsFeed({
     }
 
     // Limit realtime subscription to latest 20 documents to conserve reads
+    constraints.push(orderBy("createdAt", "desc"));
     constraints.push(limit(20));
 
     let isFirstEmission = true;

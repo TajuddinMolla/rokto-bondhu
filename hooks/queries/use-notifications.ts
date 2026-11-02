@@ -59,11 +59,18 @@ export function useNotificationsInfinite({
 
     const q = query(colRef, ...constraints);
 
+    let isFirstEmission = true;
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        // Ignore the very first emission as it's already fulfilled by the queryFn
+        if (isFirstEmission) {
+          isFirstEmission = false;
+          return;
+        }
+
         // Only invalidate if there are actual doc changes to prevent excessive renders
-        if (!snapshot.empty) {
+        if (snapshot.docChanges().length > 0) {
           queryClient.invalidateQueries({
             queryKey: queryKeys.notifications.infinite(recipientId, unreadOnly),
           });
