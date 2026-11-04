@@ -275,15 +275,13 @@ export function RequestResultsState({ locale }: RequestResultsStateProps) {
           <div className="max-w-xl mx-auto space-y-2">
             <h3 className="text-lg sm:text-xl font-bold text-foreground">
               {activeFilters.length > 0
-                ? (locale === "en" ? "No Matching Blood Requests Found" : "এই ফিল্টারে কোনো সক্রিয় অনুরোধ পাওয়া যায়নি")
-                : t.bloodRequestsPage.results.demoNoticeTitle}
+                ? t.bloodRequestsPage.results.noRequestsFound
+                : t.bloodRequestsPage.results.emptyRequestsTitle}
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
               {activeFilters.length > 0
-                ? (locale === "en"
-                    ? "Try clearing some filters or broadcasting a new emergency requisition for your patient."
-                    : "ফিল্টার পরিবর্তন করুন অথবা আপনার রোগীর জন্য জরুরি রক্তের একটি নতুন অনুরোধ তৈরি করুন।")
-                : t.bloodRequestsPage.results.demoNoticeDesc}
+                ? t.bloodRequestsPage.results.noRequestsFoundDesc
+                : t.bloodRequestsPage.results.emptyRequestsDesc}
             </p>
           </div>
 
